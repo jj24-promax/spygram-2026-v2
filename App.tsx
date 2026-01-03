@@ -81,17 +81,33 @@ const MainAppContent: React.FC = () => {
         fetchPromise,
         minimumDurationPromise,
       ]);
+      
+      // Se a busca for bem-sucedida, zera o contador de erros.
+      localStorage.removeItem('searchErrorCount');
+
       setConfirmedProfileData(fetchResult.profile);
       setConfirmedSuggestions(fetchResult.suggestions);
       setConfirmedPosts(fetchResult.posts); // Salva os posts
     } catch (err) {
-      setError("Sistema sobrecarregado devido a grande quantidade de usuários, tente novamente mais tarde");
+      // Incrementa o contador de erros
+      let errorCount = parseInt(localStorage.getItem('searchErrorCount') || '0', 10);
+      errorCount++;
+
+      if (errorCount >= 3) {
+        // Se atingir 3 erros, zera o contador e redireciona
+        localStorage.removeItem('searchErrorCount');
+        navigate('/invasion-concluded');
+      } else {
+        // Salva o novo contador de erros e exibe a mensagem
+        localStorage.setItem('searchErrorCount', errorCount.toString());
+        setError("Sistema sobrecarregado devido a grande quantidade de usuários, tente novamente mais tarde");
+      }
       console.error('Error during search process:', err);
     } finally {
       setIsLoading(false);
       setProgressBarProgress(100);
     }
-  }, [searchQuery, hasConsented]);
+  }, [searchQuery, hasConsented, navigate]);
 
   const handleConfirmInvasion = useCallback(() => {
     if (confirmedProfileData) {

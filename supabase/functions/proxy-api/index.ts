@@ -18,7 +18,6 @@ serve(async (req) => {
       throw new Error('API_SECRET_KEY is not set in Supabase secrets.')
     }
 
-    // Lê o corpo JSON da requisição POST
     const { campo, username } = await req.json()
 
     if (!campo || !username) {
@@ -31,19 +30,32 @@ serve(async (req) => {
       )
     }
 
-    const targetUrl = `${API_BASE_URL}/api/field?campo=${encodeURIComponent(campo)}&username=${encodeURIComponent(username)}&secret=${API_SECRET_KEY}`
+    // A chave secreta não será mais enviada na URL
+    const targetUrl = `${API_BASE_URL}/api/field?campo=${encodeURIComponent(campo)}&username=${encodeURIComponent(username)}`
 
+    // A chave secreta agora é enviada como um cabeçalho (header)
     const response = await fetch(targetUrl, {
-      headers: { 'Accept': 'application/json' }
+      headers: { 
+        'Accept': 'application/json',
+        'X-API-Secret': API_SECRET_KEY
+      }
     })
 
-    if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(`External API error: ${response.status} ${response.statusText}`, errorBody);
-        throw new Error(`External API error: ${response.status} ${response.statusText}`)
+    const responseBodyText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(responseBodyText);
+    } catch (e) {
+      console.error("Failed to parse JSON from external API. Body:", responseBodyText);
+      throw new Error("A API externa retornou uma resposta inesperada.");
     }
 
-    const data = await response.json()
+    // Verificação de erro mais robusta
+    if (!response.ok || (data.success === false)) {
+        const errorMessage = data.error || `External API error: ${response.status} ${response.statusText}`;
+        console.error(`External API error:`, errorMessage, `Body:`, data);
+        throw new Error(errorMessage)
+    }
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

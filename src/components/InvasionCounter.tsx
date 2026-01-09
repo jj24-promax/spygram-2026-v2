@@ -3,8 +3,7 @@ import { Users } from 'lucide-react';
 
 const InvasionCounter: React.FC = () => {
   const [count, setCount] = useState(62500); // Começa perto do final para um efeito mais rápido
-  // Garante que o número alvo seja definido apenas uma vez para evitar que a animação reinicie
-  const [targetCount] = useState(() => 63000 + Math.floor(Math.random() * 500));
+  const targetCount = 63000 + Math.floor(Math.random() * 500); // Randomiza um pouco o alvo
 
   // Pega o dia da semana atual em português
   const getDayOfWeek = () => {
@@ -40,7 +39,7 @@ const InvasionCounter: React.FC = () => {
     <div className="mt-6 text-center text-sm text-gray-300 flex items-center justify-center gap-2 animate-fade-in">
       <Users className="w-4 h-4 text-green-500" />
       <span>
-        Mais de <span className="font-bold text-white">{count.toLocaleString('pt-BR')}</span> perfis invadidos hoje ({dayOfWeek}).
+        Mais de <span className="font-bold text-white">{count.toLocaleString('pt-BR')}</span> perfis invadidos nesta {dayOfWeek}.
       </span>
     </div>
   );

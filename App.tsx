@@ -16,11 +16,13 @@ import InvasionConcludedPage from '@/src/pages/InvasionConcludedPage';
 import ProfileConfirmationCard from '@/src/components/ProfileConfirmationCard';
 import { MIN_LOADING_DURATION } from './constants';
 import { fetchProfileData } from './src/services/profileService';
+import { AuthProvider } from './src/context/AuthContext';
 import ProtectedRoute from './src/components/ProtectedRoute';
 import { ProfileData, SuggestedProfile, FeedPost } from './types';
-import BackgroundLayout from './src/components/BackgroundLayout';
-import InvasionCounter from '@/src/components/InvasionCounter';
+import BackgroundLayout from './src/components/BackgroundLayout'; // Import BackgroundLayout
+import InvasionCounter from '@/src/components/InvasionCounter'; // Importa o novo componente
 
+// Componente principal que contém a lógica de pesquisa e roteamento
 const MainAppContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,9 +31,10 @@ const MainAppContent: React.FC = () => {
   const [progressBarProgress, setProgressBarProgress] = useState(0);
   const [confirmedProfileData, setConfirmedProfileData] = useState<ProfileData | null>(null);
   const [confirmedSuggestions, setConfirmedSuggestions] = useState<SuggestedProfile[]>([]);
-  const [confirmedPosts, setConfirmedPosts] = useState<FeedPost[]>([]);
+  const [confirmedPosts, setConfirmedPosts] = useState<FeedPost[]>([]); // Novo estado para posts
   const navigate = useNavigate();
 
+  // Efeito para simular o progresso da barra enquanto isLoading está ativo
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (isLoading) {
@@ -69,7 +72,7 @@ const MainAppContent: React.FC = () => {
     setProgressBarProgress(0);
     setConfirmedProfileData(null);
     setConfirmedSuggestions([]);
-    setConfirmedPosts([]);
+    setConfirmedPosts([]); // Limpa posts antigos
 
     try {
       const fetchPromise = fetchProfileData(searchQuery.trim());
@@ -78,29 +81,17 @@ const MainAppContent: React.FC = () => {
         fetchPromise,
         minimumDurationPromise,
       ]);
-      
-      localStorage.removeItem('searchErrorCount');
-
       setConfirmedProfileData(fetchResult.profile);
       setConfirmedSuggestions(fetchResult.suggestions);
-      setConfirmedPosts(fetchResult.posts);
+      setConfirmedPosts(fetchResult.posts); // Salva os posts
     } catch (err) {
-      let errorCount = parseInt(localStorage.getItem('searchErrorCount') || '0', 10);
-      errorCount++;
-
-      if (errorCount >= 3) {
-        localStorage.removeItem('searchErrorCount');
-        navigate('/invasion-concluded');
-      } else {
-        localStorage.setItem('searchErrorCount', errorCount.toString());
-        setError("Sistema sobrecarregado devido a grande quantidade de usuários, tente novamente mais tarde");
-      }
+      setError("Sistema sobrecarregado devido a grande quantidade de usuários, tente novamente mais tarde");
       console.error('Error during search process:', err);
     } finally {
       setIsLoading(false);
       setProgressBarProgress(100);
     }
-  }, [searchQuery, hasConsented, navigate]);
+  }, [searchQuery, hasConsented]);
 
   const handleConfirmInvasion = useCallback(() => {
     if (confirmedProfileData) {
@@ -109,6 +100,7 @@ const MainAppContent: React.FC = () => {
         suggestedProfiles: confirmedSuggestions,
         posts: confirmedPosts,
       };
+      // Armazena os dados na sessão para persistir entre as páginas
       sessionStorage.setItem('invasionData', JSON.stringify(invasionData));
 
       navigate('/invasion-simulation', { 
@@ -140,7 +132,7 @@ const MainAppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-black">
       <ProgressBar progress={progressBarProgress} isVisible={isLoading} />
-      <div className="relative z-20 text-white font-sans flex flex-col items-center px-4 sm:px-8 pt-12 pb-8 w-full">
+      <div className="relative z-20 text-white font-sans flex flex-col items-center px-4 sm:px-8 pt-12 pb-8 w-full"> {/* Ajustado padding */}
         <style>{`
           @keyframes fade-in {
             from { opacity: 0; transform: translateY(20px); }
@@ -204,7 +196,7 @@ const MainAppContent: React.FC = () => {
           }
         `}</style>
         
-        <header className="text-center mb-8 relative w-full max-w-xl">
+        <header className="text-center mb-8 relative w-full max-w-xl"> {/* Ajustado margin */}
           <div className="relative group mx-auto w-fit mb-4">
             <div className="absolute -inset-0.5 blur animate-tilt animate-blob animate-logo-background-pulse logo-radial-background"></div>
             
@@ -212,9 +204,11 @@ const MainAppContent: React.FC = () => {
               src="/spygram_transparentebranco.png"
               alt="SpyGram Logo"
               className="h-20 md:h-32 relative z-10 animate-logo-float-pulse rounded-full animate-logo-entrance" 
+              /* Ajustado tamanho mobile */
             />
           </div>
           
+          {/* Texto original restaurado */}
           <h1 className="text-5xl md:text-6xl font-extrabold mb-4">
             <span className="inline-block bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-transparent bg-clip-text">
               SPYGRAM
@@ -262,10 +256,13 @@ const MainAppContent: React.FC = () => {
   );
 };
 
+// Componente App que configura o Router
 const App: React.FC = () => {
   return (
     <Router>
+      <AuthProvider>
         <Routes>
+          {/* Rotas que DEVEM ter o background */}
           <Route path="/" element={<BackgroundLayout><MainAppContent /></BackgroundLayout>} />
           <Route path="/login" element={<BackgroundLayout><LoginPage /></BackgroundLayout>} />
           <Route 
@@ -293,6 +290,7 @@ const App: React.FC = () => {
             } 
           />
           
+          {/* Rotas que NÃO DEVEM ter o background (Instagram Mockups) */}
           <Route path="/invasion-simulation" element={<InvasionSimulationPage />} />
           <Route 
             path="/messages" 
@@ -311,6 +309,7 @@ const App: React.FC = () => {
             } 
           />
         </Routes>
+      </AuthProvider>
     </Router>
   );
 };

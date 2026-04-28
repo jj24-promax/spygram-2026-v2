@@ -57,23 +57,16 @@ const CheckoutPage: React.FC = () => {
         <Lock className="w-4 h-4 text-gray-500" />
       </div>
 
-      {/* Banner Principal e Reviews */}
-      <div className="w-full bg-black flex flex-col items-center pt-8 pb-4">
+      {/* Banner Imagem */}
+      <div className="w-full max-w-4xl mx-auto flex justify-center bg-black">
         <img 
           src="/banner-topo.png" 
-          alt="Perfis Interagidos" 
-          className="w-full max-w-md h-auto object-contain px-4"
+          alt="Finalize a compra do Relatório Completo" 
+          className="w-full h-auto object-cover"
         />
-        <div className="w-full px-4 mt-6 mb-4 max-w-md">
-          <img 
-            src="/embaixodobanner.png" 
-            alt="Mais de 12 mil pessoas aprovam" 
-            className="w-full h-auto object-contain"
-          />
-        </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Left Column - Forms */}
@@ -174,71 +167,63 @@ const CheckoutPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                  {/* BUMP 1: SpyGram PRO */}
-                  <div onClick={() => handleToggleBump('pro')} className={`p-4 rounded-xl border transition-all cursor-pointer flex gap-3 ${bumps.pro ? 'bg-[#1a1a1a] border-[#d4af37]' : 'bg-[#0a0a0a] border-gray-800 hover:border-gray-700'}`}>
-                    <div className={`w-6 h-6 flex-shrink-0 rounded flex items-center justify-center mt-1 border ${bumps.pro ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
-                      {bumps.pro && <Check className="w-4 h-4 text-black" />}
+                  {/* BUMP 1: SpyGram PRO (Vitalício) */}
+                  <div onClick={() => handleToggleBump('pro')} className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-3 sm:gap-4 ${bumps.pro ? 'bg-[#1a1a1a] border-[#d4af37]' : 'bg-[#0a0a0a] border-gray-800 hover:border-gray-700'}`}>
+                    <div className="flex-shrink-0 bg-white/5 rounded-md p-1.5 flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
+                      <img src="/Vitalicio.png" alt="SpyGram PRO" className="w-full h-full object-contain" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex flex-row-reverse sm:flex-row items-start justify-between gap-2">
-                        <img src="/logoapp.png" alt="SpyGram PRO" className="w-12 h-12 object-contain flex-shrink-0" />
-                        <div className="flex-1">
-                          <h3 className="text-[13px] sm:text-sm font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM ACESSO VITALÍCIO AO SPYGRAM PRO</h3>
-                          <p className="text-[13px] sm:text-sm font-bold text-green-500 mt-1">À VISTA POR R$ 9,90</p>
-                        </div>
-                      </div>
-                      <p className="text-xs sm:text-sm font-semibold text-red-500 mt-2">Tenha acesso permanente a ferramenta SpyGram PRO!</p>
+                      <h3 className="text-[11px] sm:text-[13px] font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM ACESSO VITALÍCIO AO SPYGRAM PRO</h3>
+                      <p className="text-[12px] sm:text-[14px] font-bold text-green-500 mt-1">À VISTA POR R$ 9,90</p>
+                      <p className="text-[10px] sm:text-[12px] font-semibold text-red-500 mt-1 leading-tight">Tenha acesso permanente a ferramenta SpyGram PRO!</p>
+                    </div>
+                    <div className={`w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0 rounded flex items-center justify-center border transition-colors ${bumps.pro ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
+                      {bumps.pro && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-black" />}
                     </div>
                   </div>
 
                   {/* BUMP 2: Redes Sociais */}
-                  <div onClick={() => handleToggleBump('social')} className={`p-4 rounded-xl border transition-all cursor-pointer flex gap-3 ${bumps.social ? 'bg-[#1a1a1a] border-[#d4af37]' : 'bg-[#0a0a0a] border-gray-800 hover:border-gray-700'}`}>
-                    <div className={`w-6 h-6 flex-shrink-0 rounded flex items-center justify-center mt-1 border ${bumps.social ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
-                      {bumps.social && <Check className="w-4 h-4 text-black" />}
+                  <div onClick={() => handleToggleBump('social')} className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-3 sm:gap-4 ${bumps.social ? 'bg-[#1a1a1a] border-[#d4af37]' : 'bg-[#0a0a0a] border-gray-800 hover:border-gray-700'}`}>
+                    <div className="flex-shrink-0 bg-white/5 rounded-md p-1.5 flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
+                      <img src="/orderredesociais.png" alt="Redes Sociais" className="w-full h-full object-contain" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex flex-row-reverse sm:flex-row items-start justify-between gap-2">
-                        <img src="/orderredesociais.png" alt="Redes Sociais" className="w-12 h-12 object-contain flex-shrink-0" />
-                        <div className="flex-1">
-                          <h3 className="text-[13px] sm:text-sm font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM ESPIÃO INSTAGRAM + FACEBOOK + WHATSAPP</h3>
-                          <p className="text-[13px] sm:text-sm font-bold text-green-500 mt-1">À VISTA POR R$ 19,90</p>
-                        </div>
-                      </div>
-                      <p className="text-xs sm:text-sm font-semibold text-red-500 mt-2">Tenha acesso a todas as redes sociais de quem você quiser!</p>
+                      <h3 className="text-[11px] sm:text-[13px] font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM ESPIÃO INSTAGRAM + FACEBOOK + WHATSAPP</h3>
+                      <p className="text-[12px] sm:text-[14px] font-bold text-green-500 mt-1">À VISTA POR R$ 19,90</p>
+                      <p className="text-[10px] sm:text-[12px] font-semibold text-red-500 mt-1 leading-tight">Tenha acesso a todas as redes sociais de quem você quiser!</p>
+                    </div>
+                    <div className={`w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0 rounded flex items-center justify-center border transition-colors ${bumps.social ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
+                      {bumps.social && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-black" />}
                     </div>
                   </div>
 
                   {/* BUMP 3: Mensagens Apagadas */}
-                  <div onClick={() => handleToggleBump('recover')} className={`p-4 rounded-xl border transition-all cursor-pointer flex gap-3 ${bumps.recover ? 'bg-[#1a1a1a] border-[#d4af37]' : 'bg-[#0a0a0a] border-gray-800 hover:border-gray-700'}`}>
-                    <div className={`w-6 h-6 flex-shrink-0 rounded flex items-center justify-center mt-1 border ${bumps.recover ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
-                      {bumps.recover && <Check className="w-4 h-4 text-black" />}
+                  <div onClick={() => handleToggleBump('recover')} className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-3 sm:gap-4 ${bumps.recover ? 'bg-[#1a1a1a] border-[#d4af37]' : 'bg-[#0a0a0a] border-gray-800 hover:border-gray-700'}`}>
+                    <div className="flex-shrink-0 bg-white/5 rounded-md p-1.5 flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
+                      <img src="/orderlixeira.png" alt="Recuperar Apagadas" className="w-full h-full object-contain" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex flex-row-reverse sm:flex-row items-start justify-between gap-2">
-                        <img src="/orderlixeira.png" alt="Recuperar Apagadas" className="w-12 h-12 object-contain flex-shrink-0" />
-                        <div className="flex-1">
-                          <h3 className="text-[13px] sm:text-sm font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM RECUPERADOR DE MENSAGENS APAGADAS</h3>
-                          <p className="text-[13px] sm:text-sm font-bold text-green-500 mt-1">À VISTA POR R$ 15,90</p>
-                        </div>
-                      </div>
-                      <p className="text-xs sm:text-sm font-semibold text-red-500 mt-2">Recupere todas as mensagens apagadas do instagram!</p>
+                      <h3 className="text-[11px] sm:text-[13px] font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM RECUPERADOR DE MENSAGENS APAGADAS</h3>
+                      <p className="text-[12px] sm:text-[14px] font-bold text-green-500 mt-1">À VISTA POR R$ 15,90</p>
+                      <p className="text-[10px] sm:text-[12px] font-semibold text-red-500 mt-1 leading-tight">Recupere todas as mensagens apagadas do instagram!</p>
+                    </div>
+                    <div className={`w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0 rounded flex items-center justify-center border transition-colors ${bumps.recover ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
+                      {bumps.recover && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-black" />}
                     </div>
                   </div>
 
                   {/* BUMP 4: Rastreamento */}
-                  <div onClick={() => handleToggleBump('track')} className={`p-4 rounded-xl border transition-all cursor-pointer flex gap-3 ${bumps.track ? 'bg-[#1a1a1a] border-[#d4af37]' : 'bg-[#0a0a0a] border-gray-800 hover:border-gray-700'}`}>
-                    <div className={`w-6 h-6 flex-shrink-0 rounded flex items-center justify-center mt-1 border ${bumps.track ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
-                      {bumps.track && <Check className="w-4 h-4 text-black" />}
+                  <div onClick={() => handleToggleBump('track')} className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-3 sm:gap-4 ${bumps.track ? 'bg-[#1a1a1a] border-[#d4af37]' : 'bg-[#0a0a0a] border-gray-800 hover:border-gray-700'}`}>
+                    <div className="flex-shrink-0 bg-white/5 rounded-md p-1.5 flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
+                      <img src="/orderlocalizacao.png" alt="Rastreamento" className="w-full h-full object-contain" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex flex-row-reverse sm:flex-row items-start justify-between gap-2">
-                        <img src="/orderlocalizacao.png" alt="Rastreamento" className="w-12 h-12 object-contain flex-shrink-0" />
-                        <div className="flex-1">
-                          <h3 className="text-[13px] sm:text-sm font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM RASTREAMENTO 24 HORAS</h3>
-                          <p className="text-[13px] sm:text-sm font-bold text-green-500 mt-1">À VISTA POR R$ 15,90</p>
-                        </div>
-                      </div>
-                      <p className="text-xs sm:text-sm font-semibold text-red-500 mt-2">Rastreie a pessoa que quiser usando somente o celular por tempo ilimitado! Saiba cada passo dela!</p>
+                      <h3 className="text-[11px] sm:text-[13px] font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM RASTREAMENTO 24 HORAS</h3>
+                      <p className="text-[12px] sm:text-[14px] font-bold text-green-500 mt-1">À VISTA POR R$ 15,90</p>
+                      <p className="text-[10px] sm:text-[12px] font-semibold text-red-500 mt-1 leading-tight">Rastreie a pessoa que quiser usando somente o celular por tempo ilimitado!</p>
+                    </div>
+                    <div className={`w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0 rounded flex items-center justify-center border transition-colors ${bumps.track ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
+                      {bumps.track && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-black" />}
                     </div>
                   </div>
 
@@ -253,7 +238,7 @@ const CheckoutPage: React.FC = () => {
               
               {/* Product Placeholder / Image */}
               <div className="w-full aspect-square bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-lg flex items-center justify-center mb-6">
-                <img src="/spygram_transparentebranco.png" alt="SpyGram Logo" className="w-2/3 opacity-80" />
+                <img src="/logoapp.png" alt="SpyGram Logo" className="w-1/2 opacity-90 object-contain" />
               </div>
 
               <h2 className="text-lg font-black text-white uppercase tracking-wider mb-6 border-b border-gray-800 pb-4">
@@ -302,6 +287,15 @@ const CheckoutPage: React.FC = () => {
             </div>
           </div>
 
+        </div>
+
+        {/* Imagem do Final / Reviews */}
+        <div className="mt-16 w-full max-w-2xl mx-auto flex justify-center">
+          <img 
+            src="/embaixodobanner.png" 
+            alt="Mais de 12 mil pessoas aprovam" 
+            className="w-full h-auto object-contain rounded-xl shadow-lg"
+          />
         </div>
       </div>
     </div>

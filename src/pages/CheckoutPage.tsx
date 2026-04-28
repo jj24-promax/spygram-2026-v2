@@ -117,16 +117,22 @@ const CheckoutPage: React.FC = () => {
         <Lock className="w-4 h-4 text-gray-500" />
       </div>
 
-      {/* Banner Principal e Reviews (Claro com Blur) */}
-      <div className="w-full relative flex flex-col items-center pt-8 pb-8 px-4 border-b border-gray-800 overflow-hidden bg-white">
-        {/* Efeitos de fundo claro e blur */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#f8f9fa] to-[#e9ecef]"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.9)_0%,transparent_100%)] blur-xl"></div>
+      {/* Banner Principal e Reviews */}
+      <div className="w-full relative flex flex-col items-center pt-10 pb-10 px-4 border-b border-gray-800 overflow-hidden bg-[#f4f5f7]">
+        {/* Efeito de blur pegando as cores da própria imagem */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-60 pointer-events-none select-none">
+          <img 
+            src="/banner-topo.png" 
+            alt="" 
+            className="w-full max-w-4xl h-auto object-contain scale-[1.15] blur-[50px] opacity-70"
+          />
+        </div>
         
+        {/* Imagem Principal Nítida */}
         <img 
           src="/banner-topo.png" 
-          alt="Finalize a compra do Relatório Completo" 
-          className="w-full max-w-5xl h-auto object-contain relative z-10 mix-blend-multiply"
+          alt="12 mil pessoas aprovam o SpyGram" 
+          className="w-full max-w-4xl h-auto object-contain relative z-10"
         />
       </div>
 
@@ -276,61 +282,61 @@ const CheckoutPage: React.FC = () => {
                 <div className="space-y-4">
                   {/* BUMP 1: SpyGram PRO (Vitalício) */}
                   <div onClick={() => handleToggleBump('pro')} className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-3 sm:gap-4 ${bumps.pro ? 'bg-[#1a1a1a] border-[#d4af37]' : 'bg-[#0a0a0a] border-gray-800 hover:border-gray-700'}`}>
-                    <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/5 rounded-lg p-2 flex items-center justify-center">
+                    <div className="flex-shrink-0 bg-white/5 rounded-md p-1.5 flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
                       <img src="/Vitalicio.png" alt="SpyGram PRO" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.src = '/logoapp.png'; }} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-[12px] sm:text-[14px] font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM ACESSO VITALÍCIO AO SPYGRAM PRO</h3>
-                      <p className="text-[13px] sm:text-[15px] font-bold text-green-500 mt-1">À VISTA POR R$ 9,90</p>
-                      <p className="text-[10px] sm:text-xs font-semibold text-gray-400 mt-1 leading-tight">Tenha acesso permanente a ferramenta SpyGram PRO!</p>
+                      <h3 className="text-[11px] sm:text-[13px] font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM ACESSO VITALÍCIO AO SPYGRAM PRO</h3>
+                      <p className="text-[12px] sm:text-[14px] font-bold text-green-500 mt-1">À VISTA POR R$ 9,90</p>
+                      <p className="text-[10px] sm:text-[12px] font-semibold text-red-500 mt-1 leading-tight">Tenha acesso permanente a ferramenta SpyGram PRO!</p>
                     </div>
-                    <div className={`w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 rounded flex items-center justify-center border transition-colors ${bumps.pro ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
-                      {bumps.pro && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-black font-bold" />}
+                    <div className={`w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0 rounded flex items-center justify-center border transition-colors ${bumps.pro ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
+                      {bumps.pro && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-black" />}
                     </div>
                   </div>
 
                   {/* BUMP 2: Redes Sociais */}
                   <div onClick={() => handleToggleBump('social')} className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-3 sm:gap-4 ${bumps.social ? 'bg-[#1a1a1a] border-[#d4af37]' : 'bg-[#0a0a0a] border-gray-800 hover:border-gray-700'}`}>
-                    <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/5 rounded-lg p-2 flex items-center justify-center">
+                    <div className="flex-shrink-0 bg-white/5 rounded-md p-1.5 flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
                       <img src="/orderredesociais.png" alt="Redes Sociais" className="w-full h-full object-contain" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-[12px] sm:text-[14px] font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM ESPIÃO INSTAGRAM + FACEBOOK + WHATSAPP</h3>
-                      <p className="text-[13px] sm:text-[15px] font-bold text-green-500 mt-1">À VISTA POR R$ 19,90</p>
-                      <p className="text-[10px] sm:text-xs font-semibold text-gray-400 mt-1 leading-tight">Tenha acesso a todas as redes sociais de quem você quiser!</p>
+                      <h3 className="text-[11px] sm:text-[13px] font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM ESPIÃO INSTAGRAM + FACEBOOK + WHATSAPP</h3>
+                      <p className="text-[12px] sm:text-[14px] font-bold text-green-500 mt-1">À VISTA POR R$ 19,90</p>
+                      <p className="text-[10px] sm:text-[12px] font-semibold text-red-500 mt-1 leading-tight">Tenha acesso a todas as redes sociais de quem você quiser!</p>
                     </div>
-                    <div className={`w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 rounded flex items-center justify-center border transition-colors ${bumps.social ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
-                      {bumps.social && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-black font-bold" />}
+                    <div className={`w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0 rounded flex items-center justify-center border transition-colors ${bumps.social ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
+                      {bumps.social && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-black" />}
                     </div>
                   </div>
 
                   {/* BUMP 3: Mensagens Apagadas */}
                   <div onClick={() => handleToggleBump('recover')} className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-3 sm:gap-4 ${bumps.recover ? 'bg-[#1a1a1a] border-[#d4af37]' : 'bg-[#0a0a0a] border-gray-800 hover:border-gray-700'}`}>
-                    <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/5 rounded-lg p-2 flex items-center justify-center">
+                    <div className="flex-shrink-0 bg-white/5 rounded-md p-1.5 flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
                       <img src="/orderlixeira.png" alt="Recuperar Apagadas" className="w-full h-full object-contain" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-[12px] sm:text-[14px] font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM RECUPERADOR DE MENSAGENS APAGADAS</h3>
-                      <p className="text-[13px] sm:text-[15px] font-bold text-green-500 mt-1">À VISTA POR R$ 15,90</p>
-                      <p className="text-[10px] sm:text-xs font-semibold text-gray-400 mt-1 leading-tight">Recupere todas as mensagens apagadas do instagram!</p>
+                      <h3 className="text-[11px] sm:text-[13px] font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM RECUPERADOR DE MENSAGENS APAGADAS</h3>
+                      <p className="text-[12px] sm:text-[14px] font-bold text-green-500 mt-1">À VISTA POR R$ 15,90</p>
+                      <p className="text-[10px] sm:text-[12px] font-semibold text-red-500 mt-1 leading-tight">Recupere todas as mensagens apagadas do instagram!</p>
                     </div>
-                    <div className={`w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 rounded flex items-center justify-center border transition-colors ${bumps.recover ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
-                      {bumps.recover && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-black font-bold" />}
+                    <div className={`w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0 rounded flex items-center justify-center border transition-colors ${bumps.recover ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
+                      {bumps.recover && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-black" />}
                     </div>
                   </div>
 
                   {/* BUMP 4: Rastreamento */}
                   <div onClick={() => handleToggleBump('track')} className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-3 sm:gap-4 ${bumps.track ? 'bg-[#1a1a1a] border-[#d4af37]' : 'bg-[#0a0a0a] border-gray-800 hover:border-gray-700'}`}>
-                    <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/5 rounded-lg p-2 flex items-center justify-center">
+                    <div className="flex-shrink-0 bg-white/5 rounded-md p-1.5 flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
                       <img src="/orderlocalizacao.png" alt="Rastreamento" className="w-full h-full object-contain" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-[12px] sm:text-[14px] font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM RASTREAMENTO 24 HORAS</h3>
-                      <p className="text-[13px] sm:text-[15px] font-bold text-green-500 mt-1">À VISTA POR R$ 15,90</p>
-                      <p className="text-[10px] sm:text-xs font-semibold text-gray-400 mt-1 leading-tight">Rastreie a pessoa que quiser por tempo ilimitado!</p>
+                      <h3 className="text-[11px] sm:text-[13px] font-bold text-white uppercase leading-tight">ADQUIRIR TAMBÉM RASTREAMENTO 24 HORAS</h3>
+                      <p className="text-[12px] sm:text-[14px] font-bold text-green-500 mt-1">À VISTA POR R$ 15,90</p>
+                      <p className="text-[10px] sm:text-[12px] font-semibold text-red-500 mt-1 leading-tight">Rastreie a pessoa que quiser usando somente o celular por tempo ilimitado!</p>
                     </div>
-                    <div className={`w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 rounded flex items-center justify-center border transition-colors ${bumps.track ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
-                      {bumps.track && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-black font-bold" />}
+                    <div className={`w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0 rounded flex items-center justify-center border transition-colors ${bumps.track ? 'bg-[#d4af37] border-[#d4af37]' : 'bg-[#111] border-gray-600'}`}>
+                      {bumps.track && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-black" />}
                     </div>
                   </div>
 

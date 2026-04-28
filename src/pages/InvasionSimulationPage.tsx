@@ -187,21 +187,27 @@ const InvasionSimulationPage: React.FC = () => {
       />
       
       {stage === 'feed_locked' ? (
-        <div className="w-full relative">
+        <div className="w-full relative flex flex-col items-center">
           
-          {/* TIMER FLUTUANTE DE VISUALIZAÇÃO GRÁTIS */}
-          <motion.div
+          {/* TIMER FLUTUANTE DE VISUALIZAÇÃO GRÁTIS COM BOTÃO */}
+          <motion.button
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="fixed bottom-20 md:bottom-8 left-1/2 transform -translate-x-1/2 z-[100] bg-red-600/95 backdrop-blur-md border border-red-500 rounded-full px-5 py-2.5 shadow-[0_0_20px_rgba(220,38,38,0.5)] flex items-center gap-2 whitespace-nowrap pointer-events-none"
+            onClick={() => navigate('/invasion-concluded')}
+            className="fixed bottom-20 md:bottom-8 left-0 right-0 mx-auto w-[90%] max-w-[350px] z-[100] bg-red-600/95 backdrop-blur-md border-2 border-red-500 rounded-xl p-3 shadow-[0_0_30px_rgba(220,38,38,0.6)] flex flex-col items-center justify-center cursor-pointer hover:bg-red-700 transition-all active:scale-95"
           >
-            <Clock className="w-5 h-5 text-white animate-pulse" />
-            <span className="text-white font-bold text-xs sm:text-sm">
-              TEMPO GRÁTIS DE VISUALIZAÇÃO: <span className="text-yellow-300 ml-1">{formatTime(timeLeft)}</span>
-            </span>
-          </motion.div>
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-5 h-5 text-white animate-pulse" />
+              <span className="text-white font-bold text-sm">
+                TEMPO GRÁTIS: <span className="text-yellow-300">{formatTime(timeLeft)}</span>
+              </span>
+            </div>
+            <div className="bg-yellow-500 hover:bg-yellow-400 text-black font-black text-sm uppercase px-4 py-2 rounded-lg w-full text-center transition-colors">
+              Desbloquear Acesso VIP
+            </div>
+          </motion.button>
 
-          <div className="block md:hidden">
+          <div className="block md:hidden w-full max-w-md">
             <InstagramFeedMockup 
               profileData={profileData} 
               suggestedProfiles={suggestedProfiles} 

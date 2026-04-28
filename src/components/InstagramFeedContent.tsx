@@ -199,7 +199,6 @@ const InstagramFeedContent: React.FC<InstagramFeedContentProps> = ({ profileData
         {hasRealPosts ? posts.map((post, index) => (
           <RealPost key={post.post.id || index} postData={post} location={locations.length > 0 ? locations[index % locations.length] : undefined} onLockedFeatureClick={onLockedFeatureClick} />
         )) : [1, 2, 3].map((item, index) => (
-          {/* Passa um profile da lista de sugeridos para o LockedPost ficar realístico */}
           <LockedPost 
             key={item} 
             profile={suggestedProfiles[index]}

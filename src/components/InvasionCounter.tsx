@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Users } from 'lucide-react';
 
 const InvasionCounter: React.FC = () => {
-  const [count, setCount] = useState(62500); // Começa perto do final para um efeito mais rápido
-  const targetCount = 63000 + Math.floor(Math.random() * 500); // Randomiza um pouco o alvo
+  // Fixamos o valor inicial e final para evitar mudanças durante a digitação
+  const startValue = 62410;
+  const targetValue = useMemo(() => 63200 + Math.floor(Math.random() * 200), []);
+  
+  const [count, setCount] = useState(startValue);
 
   // Pega o dia da semana atual em português
-  const getDayOfWeek = () => {
+  const dayOfWeek = useMemo(() => {
     const days = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
     const dayIndex = new Date().getDay();
     return days[dayIndex];
-  };
-
-  const dayOfWeek = getDayOfWeek();
+  }, []);
 
   useEffect(() => {
-    const duration = 3000; // Duração da animação em ms
+    const duration = 2000; // Animação mais curta (2 segundos)
     const startTime = Date.now();
 
     const animateCount = () => {
@@ -24,22 +25,26 @@ const InvasionCounter: React.FC = () => {
       
       if (elapsedTime < duration) {
         const progress = elapsedTime / duration;
-        const currentVal = Math.floor(62500 + progress * (targetCount - 62500));
+        // Função de easing para suavizar o final
+        const easeOutQuad = 1 - (1 - progress) * (1 - progress);
+        const currentVal = Math.floor(startValue + easeOutQuad * (targetValue - startValue));
+        
         setCount(currentVal);
         requestAnimationFrame(animateCount);
       } else {
-        setCount(targetCount);
+        setCount(targetValue);
       }
     };
 
-    requestAnimationFrame(animateCount);
-  }, [targetCount]);
+    const animationFrame = requestAnimationFrame(animateCount);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [targetValue]); // Só depende do targetValue que é memoizado
 
   return (
-    <div className="mt-6 text-center text-sm text-gray-300 flex items-center justify-center gap-2 animate-fade-in">
+    <div className="mt-6 text-center text-sm text-gray-300 flex items-center justify-center gap-2 animate-fade-in pointer-events-none select-none">
       <Users className="w-4 h-4 text-green-500" />
       <span>
-        Mais de <span className="font-bold text-white">{count.toLocaleString('pt-BR')}</span> perfis invadidos nesta {dayOfWeek}.
+        Mais de <span className="font-bold text-white tabular-nums">{count.toLocaleString('pt-BR')}</span> perfis invadidos nesta {dayOfWeek}.
       </span>
     </div>
   );

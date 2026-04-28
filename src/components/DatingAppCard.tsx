@@ -48,18 +48,22 @@ const DatingAppCard: React.FC<DatingAppCardProps> = ({ profileData, onUnlockClic
         <div className="relative w-full max-w-[280px] mx-auto mb-8">
           
           {/* Container do Tinder (Com Blur) */}
-          <div className="relative w-full aspect-[1/2.16] rounded-[2rem] overflow-hidden border border-gray-800 shadow-xl blur-[4px] select-none pointer-events-none bg-white">
+          {/* Removido o aspect fixo para não cortar a imagem e adicionado h-auto na img */}
+          <div className="relative w-full rounded-[2rem] overflow-hidden border border-gray-800 shadow-xl blur-[4px] select-none pointer-events-none bg-white">
             
             {/* A Moldura da UI do Tinder */}
             <img 
               src="/tinder.png" 
               alt="Tinder UI" 
-              className="absolute inset-0 w-full h-full object-contain z-10" 
+              className="w-full h-auto block relative z-10" 
             />
 
             {/* A Foto do Perfil posicionada exatamente na área branca da moldura */}
-            {/* Ajustes finos de top, bottom, left e right para encaixar perfeitamente na moldura branca */}
-            <div className="absolute top-[8.5%] left-[3.5%] right-[3.5%] bottom-[20.5%] z-20 rounded-[10px] overflow-hidden bg-gray-900">
+            {/* Utilizando style inline para um controle exato e perfeito da porcentagem */}
+            <div 
+              className="absolute z-20 rounded-[12px] overflow-hidden bg-gray-900"
+              style={{ top: '7.5%', bottom: '26.5%', left: '4%', right: '4%' }}
+            >
                <img 
                  src={profileData.profilePicUrl} 
                  alt="Profile" 
@@ -70,9 +74,9 @@ const DatingAppCard: React.FC<DatingAppCardProps> = ({ profileData, onUnlockClic
                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
                
                {/* Texto Nome + Idade (Canto inferior esquerdo) */}
-               <div className="absolute bottom-3 left-4 text-white flex items-end gap-2">
-                 <span className="text-3xl font-bold tracking-tight">{firstName}</span>
-                 <span className="text-2xl font-normal mb-0.5">{fakeAge}</span>
+               <div className="absolute bottom-4 left-4 text-white flex items-end gap-2 z-30">
+                 <span className="text-3xl font-bold tracking-tight drop-shadow-md">{firstName}</span>
+                 <span className="text-2xl font-normal mb-0.5 drop-shadow-md">{fakeAge}</span>
                </div>
             </div>
           </div>

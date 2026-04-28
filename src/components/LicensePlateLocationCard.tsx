@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Car, MapPin, Lock } from 'lucide-react';
-import ShineButton from './ui/ShineButton'; // Importa ShineButton
+import ShineButton from './ui/ShineButton';
 
 interface LicensePlateLocationCardProps {
   onUnlockClick: () => void;
@@ -30,11 +30,28 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
           **NOVIDADE!** Descubra a localização exata do veículo do seu alvo, apenas com a placa. Rastreamento em tempo real via satélite.
         </p>
         
-        {/* Mockup de Busca */}
-        <div className="flex items-center justify-center gap-3 bg-black/50 border border-blue-700 rounded-full p-3 mb-6 w-fit mx-auto">
-            <Car className="w-5 h-5 text-blue-400" />
-            <span className="text-sm text-gray-400">Buscando localização da placa...</span>
-            <Lock className="w-5 h-5 text-blue-400" />
+        {/* Mockup de Imagem com Bloqueio */}
+        <div className="relative w-full max-w-md mx-auto mb-8 rounded-2xl overflow-hidden">
+          
+          {/* Imagem de Fundo (Com Blur) */}
+          <div className="relative w-full h-auto bg-white/5 rounded-2xl overflow-hidden border border-gray-800 shadow-xl blur-[4px] select-none pointer-events-none p-4">
+            <img 
+              src="/autosat-monitoramento-rastreamento.png" 
+              alt="Rastreamento Veicular" 
+              className="w-full h-auto object-contain drop-shadow-2xl" 
+            />
+          </div>
+
+          {/* Overlay de Bloqueio (Sem Blur) focado no meio */}
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center pointer-events-none">
+             <div className="bg-black/70 p-5 rounded-full backdrop-blur-sm border-2 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.5)]">
+               <Lock className="w-12 h-12 text-blue-500" />
+             </div>
+             <div className="mt-3 bg-black/80 px-4 py-1.5 rounded-full border border-blue-500/50">
+                <span className="text-blue-400 font-bold text-sm">LOCALIZAÇÃO ENCONTRADA</span>
+             </div>
+          </div>
+
         </div>
 
         <p className="text-xl text-yellow-300 font-bold mb-6">

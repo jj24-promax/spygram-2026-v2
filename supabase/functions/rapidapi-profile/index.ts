@@ -11,6 +11,12 @@ serve(async (req) => {
   }
 
   try {
+    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY')
+    
+    if (!rapidApiKey) {
+      throw new Error('RAPIDAPI_KEY is not set in Supabase secrets.')
+    }
+
     const { username } = await req.json()
 
     if (!username) {
@@ -25,8 +31,7 @@ serve(async (req) => {
       headers: {
         'Content-Type': 'application/json',
         'x-rapidapi-host': 'instagram120.p.rapidapi.com',
-        // Idealmente isso ficaria em uma variável de ambiente no Supabase, mas coloquei direto para funcionar na hora
-        'x-rapidapi-key': '493c2fa593mshfeb076d2594dae3p1b97afjsne5129abe2c71'
+        'x-rapidapi-key': rapidApiKey
       },
       body: JSON.stringify({ username })
     })

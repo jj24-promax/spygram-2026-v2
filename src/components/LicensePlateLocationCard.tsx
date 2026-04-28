@@ -33,8 +33,8 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
         {/* Mockup de Imagem com Bloqueio */}
         <div className="relative w-full max-w-md mx-auto mb-8 rounded-2xl overflow-hidden">
           
-          {/* Imagem de Fundo (Com Blur) */}
-          <div className="relative w-full h-auto bg-white/5 rounded-2xl overflow-hidden border border-gray-800 shadow-xl blur-[4px] select-none pointer-events-none p-4">
+          {/* Imagem de Fundo (Sem Blur) */}
+          <div className="relative w-full h-auto bg-white/5 rounded-2xl overflow-hidden border border-gray-800 shadow-xl select-none pointer-events-none p-4">
             <img 
               src="/autosat-monitoramento-rastreamento.png" 
               alt="Rastreamento Veicular" 
@@ -42,7 +42,7 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
             />
           </div>
 
-          {/* Overlay de Bloqueio (Sem Blur) focado no meio */}
+          {/* Overlay de Bloqueio focado no meio */}
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center pointer-events-none">
              <div className="bg-black/70 p-5 rounded-full backdrop-blur-sm border-2 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.5)]">
                <Lock className="w-12 h-12 text-blue-500" />

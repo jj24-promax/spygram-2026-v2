@@ -26,7 +26,8 @@ serve(async (req) => {
       )
     }
 
-    const response = await fetch('https://instagram120.p.rapidapi.com/api/instagram/profile', {
+    // Atualizado para o endpoint userInfo fornecido
+    const response = await fetch('https://instagram120.p.rapidapi.com/api/instagram/userInfo', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

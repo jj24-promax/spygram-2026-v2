@@ -38,14 +38,14 @@ const simpleFetch = async (campo: string, username: string): Promise<any> => {
 // ===================================
 
 /**
- * Busca o perfil básico usando a NOVA API da RapidAPI.
+ * Busca o perfil básico usando a NOVA API da RapidAPI (endpoint userInfo).
  */
 export async function fetchProfileData(username: string): Promise<FetchResult> {
     try {
         const cleanUsername = username.replace(/^@+/, '').trim();
         if (!cleanUsername) throw new Error('Username inválido');
 
-        console.log('🔍 Buscando perfil via RapidAPI:', cleanUsername);
+        console.log('🔍 Buscando perfil via RapidAPI (userInfo):', cleanUsername);
         
         // Chama a nova Edge Function que configuramos com a RapidAPI
         const { data, error } = await supabase.functions.invoke('rapidapi-profile', {
@@ -55,19 +55,22 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
         if (error) throw new Error(`Erro ao contatar a RapidAPI: ${error.message}`);
         if (data?.error) throw new Error(`Erro da API: ${data.error}`);
 
-        const result = data?.result;
+        // Acessa a nova estrutura do payload: { "result": [{ "user": { ... } }] }
+        const resultItem = data?.result?.[0];
+        const user = resultItem?.user;
 
-        if (result && result.username) {
+        if (user && user.username) {
             const profile: ProfileData = {
-                username: result.username,
-                fullName: result.full_name || '',
-                profilePicUrl: getProxyImageUrl(result.profile_pic_url_hd || result.profile_pic_url),
-                biography: result.biography || '',
-                followers: result.edge_followed_by?.count || 0,
-                following: result.edge_follow?.count || 0,
-                postsCount: result.edge_owner_to_timeline_media?.count || 0,
-                isVerified: result.is_verified || false,
-                isPrivate: result.is_private || false,
+                username: user.username,
+                fullName: user.full_name || '',
+                // Prefere a imagem em HD, mas faz fallback para a normal
+                profilePicUrl: getProxyImageUrl(user.hd_profile_pic_url_info?.url || user.profile_pic_url),
+                biography: user.biography || '',
+                followers: user.follower_count || 0,
+                following: user.following_count || 0,
+                postsCount: user.media_count || 0,
+                isVerified: user.is_verified || false,
+                isPrivate: user.is_private || false,
             };
             return { profile, suggestions: [], posts: [] };
         }

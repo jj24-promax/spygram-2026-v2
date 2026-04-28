@@ -137,7 +137,10 @@ const InvasionConcludedPage: React.FC = () => {
         />
         
         {/* 4. Cartão de Aplicativos de Relacionamento */}
-        <DatingAppCard onUnlockClick={() => handleUnlockClick('sites de namoro')} /> 
+        <DatingAppCard 
+          profileData={profileData} 
+          onUnlockClick={() => handleUnlockClick('sites de namoro')} 
+        /> 
         
         {/* 5. Cartão de Rastreamento Veicular */}
         <LicensePlateLocationCard onUnlockClick={() => handleUnlockClick('placa de carro')} />

@@ -16,7 +16,7 @@ import LockedFeatureModal from '../components/LockedFeatureModal';
 import { useAuth } from '../context/AuthContext';
 import { MOCK_SUGGESTION_NAMES } from '../../constants';
 import { fetchFullInvasionData } from '../services/profileService';
-import { Clock } from 'lucide-react';
+import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
 
 type SimulationStage = 'loading' | 'login_attempt' | 'success_card' | 'feed_locked' | 'error';
 
@@ -35,9 +35,6 @@ const InvasionSimulationPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalFeatureName, setModalFeatureName] = useState('');
   
-  // Estado para o tempo restante (inicializado como nulo)
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
-
   useEffect(() => {
     const loadAllDataAndProceed = async () => {
       const storedData = sessionStorage.getItem('invasionData');
@@ -112,6 +109,12 @@ const InvasionSimulationPage: React.FC = () => {
       };
       sessionStorage.setItem('invasionData', JSON.stringify(dataToStore));
 
+      // Lógica de cronômetro persistente inicializada aqui se for a primeira vez
+      if (!sessionStorage.getItem('invasionEndTime')) {
+        const endTime = Date.now() + 90 * 1000;
+        sessionStorage.setItem('invasionEndTime', endTime.toString());
+      }
+
       if (isLoggedIn) {
         setStage('feed_locked');
       } else {
@@ -123,40 +126,6 @@ const InvasionSimulationPage: React.FC = () => {
       loadAllDataAndProceed();
     }
   }, [location.state, navigate, stage, isLoggedIn]);
-
-  // Lógica de cronômetro persistente
-  useEffect(() => {
-    if (stage !== 'feed_locked') return;
-
-    // Busca o tempo de término do armazenamento ou cria um novo
-    const storedEndTime = sessionStorage.getItem('invasionEndTime');
-    let endTime: number;
-
-    if (storedEndTime) {
-      endTime = parseInt(storedEndTime, 10);
-    } else {
-      // Define 90 segundos a partir de agora
-      endTime = Date.now() + 90 * 1000;
-      sessionStorage.setItem('invasionEndTime', endTime.toString());
-    }
-
-    const updateTimer = () => {
-      const now = Date.now();
-      const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
-      setTimeLeft(remaining);
-      
-      if (remaining <= 0) {
-        // Limpa o tempo de término ao concluir
-        sessionStorage.removeItem('invasionEndTime');
-        navigate('/invasion-concluded');
-      }
-    };
-
-    updateTimer(); // Chamada inicial imediata
-    const intervalId = setInterval(updateTimer, 1000);
-
-    return () => clearInterval(intervalId);
-  }, [stage, navigate]);
 
   const handleLoginSuccess = useCallback(() => {
     login();
@@ -174,12 +143,6 @@ const InvasionSimulationPage: React.FC = () => {
   }, []);
 
   const closeModal = () => setIsModalOpen(false);
-
-  const formatTime = (seconds: number) => {
-    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-    const s = String(seconds % 60).padStart(2, '0');
-    return `${m}:${s}`;
-  };
 
   if (!profileData || stage === 'loading') {
     if (errorMessage) {
@@ -207,22 +170,7 @@ const InvasionSimulationPage: React.FC = () => {
       {stage === 'feed_locked' ? (
         <div className="w-full relative flex flex-col items-center">
           
-          <motion.button
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            onClick={() => navigate('/invasion-concluded')}
-            className="fixed bottom-20 md:bottom-8 left-0 right-0 mx-auto w-[90%] max-w-[350px] z-[100] bg-red-600/95 backdrop-blur-md border-2 border-red-500 rounded-xl p-3 shadow-[0_0_30px_rgba(220,38,38,0.6)] flex flex-col items-center justify-center cursor-pointer hover:bg-red-700 transition-all active:scale-95"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-5 h-5 text-white animate-pulse" />
-              <span className="text-white font-bold text-sm">
-                TEMPO GRÁTIS: <span className="text-yellow-300">{timeLeft !== null ? formatTime(timeLeft) : '01:30'}</span>
-              </span>
-            </div>
-            <div className="bg-yellow-500 hover:bg-yellow-400 text-black font-black text-sm uppercase px-4 py-2 rounded-lg w-full text-center transition-colors">
-              Desbloquear Acesso Completo
-            </div>
-          </motion.button>
+          <FreeTimeFloatingButton />
 
           <div className="block md:hidden w-full max-w-md">
             <InstagramFeedMockup 

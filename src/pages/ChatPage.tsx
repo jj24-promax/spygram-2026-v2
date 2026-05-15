@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import './ChatPage.css';
 import { Message } from './MessagesPage';
 import LockedFeatureModal from '../components/LockedFeatureModal';
+import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
 
 // Define a estrutura para uma mensagem no chat
 interface ChatMessage {
@@ -28,7 +29,6 @@ interface ChatMessage {
 
 // Define os diálogos mockados
 const DIALOGUES: { [key: string]: ChatMessage[] } = {
-  // Diálogo Padrão (para o primeiro chat)
   DEFAULT_CHAT: [
     { id: 1, type: 'date', content: '3 dias atrás, 11:12' },
     { id: 2, type: 'received', content: 'Oi minha delícia' },
@@ -65,8 +65,6 @@ const DIALOGUES: { [key: string]: ChatMessage[] } = {
     { id: 33, type: 'date', content: 'HOJE' },
     { id: 34, type: 'received', content: 'Oi delícia, adivinha o que vc esqueceu aqui? kkkk' },
   ],
-  
-  // Diálogo para o segundo chat (ATUALIZADO)
   SECOND_CHAT: [
     { id: 1, type: 'received', content: '', isStory: true, storyAuthor: 'tinhooficial', storyAvatarUrl: '/perfil.jpg', storyImageUrl: '/perfil.jpg', reaction: '😂' },
     { id: 2, type: 'date', content: '25 DE NOV, 15:22' },
@@ -115,7 +113,6 @@ const ChatPage: React.FC = () => {
   useEffect(() => {
     if (chatUser) {
       let dialogue = getDialogue(chatUser.id);
-      // Atualiza dinamicamente o horário da última mensagem
       const lastDateMsgIndex = dialogue.findIndex(m => m.id === 17);
       if (lastDateMsgIndex !== -1) {
         const now = new Date();
@@ -218,6 +215,7 @@ const ChatPage: React.FC = () => {
   return (
     <div className="chat-container">
       <LockedFeatureModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} featureName={modalFeatureName} />
+      <FreeTimeFloatingButton />
       <AnimatePresence>
         {showVolumePopup && (
           <motion.div className="volume-popup-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

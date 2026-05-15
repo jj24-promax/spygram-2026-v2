@@ -6,6 +6,7 @@ import MetaAIIcon from '../components/icons/MetaAIIcon';
 import DirectStoryItem from '../components/DirectStoryItem';
 import MessageItem from '../components/MessageItem';
 import LockedFeatureModal from '../components/LockedFeatureModal';
+import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
 import './MessagesPage.css';
 import { ProfileData, SuggestedProfile } from '../../types';
 import { getCitiesByState } from '../services/geolocationService';
@@ -98,6 +99,7 @@ const MessagesPage: React.FC = () => {
         onClose={() => setIsModalOpen(false)} 
         featureName={modalFeatureName} 
       />
+      <FreeTimeFloatingButton />
 
       <header className="messages-header">
         <div className="header-left-content">

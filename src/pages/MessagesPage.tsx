@@ -9,7 +9,6 @@ import LockedFeatureModal from '../components/LockedFeatureModal';
 import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
 import './MessagesPage.css';
 import { ProfileData, SuggestedProfile } from '../../types';
-import { getCitiesByState } from '../services/geolocationService';
 
 // Interfaces para os dados da página
 export interface Story {
@@ -52,9 +51,6 @@ const MessagesPage: React.FC = () => {
       setProfileData(data.profileData);
 
       const suggestedProfiles: SuggestedProfile[] = data.suggestedProfiles || [];
-      const userCity: string = data.userCity || 'São Paulo';
-      
-      const allCities = getCitiesByState(userCity, 'São Paulo'); 
       
       const suggestedStories: Story[] = suggestedProfiles.slice(0, 4).map((profile: SuggestedProfile, index: number) => ({
         id: profile.username,
@@ -64,15 +60,26 @@ const MessagesPage: React.FC = () => {
       }));
       setStories(suggestedStories);
 
+      const messagePreviews = [
+        'Mencionou você em um story',
+        'Enviou um anexo',
+        'Visto',
+        'Respondeu ao seu story',
+        '4 novas mensagens',
+        'Enviou uma mensagem de áudio',
+        'Foto temporária',
+        'Curtiu uma mensagem'
+      ];
+
       const suggestedMessages: Message[] = suggestedProfiles.slice(0, 10).map((profile: SuggestedProfile, index: number) => {
-        const city = allCities[index % allCities.length];
+        const preview = messagePreviews[index % messagePreviews.length];
         const time = ['22 h', '3 d', '4 d', '1 sem'][index % 4];
         const unread = index % 3 === 0;
 
         return {
           id: profile.username,
           name: maskUsername(profile.username),
-          message: index % 2 === 0 ? `${city}` : '4 novas mensagens',
+          message: preview,
           time: time,
           unread: unread,
           locked: true, // Todos os chats aparecem como bloqueados/borrados

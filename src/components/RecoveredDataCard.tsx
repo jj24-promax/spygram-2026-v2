@@ -88,14 +88,14 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) 
             </div>
         </div>
 
-        {/* Mini Galeria de Fotos Recuperadas */}
+        {/* Mini Galeria de Fotos Recuperadas (Aumentada para w-28 h-28) */}
         {selectedImages.length > 0 && (
-          <div className="flex items-center justify-center gap-8 mb-8 bg-black/60 p-6 rounded-xl border border-red-700/50 max-w-sm mx-auto shadow-lg shadow-red-500/10">
-            <div className="flex -space-x-8"> 
+          <div className="flex items-center justify-center gap-10 mb-8 bg-black/60 p-6 rounded-xl border border-red-700/50 max-w-sm mx-auto shadow-lg shadow-red-500/10">
+            <div className="flex -space-x-10"> 
               {selectedImages.map((src, index) => (
                 <div 
                   key={index} 
-                  className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-pink-500 shadow-xl bg-gray-900"
+                  className="relative w-28 h-28 rounded-2xl overflow-hidden border-2 border-pink-500 shadow-xl bg-gray-900"
                   style={{ zIndex: 3 - index }}
                 >
                   <img 
@@ -105,14 +105,14 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) 
                     onError={(e) => { e.currentTarget.src = '/perfil.jpg' }}
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                    <Lock className="w-10 h-10 text-white/90 drop-shadow-md" />
+                    <Lock className="w-12 h-12 text-white/90 drop-shadow-md" />
                   </div>
                 </div>
               ))}
             </div>
             <div className="text-left leading-tight">
               {/* Agora exibe o total menos 3 */}
-              <span className="text-4xl font-black text-pink-400 animate-pulse">+{photosCount - 3}</span>
+              <span className="text-5xl font-black text-pink-400 animate-pulse">+{photosCount - 3}</span>
               <p className="text-xs text-gray-300 font-bold uppercase mt-1">Fotos apagadas<br/>encontradas</p>
             </div>
           </div>

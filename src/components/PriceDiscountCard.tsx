@@ -32,51 +32,51 @@ const PriceDiscountCard: React.FC<PriceDiscountCardProps> = ({ originalPrice, di
       initial={{ y: 50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, delay: 0.2 }}
-      className="mt-12 p-6 bg-red-900/30 border-2 border-red-600 rounded-xl shadow-2xl shadow-red-500/20 text-center relative overflow-hidden"
+      className="mt-8 p-4 bg-red-900/30 border-2 border-red-600 rounded-xl shadow-2xl shadow-red-500/20 text-center relative overflow-hidden max-w-[340px] mx-auto"
     >
       {/* Efeito de fundo de pulsação */}
       <div className="absolute inset-0 bg-red-900 opacity-50 animate-pulse-slow"></div>
 
       <div className="relative z-10">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <Zap className="w-8 h-8 text-yellow-400 animate-spin-slow" />
-          <h2 className="text-2xl font-extrabold text-white uppercase">
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Zap className="w-5 h-5 text-yellow-400 animate-spin-slow" />
+          <h2 className="text-lg font-extrabold text-white uppercase tracking-tight">
             OFERTA RELÂMPAGO
           </h2>
-          <Zap className="w-8 h-8 text-yellow-400 animate-spin-slow" />
+          <Zap className="w-5 h-5 text-yellow-400 animate-spin-slow" />
         </div>
 
-        <p className="text-lg text-gray-300 mb-2 font-medium">
+        <p className="text-sm text-gray-300 mb-1 font-medium">
           Preço Normal:
         </p>
         
         {/* Preços */}
-        <div className="flex items-center justify-center gap-4 mb-6">
-          <span className="text-3xl font-bold text-gray-400 line-through">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <span className="text-xl font-bold text-gray-400 line-through">
             {originalPrice}
           </span>
-          <span className="text-5xl font-extrabold bg-gradient-to-r from-yellow-300 to-red-500 text-transparent bg-clip-text">
+          <span className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-red-500 text-transparent bg-clip-text">
             {discountedPrice}
           </span>
         </div>
 
         {/* Contagem Regressiva */}
-        <div className="bg-black/50 border border-red-700 rounded-lg p-3 inline-flex items-center gap-3 mb-6">
-          <Clock className="w-6 h-6 text-red-400" />
-          <span className="text-xl font-mono font-bold text-red-300">
+        <div className="bg-black/50 border border-red-700 rounded-lg p-2 inline-flex items-center gap-2 mb-4">
+          <Clock className="w-4 h-4 text-red-400" />
+          <span className="text-lg font-mono font-bold text-red-300">
             {formatTime(timeLeft)}
           </span>
-          <span className="text-sm text-red-400">RESTANTE</span>
+          <span className="text-[10px] text-red-400 font-bold">RESTANTE</span>
         </div>
 
-        <p className="text-sm text-yellow-300 mb-4 font-semibold">
+        <p className="text-[11px] text-yellow-300 mb-4 font-semibold px-2">
           Esta oferta expira em breve. Garanta seu acesso completo agora!
         </p>
         
         {/* Botão de CTA dentro do card */}
         <ShineButton 
           onClick={onUnlockClick} 
-          className="w-full bg-red-600 focus:ring-red-500 active:scale-95"
+          className="w-full bg-red-600 focus:ring-red-500 active:scale-95 text-xs py-2"
           shineColorClasses="bg-red-600"
         >
           LIBERAR ACESSO COMPLETO AGORA

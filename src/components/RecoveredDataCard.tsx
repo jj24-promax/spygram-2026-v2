@@ -91,8 +91,8 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) 
         {/* Galeria de Fotos Recuperadas (Layout Vertical Centralizado) */}
         {selectedImages.length > 0 && (
           <div className="flex flex-col items-center justify-center gap-4 mb-8 bg-black/60 p-8 rounded-xl border border-red-700/50 max-w-sm mx-auto shadow-lg shadow-red-500/10">
-            {/* Miniaturas Sobrepostas */}
-            <div className="flex -space-x-12 ml-8"> {/* ml-8 para compensar visualmente o empilhamento para a direita */}
+            {/* Miniaturas Sobrepostas com mais espaço */}
+            <div className="flex -space-x-8 ml-6"> {/* Espaçamento negativo reduzido e offset ajustado */}
               {selectedImages.map((src, index) => (
                 <div 
                   key={index} 
@@ -102,7 +102,7 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) 
                   <img 
                     src={src} 
                     alt="Recuperada" 
-                    className="w-full h-full object-cover blur-[4px] scale-110" 
+                    className="w-full h-full object-cover blur-[3px] scale-110" 
                     onError={(e) => { e.currentTarget.src = '/perfil.jpg' }}
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40">

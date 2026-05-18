@@ -128,7 +128,7 @@ const CheckoutPage: React.FC = () => {
         
         <AnimatePresence mode="wait">
           {pixData ? (
-            /* --- TELA DO PIX (LAYOUT SOLICITADO) --- */
+            /* --- TELA DO PIX (LAYOUT SOLICITADO PELA IMAGEM) --- */
             <motion.div 
               key="pix-result"
               initial={{ opacity: 0 }} 
@@ -247,7 +247,7 @@ const CheckoutPage: React.FC = () => {
               </div>
             </motion.div>
           ) : (
-            /* --- FORMULÁRIO DE CHECKOUT (NORMAL) --- */
+            /* --- FORMULÁRIO DE CHECKOUT ORIGINAL (RESTAURADO) --- */
             <motion.div key="checkout-form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="bg-white rounded-3xl overflow-hidden shadow-sm mb-8 max-w-4xl mx-auto">
                 <img src="/banner-topo.png" alt="Banner" className="w-full h-auto" />

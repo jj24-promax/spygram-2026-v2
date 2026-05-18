@@ -225,7 +225,7 @@ const CheckoutPage: React.FC = () => {
                     <div 
                       key={key} 
                       onClick={() => handleToggleBump(key)}
-                      className="bg-white border border-gray-100 rounded-2xl p-4 flex gap-4 shadow-sm cursor-pointer select-none active:scale-[0.98] transition-transform"
+                      className="bg-[#f7f7f7] border border-gray-100 rounded-2xl p-4 flex gap-4 shadow-sm cursor-pointer select-none active:scale-[0.98] transition-transform"
                     >
                         {/* Left: Image */}
                         <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">

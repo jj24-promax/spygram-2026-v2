@@ -2,10 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../integrations/supabase/client';
 import { 
-  Users, DollarSign, Target, TrendingUp, Search, Calendar, 
-  MapPin, ExternalLink, Smartphone, Monitor, ShieldCheck, 
-  CreditCard, Eye, ArrowUpRight, Filter, Download, LogOut, RotateCcw,
-  Beaker
+  Users, DollarSign, Search, MapPin, ShieldCheck, 
+  CreditCard, Filter, LogOut, RotateCcw, Beaker
 } from 'lucide-react';
 import Loader from '../components/Loader';
 import toast from 'react-hot-toast';
@@ -36,22 +34,28 @@ const AdminPage: React.FC = () => {
 
   const fetchLeads = async (silent = false) => {
     if (!silent) setLoading(true);
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .order('created_at', { ascending: false });
+    
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (data) {
-      setLeads(data);
+      if (error) throw error;
+      if (data) setLeads(data);
+      
+      if (silent) toast.success('Dados atualizados!');
+    } catch (error: any) {
+      console.error('Erro ao buscar leads:', error);
+      toast.error('Erro ao carregar dados: ' + (error.message || 'Erro desconhecido'));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-    if (silent && !error) toast.success('Dados atualizados!');
   };
 
   useEffect(() => {
     fetchLeads();
     
-    // Inscrição em tempo real para atualizações automáticas
     const channel = supabase
       .channel('admin-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
@@ -66,10 +70,6 @@ const AdminPage: React.FC = () => {
     localStorage.removeItem('spygram_admin_auth');
     toast.success('Sessão encerrada.');
     navigate('/admin-login');
-  };
-
-  const handleRefresh = () => {
-    fetchLeads(true);
   };
 
   const handleCreateTestLead = async () => {
@@ -90,13 +90,11 @@ const AdminPage: React.FC = () => {
     const { error } = await supabase.from('leads').insert([testData]);
     
     if (error) {
-      console.error('Erro ao inserir lead:', error);
       toast.error('Erro ao gerar lead teste.');
     } else {
-      // Limpa filtros para garantir que o novo lead apareça no topo
       setSearchTerm('');
       setStatusFilter('all');
-      toast.success('Lead de teste gerado! Filtros limpos para visualização.');
+      toast.success('Lead de teste gerado!');
       fetchLeads(true);
     }
   };
@@ -119,13 +117,22 @@ const AdminPage: React.FC = () => {
   }, [leads]);
 
   const filteredLeads = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase().trim();
+    
     return leads.filter(lead => {
-      const matchesSearch = 
-        (lead.username_searched?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (lead.email?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (lead.phone?.includes(searchTerm)) ||
-        (lead.document?.includes(searchTerm)) ||
-        (lead.full_name?.toLowerCase().includes(searchTerm.toLowerCase()));
+      // Filtragem segura para evitar erros com campos nulos
+      const username = (lead.username_searched || '').toLowerCase();
+      const email = (lead.email || '').toLowerCase();
+      const phone = (lead.phone || '');
+      const document = (lead.document || '');
+      const fullName = (lead.full_name || '').toLowerCase();
+
+      const matchesSearch = searchLower === '' || 
+        username.includes(searchLower) ||
+        email.includes(searchLower) ||
+        phone.includes(searchLower) ||
+        document.includes(searchLower) ||
+        fullName.includes(searchLower);
       
       const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
       
@@ -137,7 +144,6 @@ const AdminPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#080808] text-gray-200 p-4 md:p-8 font-sans">
-      
       <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -151,31 +157,19 @@ const AdminPage: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          <button 
-            onClick={handleCreateTestLead}
-            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600/10 border border-purple-600/20 text-purple-400 rounded-xl hover:bg-purple-600/20 transition-all text-xs font-bold uppercase tracking-widest"
-          >
+          <button onClick={handleCreateTestLead} className="flex items-center gap-2 px-4 py-2.5 bg-purple-600/10 border border-purple-600/20 text-purple-400 rounded-xl hover:bg-purple-600/20 transition-all text-xs font-bold uppercase tracking-widest">
             <Beaker className="w-4 h-4" />
             <span className="hidden sm:inline">Gerar Lead Teste</span>
           </button>
-
-          <button 
-            onClick={handleRefresh}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all text-xs font-bold uppercase tracking-widest"
-          >
+          <button onClick={handleRefresh} className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all text-xs font-bold uppercase tracking-widest">
             <RotateCcw className="w-4 h-4" />
             <span className="hidden sm:inline">Atualizar</span>
           </button>
-
           <div className="bg-purple-600 px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-purple-600/20">
             <DollarSign className="w-4 h-4 text-white" />
             <span className="font-black text-white text-sm">R$ {metrics.revenue.toFixed(2)}</span>
           </div>
-
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2.5 bg-red-600/10 border border-red-600/20 text-red-500 rounded-xl hover:bg-red-600/20 transition-all text-xs font-bold uppercase tracking-widest"
-          >
+          <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2.5 bg-red-600/10 border border-red-600/20 text-red-500 rounded-xl hover:bg-red-600/20 transition-all text-xs font-bold uppercase tracking-widest">
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Sair</span>
           </button>
@@ -185,7 +179,7 @@ const AdminPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         <StatCard title="Visitantes Únicos" value={metrics.total} icon={Users} color="text-blue-500" />
         <StatCard title="Checkouts" value={metrics.checkoutCount} icon={CreditCard} color="text-yellow-500" subtitle={`${((metrics.checkoutCount/metrics.total)*100).toFixed(1)}% do tráfego`} />
-        <StatCard title="Pix Gerados" value={metrics.pixCount} icon={QrCode} color="text-pink-500" subtitle={`${((metrics.pixCount/metrics.checkoutCount)*100 || 0).toFixed(1)}% dos checkouts`} />
+        <StatCard title="Pix Gerados" value={metrics.pixCount} icon={CreditCard} color="text-pink-500" subtitle={`${((metrics.pixCount/metrics.checkoutCount)*100 || 0).toFixed(1)}% dos checkouts`} />
         <StatCard title="Vendas Pagas" value={metrics.paidCount} icon={ShieldCheck} color="text-green-500" subtitle={`${metrics.conversion.toFixed(1)}% de conversão final`} />
       </div>
 
@@ -234,7 +228,7 @@ const AdminPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/30">
-                {filteredLeads.map((lead) => (
+                {filteredLeads.length > 0 ? filteredLeads.map((lead) => (
                   <tr key={lead.id} className="group hover:bg-white/[0.02] transition-colors">
                     <td className="py-5 px-4">
                       <div className="flex items-center gap-3">
@@ -280,7 +274,13 @@ const AdminPage: React.FC = () => {
                       <p className="text-[10px] font-bold text-gray-400">{new Date(lead.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</p>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest text-xs">
+                      Nenhum lead encontrado com os filtros atuais
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -306,12 +306,6 @@ const StatCard = ({ title, value, icon: Icon, color, subtitle }: any) => (
       {subtitle && <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">{subtitle}</p>}
     </div>
   </div>
-);
-
-const QrCode = ({ size, className }: any) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16h.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v.01"/>
-  </svg>
 );
 
 export default AdminPage;

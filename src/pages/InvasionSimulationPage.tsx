@@ -48,7 +48,6 @@ const InvasionSimulationPage: React.FC = () => {
           setPosts(data.posts || []);
           setLocations(data.locations || []);
           
-          // Garante que o timer exista
           if (!sessionStorage.getItem('invasionEndTime')) {
             const endTime = Date.now() + 90 * 1000;
             sessionStorage.setItem('invasionEndTime', endTime.toString());
@@ -77,7 +76,8 @@ const InvasionSimulationPage: React.FC = () => {
       const targetProfileData = dataFromNav.profileData;
       setProfileData(targetProfileData);
 
-      const fetchDataPromise = async () => {
+      // Inicia busca de localização e posts em background
+      const startBackgroundLoading = async () => {
         let userCity = 'São Paulo';
         let cityList: string[] = [];
         
@@ -116,11 +116,12 @@ const InvasionSimulationPage: React.FC = () => {
         }));
       };
 
-      const minLoadingPromise = new Promise(resolve => setTimeout(resolve, 2000));
-      fetchDataPromise();
-      await minLoadingPromise;
+      // Dispara o carregamento em background sem dar await no processo completo
+      startBackgroundLoading();
 
-      // Inicia o timer de 90 segundos para acesso grátis
+      // Aguarda apenas um pequeno tempo de loader para transição suave
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       if (!sessionStorage.getItem('invasionEndTime')) {
         const endTime = Date.now() + 90 * 1000;
         sessionStorage.setItem('invasionEndTime', endTime.toString());

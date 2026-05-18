@@ -37,7 +37,7 @@ const MainAppContent: React.FC = () => {
   const [confirmedProfileData, setConfirmedProfileData] = useState<ProfileData | null>(null);
   const [confirmedSuggestions, setConfirmedSuggestions] = useState<SuggestedProfile[]>([]);
   const [confirmedPosts, setConfirmedPosts] = useState<FeedPost[]>([]);
-  const { logout } = useAuth(); // Importado para resetar o estado
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,7 +63,6 @@ const MainAppContent: React.FC = () => {
       return;
     }
 
-    // RESET DE FLUXO: Garante que uma nova busca comece do zero
     logout(); 
     sessionStorage.removeItem('invasionEndTime');
     sessionStorage.removeItem('invasionData');
@@ -112,7 +111,7 @@ const MainAppContent: React.FC = () => {
 
   if (confirmedProfileData) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4 relative z-10">
+      <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
         <ProfileConfirmationCard
           profileData={confirmedProfileData}
           onConfirm={handleConfirmInvasion}
@@ -123,7 +122,7 @@ const MainAppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-transparent">
       <ProgressBar progress={progressBarProgress} isVisible={isLoading} />
       <div className="relative z-20 text-white flex flex-col items-center px-4 pt-12 pb-8 w-full"> 
         <header className="text-center mb-8 w-full max-w-xl">
@@ -149,7 +148,7 @@ const App: React.FC = () => {
     <Router>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<MainAppContent />} />
+          <Route path="/" element={<BackgroundLayout><MainAppContent /></BackgroundLayout>} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
@@ -157,8 +156,8 @@ const App: React.FC = () => {
           <Route path="/invasion-simulation" element={<InvasionSimulationPage />} />
           <Route path="/invasion-concluded" element={<BackgroundLayout><InvasionConcludedPage /></BackgroundLayout>} />
           
-          <Route path="/servers" element={<ProtectedRoute><BackgroundLayout><ServersPage /></BackgroundLayout></ProtectedRoute>} />
-          <Route path="/credits" element={<ProtectedRoute><BackgroundLayout><CreditsPage /></BackgroundLayout></ProtectedRoute>} />
+          <Route path="/servers" element={<ProtectedRoute><ServersPage /></ProtectedRoute>} />
+          <Route path="/credits" element={<ProtectedRoute><CreditsPage /></ProtectedRoute>} />
           <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
           <Route path="/chat/:id" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
         </Routes>

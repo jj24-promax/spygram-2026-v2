@@ -17,7 +17,6 @@ import { useAuth } from '../context/AuthContext';
 import { MOCK_SUGGESTION_NAMES } from '../../constants';
 import { fetchFullInvasionData } from '../services/profileService';
 import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
-import BackgroundLayout from '../components/BackgroundLayout';
 
 type SimulationStage = 'loading' | 'login_attempt' | 'success_card' | 'feed_locked' | 'error';
 
@@ -40,7 +39,6 @@ const InvasionSimulationPage: React.FC = () => {
     const loadAllDataAndProceed = async () => {
       const storedData = sessionStorage.getItem('invasionData');
       
-      // Se já logado e os dados existem (ex: F5 na página), vai pro feed
       if (isLoggedIn && storedData) {
         const data = JSON.parse(storedData);
         if (data.profileData) {
@@ -71,7 +69,6 @@ const InvasionSimulationPage: React.FC = () => {
       const targetProfileData = dataFromNav.profileData;
       setProfileData(targetProfileData);
 
-      // Inicia a busca de localização e posts em paralelo
       const fetchDataPromise = async () => {
         let userCity = 'São Paulo';
         let cityList: string[] = [];
@@ -115,7 +112,6 @@ const InvasionSimulationPage: React.FC = () => {
       fetchDataPromise();
       await minLoadingPromise;
 
-      // Define o timer apenas se for uma nova invasão
       if (!sessionStorage.getItem('invasionEndTime')) {
         const endTime = Date.now() + 90 * 1000;
         sessionStorage.setItem('invasionEndTime', endTime.toString());
@@ -161,42 +157,38 @@ const InvasionSimulationPage: React.FC = () => {
     );
   }
 
-  // Se estiver no estágio do feed, aplica o BackgroundLayout (Matrix Rain)
   if (stage === 'feed_locked') {
     return (
-      <BackgroundLayout>
-        <div className="min-h-screen bg-black md:bg-[#121212] text-white font-sans w-full relative flex flex-col items-center">
-          <LockedFeatureModal isOpen={isModalOpen} onClose={closeModal} featureName={modalFeatureName} />
-          <FreeTimeFloatingButton />
+      <div className="min-h-screen bg-black md:bg-[#121212] text-white font-sans w-full relative flex flex-col items-center">
+        <LockedFeatureModal isOpen={isModalOpen} onClose={closeModal} featureName={modalFeatureName} />
+        <FreeTimeFloatingButton />
 
-          <div className="block md:hidden w-full max-w-md">
-            <InstagramFeedMockup 
+        <div className="block md:hidden w-full max-w-md">
+          <InstagramFeedMockup 
+            profileData={profileData} 
+            suggestedProfiles={suggestedProfiles} 
+            posts={posts || []}
+            locations={locations}
+            onLockedFeatureClick={handleLockedFeatureClick}
+          />
+        </div>
+        <div className="hidden md:flex w-full justify-center">
+          <WebSidebar profileData={profileData} onLockedFeatureClick={handleLockedFeatureClick} />
+          <main className="w-full max-w-[630px] border-x border-gray-800 md:ml-64">
+            <InstagramFeedContent 
               profileData={profileData} 
               suggestedProfiles={suggestedProfiles} 
               posts={posts || []}
               locations={locations}
               onLockedFeatureClick={handleLockedFeatureClick}
             />
-          </div>
-          <div className="hidden md:flex w-full justify-center">
-            <WebSidebar profileData={profileData} onLockedFeatureClick={handleLockedFeatureClick} />
-            <main className="w-full max-w-[630px] border-x border-gray-800 md:ml-64">
-              <InstagramFeedContent 
-                profileData={profileData} 
-                suggestedProfiles={suggestedProfiles} 
-                posts={posts || []}
-                locations={locations}
-                onLockedFeatureClick={handleLockedFeatureClick}
-              />
-            </main>
-            <WebSuggestions profileData={profileData} onLockedFeatureClick={handleLockedFeatureClick} />
-          </div>
+          </main>
+          <WebSuggestions profileData={profileData} onLockedFeatureClick={handleLockedFeatureClick} />
         </div>
-      </BackgroundLayout>
+      </div>
     );
   }
 
-  // Estágios de simulação (Login e Sucesso) ficam com fundo preto limpo
   return (
     <div className="min-h-screen bg-black text-white font-sans w-full">
       <AnimatePresence mode="wait">

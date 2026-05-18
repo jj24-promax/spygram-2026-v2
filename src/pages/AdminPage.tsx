@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../integrations/supabase/client';
 import { 
   Users, DollarSign, Search, MapPin, ShieldCheck, 
-  CreditCard, Filter, LogOut, RotateCcw, Beaker,
+  CreditCard, LogOut, RotateCcw,
   Trash2, MessageCircle
 } from 'lucide-react';
 import Loader from '../components/Loader';
@@ -99,26 +99,6 @@ const AdminPage: React.FC = () => {
     window.open(url, '_blank');
   };
 
-  const handleCreateTestLead = async () => {
-    const testData = {
-      username_searched: 'neymarjr',
-      full_name: 'Neymar Jr (Teste)',
-      profile_pic: 'https://images.weserv.nl/?url=https://instagram.fria3-1.fna.fbcdn.net/v/t51.2885-19/44884218_345707102882504_2046091888143237120_n.jpg?_nc_ht=instagram.fria3-1.fna.fbcdn.net&_nc_cat=1&_nc_ohc=1&edm=AAAAAA&ccb=7-5&oh=00_AfC-jL5Lz-f5z5-f5z5-f5z5-f5z5-f5z5-f5z5&oe=65C5C5C5&_nc_sid=AAAAAA',
-      email: 'teste@spygram.com',
-      phone: '(11) 99999-9999',
-      document: '123.456.789-00',
-      status: 'checkout',
-      total_amount: 29.90,
-      city: 'Santos',
-      state: 'São Paulo',
-      user_agent: navigator.userAgent
-    };
-
-    const { error } = await supabase.from('leads').insert([testData]);
-    if (error) toast.error('Erro ao gerar lead teste.');
-    else fetchLeads(true);
-  };
-
   const metrics = useMemo(() => {
     const total = leads.length;
     const paid = leads.filter(l => l.status === 'pagou');
@@ -166,10 +146,6 @@ const AdminPage: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          <button onClick={handleCreateTestLead} className="flex items-center gap-2 px-4 py-2.5 bg-purple-600/10 border border-purple-600/20 text-purple-400 rounded-xl hover:bg-purple-600/20 transition-all text-xs font-bold uppercase tracking-widest">
-            <Beaker className="w-4 h-4" />
-            <span className="hidden sm:inline">Lead Teste</span>
-          </button>
           <button onClick={() => fetchLeads(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all text-xs font-bold uppercase tracking-widest">
             <RotateCcw className="w-4 h-4" />
             <span className="hidden sm:inline">Atualizar</span>

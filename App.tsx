@@ -100,7 +100,18 @@ const MainAppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-transparent">
       <ProgressBar progress={progressBarProgress} isVisible={isLoading} />
-      <div className="relative z-20 text-white flex flex-col items-center px-4 pt-12 pb-8 w-full"> 
+      <div className="relative z-20 text-white flex flex-col items-center px-4 pt-4 pb-8 w-full"> 
+        
+        {/* Novo Banner de Avaliações com Blur atrás */}
+        <div className="relative w-full max-w-2xl mb-12 flex justify-center mt-4">
+            <div className="absolute inset-0 bg-gray-500/20 blur-[60px] rounded-full pointer-events-none"></div>
+            <img 
+              src="/banner-reviews-main.png" 
+              alt="Google Reviews" 
+              className="relative z-10 w-full h-auto drop-shadow-2xl rounded-2xl" 
+            />
+        </div>
+
         <header className="text-center mb-8 w-full max-w-xl">
           <img src="/spygram_transparentebranco.png" alt="Logo" className="h-24 mx-auto mb-6" />
           <h1 className="text-5xl font-extrabold mb-4 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-transparent bg-clip-text uppercase">SpyGram</h1>

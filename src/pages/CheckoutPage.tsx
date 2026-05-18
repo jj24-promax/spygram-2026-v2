@@ -296,10 +296,6 @@ const CheckoutPage: React.FC = () => {
           <div className="w-full max-w-lg mx-auto flex flex-col items-center relative z-10">
               <div className="w-full relative px-4 pt-4">
                   <img src="/banner-topo.png" alt="SpyGram Community" className="w-full h-auto relative z-10" />
-                  <div className="text-center mt-4">
-                      <h1 className="text-xl font-black text-[#111] mb-1.5">+12,3mil pessoas utilizam e aprovam o SpyGram®.</h1>
-                      <p className="text-[#888] text-[11px] font-medium max-w-[320px] mx-auto leading-snug">Este aplicativo foi testado e aprovado por profissionais, contando com o selo de confiança 'Google Reviews'.</p>
-                  </div>
               </div>
               <div className="w-full max-w-[92%] mt-6 bg-white border border-gray-100 rounded-[1.25rem] p-4 flex items-center gap-4 shadow-md">
                   <div className="bg-[#f8f8f8] p-2 rounded-lg"><ShoppingCart className="w-5 h-5 text-gray-800" /></div>

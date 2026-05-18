@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, Variants } from 'framer-motion';
+import { Lock } from 'lucide-react';
 import { SuggestedProfile } from '../../types';
 
 interface InteractionProfilesCarouselProps {
@@ -48,12 +49,17 @@ const InteractionProfilesCarousel: React.FC<InteractionProfilesCarouselProps> = 
               key={`${profile.username}-${index}`} 
               className="flex flex-col items-center flex-shrink-0 w-20 text-center cursor-pointer"
             >
-              <div className={`w-16 h-16 rounded-full overflow-hidden border-2 transition-all duration-500 ${isBlurred ? 'border-red-500' : 'border-pink-500'}`}>
+              {/* Container da foto com overlay de cadeado */}
+              <div className={`relative w-16 h-16 rounded-full overflow-hidden border-2 transition-all duration-500 ${isBlurred ? 'border-red-500' : 'border-pink-500'}`}>
                 <img 
                   src={profile.profile_pic_url} 
                   alt={profile.username} 
                   className={`w-full h-full object-cover transition-all duration-500 ${isBlurred ? 'blur-sm opacity-70' : 'blur-none opacity-100'}`}
                 />
+                {/* Overlay de Cadeado */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <Lock className="w-6 h-6 text-white drop-shadow-lg" />
+                </div>
               </div>
               <p className={`text-xs mt-1 transition-colors duration-500 ${isBlurred ? 'text-red-400' : 'text-white'}`}>
                 {isBlurred ? '*****' : maskUsername(profile.username)}

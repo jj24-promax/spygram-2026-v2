@@ -38,12 +38,14 @@ const InvasionSimulationPage: React.FC = () => {
   useEffect(() => {
     const loadAllDataAndProceed = async () => {
       const storedData = sessionStorage.getItem('invasionData');
+      
+      // Se já logado e com dados, pula direto pro feed
       if (isLoggedIn && storedData) {
         const data = JSON.parse(storedData);
-        if (data.profileData && data.suggestedProfiles && data.posts) {
+        if (data.profileData) {
           setProfileData(data.profileData);
-          setSuggestedProfiles(data.suggestedProfiles);
-          setPosts(data.posts);
+          setSuggestedProfiles(data.suggestedProfiles || []);
+          setPosts(data.posts || []);
           setLocations(data.locations || []);
           setStage('feed_locked');
           return;
@@ -68,58 +70,62 @@ const InvasionSimulationPage: React.FC = () => {
       const targetProfileData = dataFromNav.profileData;
       setProfileData(targetProfileData);
 
-      let userCity = 'São Paulo';
-      let cityList: string[] = [];
-      try {
-        const locationData = await getUserLocation();
-        cityList = getCitiesByState(locationData.city, locationData.state);
+      // Inicia a busca de localização e posts em paralelo, mas com timeout
+      const fetchDataPromise = async () => {
+        let userCity = 'São Paulo';
+        let cityList: string[] = [];
+        
+        try {
+          const locationData = await getUserLocation();
+          cityList = getCitiesByState(locationData.city, locationData.state);
+          userCity = locationData.city;
+        } catch (e) {
+          cityList = getCitiesByState('São Paulo', 'São Paulo');
+        }
         setLocations(cityList);
-        userCity = locationData.city;
-      } catch (e) {
-        const fallbackCities = getCitiesByState('São Paulo', 'São Paulo');
-        cityList = fallbackCities;
-        setLocations(fallbackCities);
-      }
 
-      let fetchedSuggestions = dataFromNav.suggestions || [];
-      const { suggestions: extraSuggestions, posts: fetchedPosts } = await fetchFullInvasionData(targetProfileData);
+        // Busca dados extras (posts/sugestões)
+        const { suggestions: extraSuggestions, posts: fetchedPosts } = await fetchFullInvasionData(targetProfileData);
 
-      if (fetchedSuggestions.length === 0) {
-        fetchedSuggestions = extraSuggestions;
-      }
+        let finalSuggestions = dataFromNav.suggestions || [];
+        if (finalSuggestions.length === 0) finalSuggestions = extraSuggestions;
 
-      if (fetchedSuggestions.length === 0) {
-          const shuffledNames = [...MOCK_SUGGESTION_NAMES].sort(() => 0.5 - Math.random());
-          fetchedSuggestions = shuffledNames.slice(0, 15).map((name) => ({
-            username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
-            fullName: name,
-            profile_pic_url: '/perfil.jpg', 
-          }));
-      }
-      
-      setSuggestedProfiles(fetchedSuggestions);
-      setPosts(fetchedPosts);
-      
-      const dataToStore = {
-        profileData: targetProfileData,
-        suggestedProfiles: fetchedSuggestions,
-        posts: fetchedPosts,
-        userCity: userCity,
-        locations: cityList,
+        if (finalSuggestions.length === 0) {
+            const shuffledNames = [...MOCK_SUGGESTION_NAMES].sort(() => 0.5 - Math.random());
+            finalSuggestions = shuffledNames.slice(0, 15).map((name) => ({
+              username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
+              fullName: name,
+              profile_pic_url: '/perfil.jpg', 
+            }));
+        }
+
+        setSuggestedProfiles(finalSuggestions);
+        setPosts(fetchedPosts);
+
+        sessionStorage.setItem('invasionData', JSON.stringify({
+          profileData: targetProfileData,
+          suggestedProfiles: finalSuggestions,
+          posts: fetchedPosts,
+          userCity: userCity,
+          locations: cityList,
+        }));
       };
-      sessionStorage.setItem('invasionData', JSON.stringify(dataToStore));
 
-      // Lógica de cronômetro persistente inicializada aqui se for a primeira vez
+      // Executa a busca, mas não deixa o usuário esperando mais que 5 segundos no total
+      const minLoadingPromise = new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Tenta carregar os dados em paralelo
+      fetchDataPromise();
+
+      // Espera o tempo mínimo de visualização do loader antes de ir pro simulador
+      await minLoadingPromise;
+
       if (!sessionStorage.getItem('invasionEndTime')) {
         const endTime = Date.now() + 90 * 1000;
         sessionStorage.setItem('invasionEndTime', endTime.toString());
       }
 
-      if (isLoggedIn) {
-        setStage('feed_locked');
-      } else {
-        setStage('login_attempt');
-      }
+      setStage(isLoggedIn ? 'feed_locked' : 'login_attempt');
     };
 
     if (stage === 'loading') {

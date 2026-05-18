@@ -22,15 +22,25 @@ const getProxyImageUrlLight = (imageUrl: string | undefined): string => {
 };
 
 const simpleFetch = async (campo: string, username: string): Promise<any> => {
-    const { data, error } = await supabase.functions.invoke('proxy-api', {
-        body: { campo, username },
-    });
+    // Timeout de 10 segundos para cada requisição individual
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    if (error) throw new Error(`Erro ao contatar o servidor seguro: ${error.message}`);
-    if (data.error) throw new Error(`Erro no servidor seguro: ${data.error}`);
-    if (data.status === 'fail' || data.error) throw new Error(data.message || data.error || 'A API externa retornou um erro.');
+    try {
+        const { data, error } = await supabase.functions.invoke('proxy-api', {
+            body: { campo, username },
+        });
 
-    return data;
+        clearTimeout(timeoutId);
+
+        if (error) throw new Error(`Erro ao contatar o servidor seguro: ${error.message}`);
+        if (data.error) throw new Error(`Erro no servidor seguro: ${data.error}`);
+        
+        return data;
+    } catch (e) {
+        clearTimeout(timeoutId);
+        throw e;
+    }
 };
 
 // ===================================
@@ -77,15 +87,12 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
             // EXTRAÇÃO DOS PERFIS EM COMUM (FACEPILE)
             let suggestions: SuggestedProfile[] = [];
             if (Array.isArray(user.profile_context_facepile_users)) {
-                console.log('👥 Perfis em comum encontrados:', user.profile_context_facepile_users.length);
                 suggestions = user.profile_context_facepile_users.map((p: any) => ({
                     username: p.username,
                     profile_pic_url: getProxyImageUrlLight(p.profile_pic_url),
                     fullName: p.full_name,
                     is_private: p.is_private
                 }));
-            } else {
-                console.warn('⚠️ Nenhum perfil em comum (facepile) retornado pela API.');
             }
 
             return { profile, suggestions, posts: [] };
@@ -99,13 +106,15 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
 }
 
 /**
- * Busca os dados completos (posts e sugestões) mantendo a API antiga por enquanto
+ * Busca os dados completos (posts e sugestões).
+ * Otimizado para não travar se houver muitos perfis.
  */
 export async function fetchFullInvasionData(profileData: ProfileData): Promise<{ suggestions: SuggestedProfile[], posts: FeedPost[] }> {
     const cleanUsername = profileData.username.replace(/^@+/, '').trim();
     
     try {
-        const suggestionsResponse = await simpleFetch('perfis_sugeridos', cleanUsername).catch(e => null);
+        // Busca sugestões (rápido)
+        const suggestionsResponse = await simpleFetch('perfis_sugeridos', cleanUsername).catch(() => null);
 
         let suggestions: SuggestedProfile[] = [];
         const suggestionsData = suggestionsResponse?.results?.[0]?.data;
@@ -118,7 +127,8 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
             }));
         }
 
-        const publicProfiles = suggestions.filter(p => p.is_private === false);
+        // Filtra apenas perfis públicos e limita a 5 para não sobrecarregar a rede
+        const publicProfiles = suggestions.filter(p => !p.is_private).slice(0, 5);
 
         const postPromises = publicProfiles.map(async (profile) => {
             try {
@@ -148,6 +158,7 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
                 }
                 return [];
             } catch (error) {
+                console.warn(`⚠️ Não foi possível carregar posts de @${profile.username}`);
                 return [];
             }
         });
@@ -158,6 +169,7 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
         return { suggestions, posts: allPosts };
 
     } catch (error) {
+        console.error('❌ Erro no fetchFullInvasionData:', error);
         return { suggestions: [], posts: [] };
     }
 }

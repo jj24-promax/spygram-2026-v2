@@ -121,37 +121,14 @@ const CheckoutPage: React.FC = () => {
 
       {/* --- VERSÃO WEB (DESKTOP) --- */}
       <div className="hidden md:block">
-        {/* HERO WEB */}
-        <div className="bg-white pt-12 pb-16 border-b border-gray-100 relative overflow-hidden">
-          {/* Background Blur */}
-          <div className="absolute inset-0 z-0 opacity-20 grayscale blur-[100px] scale-150 pointer-events-none" 
+        {/* HERO WEB - AGORA APENAS O BANNER COMPLETO */}
+        <div className="bg-white border-b border-gray-100 relative overflow-hidden">
+          {/* Background Blur mantido sutilmente ao redor */}
+          <div className="absolute inset-0 z-0 opacity-10 grayscale blur-[100px] scale-150 pointer-events-none" 
                style={{ backgroundImage: 'url(/banner-topo.png)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
           
-          <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
-            <div className="flex justify-center mb-8">
-               <img src="/spygram_transparentebranco.png" alt="SpyGram" className="h-16 brightness-0" />
-            </div>
-            
-            {/* Banner Principal com Novo Design */}
-            <div className="max-w-3xl mx-auto mb-10">
-                <img src="/banner-topo.png" alt="SpyGram Community" className="w-full h-auto rounded-2xl shadow-2xl" />
-            </div>
-
-            <div className="bg-white shadow-xl rounded-2xl border border-gray-100 p-6 max-w-xl mx-auto flex items-center justify-between gap-8">
-                <div className="flex items-center gap-4">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" className="w-10 h-10" alt="Google" />
-                    <div className="text-left">
-                        <p className="text-sm font-bold text-gray-500 uppercase tracking-tighter">GOOGLE REVIEWS:</p>
-                        <p className="text-xl font-black text-[#111]">(12,3mil) Avaliações</p>
-                    </div>
-                </div>
-                <div className="flex flex-col items-end">
-                    <div className="flex gap-1 text-yellow-400">
-                        {[1,2,3,4,5].map(i => <Star key={i} fill="currentColor" size={20} />)}
-                    </div>
-                    <span className="text-gray-400 font-bold mt-1">(4,9)</span>
-                </div>
-            </div>
+          <div className="w-full max-w-6xl mx-auto relative z-10">
+              <img src="/banner-topo.png" alt="SpyGram Banner" className="w-full h-auto block" />
           </div>
         </div>
 

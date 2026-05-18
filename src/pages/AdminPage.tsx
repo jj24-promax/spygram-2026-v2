@@ -36,18 +36,26 @@ const AdminPage: React.FC = () => {
     if (!silent) setLoading(true);
     
     try {
+      console.log("[Admin] Buscando leads...");
       const { data, error } = await supabase
         .from('leads')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      if (data) setLeads(data);
+      if (error) {
+        console.error("[Admin] Erro Supabase:", error);
+        throw error;
+      }
       
-      if (silent) toast.success('Dados atualizados!');
+      if (data) {
+        console.log(`[Admin] ${data.length} leads encontrados.`);
+        setLeads(data);
+      }
+      
+      if (silent) toast.success('Dados sincronizados!');
     } catch (error: any) {
       console.error('Erro ao buscar leads:', error);
-      toast.error('Erro ao carregar dados: ' + (error.message || 'Erro desconhecido'));
+      toast.error('Erro de Permissão: Verifique o RLS no Supabase. ' + (error.message || ''));
     } finally {
       setLoading(false);
     }
@@ -56,9 +64,11 @@ const AdminPage: React.FC = () => {
   useEffect(() => {
     fetchLeads();
     
+    // Escuta mudanças em tempo real
     const channel = supabase
       .channel('admin-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, (payload) => {
+        console.log("[Admin] Mudança detectada em tempo real:", payload);
         fetchLeads(true);
       })
       .subscribe();
@@ -72,15 +82,11 @@ const AdminPage: React.FC = () => {
     navigate('/admin-login');
   };
 
-  const handleRefresh = () => {
-    fetchLeads(true);
-  };
-
   const handleCreateTestLead = async () => {
     const testData = {
       username_searched: 'neymarjr',
       full_name: 'Neymar Jr (Teste)',
-      profile_pic: 'https://images.weserv.nl/?url=https://instagram.fria3-1.fna.fbcdn.net/v/t51.2885-19/44884218_345707102882504_2046091888143237120_n.jpg?_nc_ht=instagram.fria3-1.fna.fbcdn.net&_nc_cat=1&_nc_ohc=1&edm=AAAAAA&ccb=7-5&oh=00_AfC-jL5Lz-f5z5-f5z5-f5z5-f5z5-f5z5-f5z5&oe=65C5C5C5&_nc_sid=AAAAAA',
+      profile_pic: 'https://images.weserv.nl/?url=https://instagram.fria3-1.fna.fbcdn.net/v/t51.2885-19/44884218_345707102882504_2046091888143237120_n.jpg?_nc_ht=instagram.fria3-1.fna.fbcdn.net&_nc_cat=1&_nc_ohc=1&edm=AAAAAA&ccb=7-5&oh=00_AfC-jL5Lz-f5z5-f5z5-f5z5-f5z5-f5z5-f5z5-f5z5&oe=65C5C5C5&_nc_sid=AAAAAA',
       email: 'teste@spygram.com',
       phone: '(11) 99999-9999',
       document: '123.456.789-00',
@@ -88,17 +94,17 @@ const AdminPage: React.FC = () => {
       total_amount: 29.90,
       city: 'Santos',
       state: 'São Paulo',
-      user_agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+      user_agent: navigator.userAgent
     };
 
     const { error } = await supabase.from('leads').insert([testData]);
     
     if (error) {
-      toast.error('Erro ao gerar lead teste.');
+      toast.error('Erro ao gerar lead teste: ' + error.message);
     } else {
       setSearchTerm('');
       setStatusFilter('all');
-      toast.success('Lead de teste gerado!');
+      toast.success('Lead de teste gerado! Atualizando...');
       fetchLeads(true);
     }
   };
@@ -153,7 +159,7 @@ const AdminPage: React.FC = () => {
             <h1 className="text-3xl font-black text-white uppercase tracking-tighter">SpyGram Command Center</h1>
             <div className="bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-full flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-red-500 text-[10px] font-black tracking-widest">LIVE</span>
+              <span className="text-red-500 text-[10px] font-black tracking-widest">SISTEMA ATIVO</span>
             </div>
           </div>
           <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Monitoramento Tático de Leads e Conversões</p>
@@ -164,7 +170,7 @@ const AdminPage: React.FC = () => {
             <Beaker className="w-4 h-4" />
             <span className="hidden sm:inline">Gerar Lead Teste</span>
           </button>
-          <button onClick={handleRefresh} className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all text-xs font-bold uppercase tracking-widest">
+          <button onClick={() => fetchLeads(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all text-xs font-bold uppercase tracking-widest">
             <RotateCcw className="w-4 h-4" />
             <span className="hidden sm:inline">Atualizar</span>
           </button>
@@ -180,9 +186,9 @@ const AdminPage: React.FC = () => {
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <StatCard title="Visitantes Únicos" value={metrics.total} icon={Users} color="text-blue-500" />
-        <StatCard title="Checkouts" value={metrics.checkoutCount} icon={CreditCard} color="text-yellow-500" subtitle={`${((metrics.checkoutCount/metrics.total)*100).toFixed(1)}% do tráfego`} />
-        <StatCard title="Pix Gerados" value={metrics.pixCount} icon={CreditCard} color="text-pink-500" subtitle={`${((metrics.pixCount/metrics.checkoutCount)*100 || 0).toFixed(1)}% dos checkouts`} />
+        <StatCard title="Total de Leads" value={metrics.total} icon={Users} color="text-blue-500" />
+        <StatCard title="Checkouts" value={metrics.checkoutCount} icon={CreditCard} color="text-yellow-500" subtitle={metrics.total > 0 ? `${((metrics.checkoutCount/metrics.total)*100).toFixed(1)}% do tráfego` : '0%'} />
+        <StatCard title="Pix Gerados" value={metrics.pixCount} icon={CreditCard} color="text-pink-500" subtitle={metrics.checkoutCount > 0 ? `${((metrics.pixCount/metrics.checkoutCount)*100).toFixed(1)}% dos checkouts` : '0%'} />
         <StatCard title="Vendas Pagas" value={metrics.paidCount} icon={ShieldCheck} color="text-green-500" subtitle={`${metrics.conversion.toFixed(1)}% de conversão final`} />
       </div>
 
@@ -280,7 +286,7 @@ const AdminPage: React.FC = () => {
                 )) : (
                   <tr>
                     <td colSpan={5} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest text-xs">
-                      Nenhum lead encontrado com os filtros atuais
+                      Nenhum lead encontrado. Tente atualizar ou verifique o RLS no Supabase.
                     </td>
                   </tr>
                 )}

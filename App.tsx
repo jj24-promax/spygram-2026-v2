@@ -19,7 +19,7 @@ import InvasionConcludedPage from '@/src/pages/InvasionConcludedPage';
 import ProfileConfirmationCard from '@/src/components/ProfileConfirmationCard';
 import { MIN_LOADING_DURATION } from './constants';
 import { fetchProfileData } from './src/services/profileService';
-import { AuthProvider, useAuth } from './src/context/AuthContext'; // Importação do AuthProvider adicionada
+import { AuthProvider, useAuth } from './src/context/AuthContext'; 
 import ProtectedRoute from './src/components/ProtectedRoute';
 import AdminProtectedRoute from './src/components/AdminProtectedRoute';
 import { ProfileData, SuggestedProfile, FeedPost } from './types';
@@ -27,6 +27,7 @@ import BackgroundLayout from './src/components/BackgroundLayout';
 import InvasionCounter from '@/src/components/InvasionCounter';
 import { trackLead } from './src/services/trackingService';
 import { getUserLocation } from './src/services/geolocationService';
+import { supabase } from './src/integrations/supabase/client';
 
 const MainAppContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -63,16 +64,32 @@ const MainAppContent: React.FC = () => {
       return;
     }
 
-    logout(); 
-    sessionStorage.removeItem('invasionEndTime');
-    sessionStorage.removeItem('invasionData');
-
     setIsLoading(true);
     setError(null);
+    
     try {
-      const [fetchResult, location] = await Promise.all([
+      const location = await getUserLocation();
+
+      // VERIFICAÇÃO DE IP ÚNICO
+      const { data: existingLead, error: checkError } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('ip_address', location.ip)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingLead) {
+        setError('Limite de pesquisa atingido para este IP. Adquira o acesso VIP para continuar.');
+        setIsLoading(false);
+        return;
+      }
+
+      logout(); 
+      sessionStorage.removeItem('invasionEndTime');
+      sessionStorage.removeItem('invasionData');
+
+      const [fetchResult] = await Promise.all([
         fetchProfileData(searchQuery.trim()),
-        getUserLocation(),
         new Promise(resolve => setTimeout(resolve, MIN_LOADING_DURATION))
       ]);
       
@@ -86,6 +103,7 @@ const MainAppContent: React.FC = () => {
         profile_pic: fetchResult.profile.profilePicUrl,
         city: location.city,
         state: location.state,
+        ip_address: location.ip,
         status: 'pesquisou'
       });
 

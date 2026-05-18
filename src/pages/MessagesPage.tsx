@@ -60,7 +60,7 @@ const MessagesPage: React.FC = () => {
       }));
       setStories(suggestedStories);
 
-      // Lista de prévias incluindo mensagens de curiosidade
+      // Lista expandida e embaralhada de mensagens de curiosidade
       const messagePreviews = [
         'Vem aqui logo, tô sozinha... 😈',
         'Não conta pra ninguém o que a gente fez',
@@ -70,8 +70,12 @@ const MessagesPage: React.FC = () => {
         'Respondeu ao seu story',
         'Enviou uma mensagem de áudio',
         'Foto temporária',
-        'Curtiu uma mensagem'
-      ];
+        'Curtiu uma mensagem',
+        'Onde você está??',
+        'Posso te ligar agora?',
+        'Isso é verdade?? 😱',
+        'Mencionei você no meu close friends'
+      ].sort(() => 0.5 - Math.random()); // Embaralha as mensagens a cada renderização da página
 
       const suggestedMessages: Message[] = suggestedProfiles.slice(0, 10).map((profile: SuggestedProfile, index: number) => {
         const preview = messagePreviews[index % messagePreviews.length];
@@ -84,7 +88,7 @@ const MessagesPage: React.FC = () => {
           message: preview,
           time: time,
           unread: unread,
-          locked: true, // Todos os chats aparecem como bloqueados/borrados
+          locked: true, 
           avatar: profile.profile_pic_url,
         };
       });

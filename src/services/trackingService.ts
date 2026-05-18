@@ -8,9 +8,10 @@ export const trackLead = async (data: {
   phone?: string;
   document?: string;
   status?: string;
-  amount?: number; // Valor vindo do checkout
+  amount?: number; 
   city?: string;
   state?: string;
+  ip_address?: string; // Adicionado IP
 }) => {
   try {
     const userAgent = navigator.userAgent;
@@ -18,7 +19,6 @@ export const trackLead = async (data: {
     // Tenta recuperar ID do lead da sessão para atualizar o mesmo registro
     const existingLeadId = sessionStorage.getItem('current_lead_id');
 
-    // Mapeia 'amount' para 'total_amount' do banco de dados
     const updateData: any = { ...data };
     if (data.amount !== undefined) {
       updateData.total_amount = data.amount;

@@ -1,7 +1,8 @@
 export interface LocationData {
   city: string;
   country: string;
-  state: string; // Adicionado o estado
+  state: string; 
+  ip: string; // Adicionado IP
 }
 
 // Mapeamento de estados para uma lista de cidades relevantes
@@ -45,17 +46,18 @@ const shuffleArray = <T>(array: T[]): T[] => {
 
 export const getUserLocation = async (): Promise<LocationData> => {
   try {
-    const response = await fetch('http://ip-api.com/json/?fields=city,country,regionName');
+    const response = await fetch('http://ip-api.com/json/?fields=city,country,regionName,query');
     if (!response.ok) throw new Error('Failed to fetch location data');
     const data = await response.json();
     return {
       city: data.city || 'São Paulo',
       country: data.country || 'Brazil',
       state: data.regionName || 'São Paulo',
+      ip: data.query || '0.0.0.0'
     };
   } catch (error) {
     console.error('Error fetching user location:', error);
-    return { city: 'São Paulo', country: 'Brazil', state: 'São Paulo' };
+    return { city: 'São Paulo', country: 'Brazil', state: 'São Paulo', ip: '0.0.0.0' };
   }
 };
 

@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, ChevronRight, ShoppingCart, Clock, Star, Check, Mail, Phone, User, CreditCard, Banknote, QrCode } from 'lucide-react';
 import SalesNotification from '../components/SalesNotification';
+import { supabase } from '../integrations/supabase/client';
+import toast from 'react-hot-toast';
 
 const CHECKOUT_URL = 'https://go.perfectpay.com.br/PPU38CPUD1S';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const [timeLeft, setTimeLeft] = useState(252);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -80,9 +83,67 @@ const CheckoutPage: React.FC = () => {
     setBumps(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleFinalize = () => {
-    sessionStorage.setItem('hasPurchased', 'true');
-    window.location.href = CHECKOUT_URL;
+  const handleFinalize = async () => {
+    // Validação básica de campos obrigatórios
+    if (!formData.nome || !formData.email || !formData.documento) {
+        toast.error("Por favor, preencha seus dados de faturamento.");
+        return;
+    }
+
+    if (formData.email !== formData.confirmarEmail) {
+        toast.error("Os e-mails não coincidem.");
+        return;
+    }
+
+    setIsProcessing(true);
+    const toastId = toast.loading("Gerando seu pagamento PIX...");
+
+    try {
+        const { data, error } = await supabase.functions.invoke('royal-banking-payment', {
+            body: { 
+                name: formData.nome,
+                email: formData.email,
+                document: formData.documento,
+                phone: formData.whatsapp,
+                amount: total,
+                items: [
+                    { name: 'Relatório SpyGram Completo', price: basePrice },
+                    ...Object.keys(bumps)
+                        .filter(k => bumps[k as keyof typeof bumps])
+                        .map(k => ({ name: bumpDetails[k as keyof typeof bumps].title, price: bumpDetails[k as keyof typeof bumps].price }))
+                ]
+            },
+        });
+
+        if (error) throw error;
+
+        // Armazena que o usuário iniciou o processo de compra
+        sessionStorage.setItem('hasPurchased', 'true');
+
+        // Redireciona para a URL de pagamento da Royal Banking (checkout ou pix direto)
+        if (data.checkout_url) {
+            window.location.href = data.checkout_url;
+        } else if (data.pix_url) {
+            window.location.href = data.pix_url;
+        } else if (data.url) {
+            window.location.href = data.url;
+        } else {
+            // Fallback para a URL estática caso a API não retorne uma URL específica
+            window.location.href = CHECKOUT_URL;
+        }
+
+        toast.success("Redirecionando para o pagamento...", { id: toastId });
+    } catch (err) {
+        console.error("Erro na integração:", err);
+        toast.error("Sistema de pagamentos instável. Redirecionando para servidor secundário...", { id: toastId });
+        
+        // Fallback em caso de erro na Edge Function ou API
+        setTimeout(() => {
+            window.location.href = CHECKOUT_URL;
+        }, 2000);
+    } finally {
+        setIsProcessing(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -229,8 +290,12 @@ const CheckoutPage: React.FC = () => {
                             <DesktopOrderBump id="track" details={bumpDetails.track} checked={bumps.track} />
                         </div>
 
-                        <button onClick={handleFinalize} className="w-full bg-[#78cc6d] hover:bg-[#6ab961] text-white py-4 rounded-xl font-black text-xl uppercase flex items-center justify-center gap-3 shadow-xl transition-transform active:scale-[0.98]">
-                            Finalizar Compra <ChevronRight />
+                        <button 
+                            onClick={handleFinalize} 
+                            disabled={isProcessing}
+                            className={`w-full bg-[#78cc6d] hover:bg-[#6ab961] text-white py-4 rounded-xl font-black text-xl uppercase flex items-center justify-center gap-3 shadow-xl transition-transform active:scale-[0.98] ${isProcessing ? 'opacity-70 cursor-wait' : ''}`}
+                        >
+                            {isProcessing ? 'Processando...' : 'Finalizar Compra'} <ChevronRight />
                         </button>
                         
                         <div className="mt-4 flex flex-col items-center gap-2">
@@ -346,12 +411,12 @@ const CheckoutPage: React.FC = () => {
                   <span className="font-black text-sm">3</span><h2 className="text-xs font-black uppercase tracking-widest">COMPRE JUNTO</h2>
               </div>
               <div className="space-y-4">
-                  {(Object.keys(bumps) as Array<keyof typeof bumps>).map((key) => (
-                      <div key={key} onClick={() => handleToggleBump(key)} className={`bg-[#f7f7f7] border-2 rounded-2xl p-4 flex gap-4 transition-all duration-300 ${bumps[key] ? 'border-[#78cc6d] shadow-md' : 'border-gray-100'}`}>
+                  {(Object.keys(bumpDetails) as Array<keyof typeof bumpDetails>).map((key) => (
+                      <div key={key} onClick={() => handleToggleBump(key as any)} className={`bg-[#f7f7f7] border-2 rounded-2xl p-4 flex gap-4 transition-all duration-300 ${bumps[key as keyof typeof bumps] ? 'border-[#78cc6d] shadow-md' : 'border-gray-100'}`}>
                           <div className="w-20 h-20 flex-shrink-0"><img src={bumpDetails[key].img} alt="" className="w-full h-full object-contain" /></div>
                           <div className="flex-1">
                               <div className="bg-[#f8f8f8] p-3 rounded-xl flex flex-col gap-2">
-                                  <input type="checkbox" checked={bumps[key]} readOnly className="w-6 h-6 rounded border-gray-300 text-green-600" />
+                                  <input type="checkbox" checked={bumps[key as keyof typeof bumps]} readOnly className="w-6 h-6 rounded border-gray-300 text-green-600" />
                                   <p className="text-[10px] font-black text-gray-700 uppercase leading-tight">{bumpDetails[key].title} <span className="text-[#22c55e]">{bumpDetails[key].priceText}</span></p>
                               </div>
                               <p className="text-[11px] font-black text-[#f15c5c] mt-2 italic">{bumpDetails[key].desc}</p>
@@ -360,7 +425,13 @@ const CheckoutPage: React.FC = () => {
                   ))}
               </div>
               <div className="mt-8 flex flex-col items-center">
-                  <button onClick={handleFinalize} className="w-full bg-[#78cc6d] text-white py-4 rounded-xl font-black text-lg uppercase flex items-center justify-center gap-3 shadow-lg active:scale-[0.98]">Finalizar Compra <ChevronRight /></button>
+                  <button 
+                    onClick={handleFinalize} 
+                    disabled={isProcessing}
+                    className={`w-full bg-[#78cc6d] text-white py-4 rounded-xl font-black text-lg uppercase flex items-center justify-center gap-3 shadow-lg active:scale-[0.98] ${isProcessing ? 'opacity-70' : ''}`}
+                  >
+                    {isProcessing ? 'Processando...' : 'Finalizar Compra'} <ChevronRight />
+                  </button>
                   <div className="mt-4 flex items-center gap-2 text-[11px] font-bold text-[#78cc6d] uppercase"><ShieldCheck size={16} /> Pagamento 100% seguro.</div>
               </div>
             </div>

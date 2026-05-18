@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, ChevronRight, Copy, Loader2, Clock, Check, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, ChevronRight, ShoppingCart, Check, QrCode, Copy, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import SalesNotification from '../components/SalesNotification';
 import { supabase } from '../integrations/supabase/client';
 import toast from 'react-hot-toast';
@@ -8,10 +8,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutos padrão
+  const [timeLeft, setTimeLeft] = useState(252);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [pixData, setPixData] = useState<{ qrcode: string, copyPaste: string, id: string } | null>(null);
-  const [isCopied, setIsCopied] = useState(false);
+  const [pixData, setPixData] = useState<{ qrcode: string, copyPaste: string } | null>(null);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -85,13 +84,12 @@ const CheckoutPage: React.FC = () => {
 
       if (error) throw error;
 
+      // Mapeamento baseado no retorno da Royal Banking (ajuste conforme o JSON real de resposta)
       setPixData({
         qrcode: data.pix?.qrcode_image || data.qrcode || '',
-        copyPaste: data.pix?.payload || data.payload || data.pix?.copy_paste || '',
-        id: data.id || `PP${Math.random().toString(36).substring(2, 15).toUpperCase()}`
+        copyPaste: data.pix?.payload || data.payload || data.pix?.copy_paste || ''
       });
       
-      setTimeLeft(300); // Reseta cronômetro para 5 minutos
       toast.success("PIX Gerado com sucesso!");
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
@@ -105,8 +103,6 @@ const CheckoutPage: React.FC = () => {
   const copyToClipboard = () => {
     if (pixData?.copyPaste) {
       navigator.clipboard.writeText(pixData.copyPaste);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 3000);
       toast.success("Código PIX copiado!");
     }
   };
@@ -128,126 +124,60 @@ const CheckoutPage: React.FC = () => {
         
         <AnimatePresence mode="wait">
           {pixData ? (
-            /* --- TELA DO PIX (LAYOUT SOLICITADO) --- */
+            /* --- TELA DO PIX GERADO --- */
             <motion.div 
               key="pix-result"
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 mb-10 overflow-hidden"
+              initial={{ opacity: 0, scale: 0.9 }} 
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-3xl p-8 shadow-2xl border-2 border-green-500 mb-10 flex flex-col items-center text-center"
             >
-              {/* Header do Pedido */}
-              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white">
-                <span className="text-gray-400 text-sm font-medium">Pedido: <span className="font-bold text-gray-600">{pixData.id}</span></span>
-                <div className="flex items-center gap-3">
-                  <span className="text-gray-400 text-sm font-medium">Valor: <span className="text-[#0095f6] font-bold text-lg">R$ {total.toFixed(2).replace('.', ',')}</span></span>
-                  <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-[#0095f6] font-black text-[10px] italic border border-gray-200">
-                    <span className="text-pink-500">p</span>ix
-                  </div>
-                </div>
+              <div className="bg-green-100 text-green-700 px-6 py-2 rounded-full text-xs font-black uppercase mb-8 flex items-center gap-2">
+                <Check size={18} /> Cobrança Gerada com Sucesso!
+              </div>
+              
+              <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 mb-8 shadow-inner">
+                {pixData.qrcode ? (
+                  <img src={pixData.qrcode.startsWith('data:') ? pixData.qrcode : `data:image/png;base64,${pixData.qrcode}`} alt="QR Code" className="w-64 h-64" />
+                ) : (
+                  <div className="w-64 h-64 flex items-center justify-center bg-gray-200 rounded-xl"><QrCode size={48} className="text-gray-400" /></div>
+                )}
               </div>
 
-              <div className="p-8">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                  {/* Lado Esquerdo: Instruções e Campo */}
-                  <div className="md:col-span-7">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Realize o pagamento do PIX</h2>
-                    
-                    <ul className="space-y-2 mb-8 text-[15px] text-gray-700">
-                      <li><strong>1. Copie</strong> o código abaixo</li>
-                      <li><strong>2.</strong> Abra o <strong>app do seu banco</strong></li>
-                      <li><strong>3.</strong> Cole o código na opção <strong>PIX Copia e Cola</strong> ou escaneie o QR Code ao lado.</li>
-                    </ul>
-
-                    {/* Alerta de Cópia */}
-                    <AnimatePresence>
-                      {isCopied && (
-                        <motion.p 
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          className="text-[#28a745] font-bold text-sm mb-2"
-                        >
-                          Copiado com sucesso!
-                        </motion.p>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Campo de Texto do PIX */}
-                    <div className="flex items-stretch border border-gray-300 rounded-md overflow-hidden bg-white mb-8">
-                      <textarea 
-                        readOnly 
-                        value={pixData.copyPaste}
-                        className="flex-1 p-3 text-[11px] font-mono text-gray-600 resize-none h-24 outline-none"
-                      />
-                      <button 
-                        onClick={copyToClipboard}
-                        className="bg-gray-100 border-l border-gray-300 px-4 hover:bg-gray-200 transition-colors flex flex-col items-center justify-center gap-1"
-                      >
-                        <Copy size={18} className="text-gray-600" />
-                        <span className="text-[11px] font-bold text-gray-700">Copiar</span>
-                      </button>
+              <div className="w-full max-w-md space-y-6">
+                <div>
+                  <p className="text-sm font-bold text-gray-700 mb-2">Código Copia e Cola:</p>
+                  <div className="flex gap-2">
+                    <div className="flex-1 bg-gray-100 border border-gray-200 rounded-xl px-4 py-4 text-[10px] font-mono break-all text-left">
+                      {pixData.copyPaste}
                     </div>
-
-                    <button className="w-full bg-[#28a745] hover:bg-[#218838] text-white py-3.5 rounded-md font-bold text-lg flex items-center justify-center gap-2 transition-colors mb-6 shadow-sm">
-                      Confirmar Compra <ChevronRight size={20} />
+                    <button 
+                      onClick={copyToClipboard}
+                      className="bg-gray-800 text-white px-5 rounded-xl hover:bg-black transition-all flex items-center justify-center shrink-0"
+                    >
+                      <Copy size={20} />
                     </button>
                   </div>
+                </div>
 
-                  {/* Lado Direito: QR Code */}
-                  <div className="md:col-span-5 flex flex-col items-center justify-start pt-10 md:pt-16">
-                    <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
-                       <img 
-                        src={pixData.qrcode.startsWith('data:') ? pixData.qrcode : `data:image/png;base64,${pixData.qrcode}`} 
-                        alt="QR Code" 
-                        className="w-48 h-48 md:w-56 md:h-56" 
-                      />
-                    </div>
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-2xl text-left">
+                  <div className="flex gap-3">
+                    <AlertCircle className="text-yellow-600 shrink-0" size={20} />
+                    <p className="text-[11px] text-yellow-800 leading-relaxed font-medium">
+                      O acesso será enviado para o e-mail <strong>{formData.email}</strong> imediatamente após a confirmação do pagamento. Não é necessário enviar comprovante.
+                    </p>
                   </div>
                 </div>
 
-                {/* Seção do Cronômetro */}
-                <div className="mt-4 p-6 bg-gray-50/50 border border-dashed border-gray-200 rounded-md">
-                   <div className="flex items-center gap-2 text-sm text-gray-700 mb-3">
-                      <Clock size={16} className="text-red-500" />
-                      <span>Faltam <span className="text-red-500 font-bold">{formatTimer(timeLeft)}</span> minutos para o pix expirar...</span>
-                   </div>
-                   
-                   {/* Barra de Progresso */}
-                   <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden mb-4">
-                      <motion.div 
-                        initial={{ width: '100%' }}
-                        animate={{ width: `${(timeLeft / 300) * 100}%` }}
-                        className="h-full bg-[#f15c5c]"
-                      />
-                   </div>
-
-                   <p className="text-[13px] text-gray-400 text-center">
-                    A compra será confirmada automaticamente após o pagamento e você receberá imediatamente sua compra.
-                   </p>
-                </div>
-
-                {/* Rodapé de Dúvidas */}
-                <div className="mt-12">
-                   <h3 className="text-lg font-bold text-gray-800 mb-6">Está com dúvidas de como realizar o pagamento?</h3>
-                   <div className="space-y-4 text-[13px] text-gray-600 leading-relaxed">
-                      <p>1. Abra o aplicativo do seu banco;</p>
-                      <p>2. Selecione a opção <strong>PIX copia e cola</strong>, e cole o código. Ou você pode escanear o QR Code utilizando a opção de <strong>Pagar com Pix / Escanear QR code</strong></p>
-                      <p>3. Após o pagamento, você receberá por email os dados de acesso à sua compra. Lembre-se de verificar a caixa de SPAM.</p>
-                   </div>
-                </div>
-
-                <div className="mt-10 border-t border-gray-100 pt-6">
-                  <button 
-                    onClick={() => setPixData(null)}
-                    className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase hover:text-gray-600 mx-auto transition-colors"
-                  >
-                    <ArrowLeft size={14} /> Refazer pedido / Alterar dados
-                  </button>
-                </div>
+                <button 
+                  onClick={() => setPixData(null)}
+                  className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-gray-600 flex items-center gap-2 mx-auto"
+                >
+                  <ArrowLeft size={14} /> Voltar ao formulário
+                </button>
               </div>
             </motion.div>
           ) : (
-            /* --- FORMULÁRIO DE CHECKOUT (NORMAL) --- */
+            /* --- FORMULÁRIO DE CHECKOUT --- */
             <motion.div key="checkout-form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="bg-white rounded-3xl overflow-hidden shadow-sm mb-8 max-w-4xl mx-auto">
                 <img src="/banner-topo.png" alt="Banner" className="w-full h-auto" />

@@ -20,6 +20,14 @@ const PixPaymentDisplay: React.FC<PixPaymentDisplayProps> = ({
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutos
   const [copied, setCopied] = useState(false);
 
+  // Limpa a string base64 de espaços em branco ou quebras de linha que podem quebrar a imagem
+  const cleanBase64 = paymentCodeBase64?.replace(/\s/g, '') || '';
+  
+  // Verifica se já possui o prefixo data:image, se não, adiciona o padrão PNG
+  const qrCodeSrc = cleanBase64.startsWith('data:image') 
+    ? cleanBase64 
+    : `data:image/png;base64,${cleanBase64}`;
+
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
@@ -81,12 +89,18 @@ const PixPaymentDisplay: React.FC<PixPaymentDisplayProps> = ({
           </div>
 
           {/* QR Code */}
-          <div className="flex flex-col items-center justify-center p-4 border border-gray-100 rounded-xl bg-white shadow-sm">
-            <img 
-              src={`data:image/png;base64,${paymentCodeBase64}`} 
-              alt="QR Code Pix" 
-              className="w-40 h-40 object-contain"
-            />
+          <div className="flex flex-col items-center justify-center p-4 border border-gray-100 rounded-xl bg-white shadow-sm min-w-[180px] min-h-[180px]">
+            {paymentCodeBase64 ? (
+              <img 
+                src={qrCodeSrc} 
+                alt="QR Code Pix" 
+                className="w-40 h-40 object-contain"
+              />
+            ) : (
+              <div className="w-40 h-40 flex items-center justify-center bg-gray-50 text-gray-300 text-[10px] text-center p-4 uppercase font-bold">
+                Carregando QR Code...
+              </div>
+            )}
           </div>
         </div>
 

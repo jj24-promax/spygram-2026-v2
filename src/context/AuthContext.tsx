@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 interface AuthContextType {
   isLoggedIn: boolean;
-  login: () => void;
+  isAdmin: boolean;
+  login: (role?: 'admin' | 'user') => void;
   logout: () => void;
 }
 
@@ -10,12 +11,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
-  const login = () => setIsLoggedIn(true);
-  const logout = () => setIsLoggedIn(false);
+  // Persistência básica de sessão para facilitar o uso
+  useEffect(() => {
+    const auth = sessionStorage.getItem('auth_session');
+    if (auth) {
+      const { loggedIn, admin } = JSON.parse(auth);
+      setIsLoggedIn(loggedIn);
+      setIsAdmin(admin);
+    }
+  }, []);
+
+  const login = (role: 'admin' | 'user' = 'user') => {
+    const isAdm = role === 'admin';
+    setIsLoggedIn(true);
+    setIsAdmin(isAdm);
+    sessionStorage.setItem('auth_session', JSON.stringify({ loggedIn: true, admin: isAdm }));
+  };
+
+  const logout = () => {
+    setIsLoggedIn(false);
+    setIsAdmin(false);
+    sessionStorage.removeItem('auth_session');
+  };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, isAdmin, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

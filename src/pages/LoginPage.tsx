@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -11,19 +11,11 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  // Verifica se o usuário tem permissão para estar aqui (simulação de compra)
-  useEffect(() => {
-    const hasPurchased = sessionStorage.getItem('hasPurchased');
-    if (!hasPurchased) {
-      // Se não comprou, redireciona para a página inicial ou checkout
-      navigate('/');
-    }
-  }, [navigate]);
-
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
+    // Credenciais fixas para o sistema
     const correctUsername = 'user403@spygram.com';
     const correctPassword = 'spygram1234';
 
@@ -34,7 +26,8 @@ const LoginPage: React.FC = () => {
 
     if (username === correctUsername && password === correctPassword) {
       login();
-      navigate('/servers');
+      // Se o usuário veio de uma tentativa de acessar o admin, ou se queremos ir para o admin por padrão
+      navigate('/admin'); 
     } else {
       setError('Nome de usuário ou senha incorretos.');
     }
@@ -55,7 +48,7 @@ const LoginPage: React.FC = () => {
         <div className="mb-8 flex flex-col items-center">
           <img src="/spygram_transparentebranco.png" alt="Logo" className="h-20 drop-shadow-[0_0_15px_rgba(225,48,108,0.3)]" />
           <h2 className="text-3xl font-black text-white mt-4 tracking-tighter">LOGIN</h2>
-          <p className="text-gray-400 text-xs mt-2 text-center">Insira seu nome de usuário e senha</p>
+          <p className="text-gray-400 text-xs mt-2 text-center">Acesse sua conta administrativa</p>
         </div>
 
         <form onSubmit={handleLogin} className="w-full flex flex-col gap-4">
@@ -101,7 +94,6 @@ const LoginPage: React.FC = () => {
   );
 };
 
-// Envolvendo a exportação com o Layout de fundo
 const LoginPageWithBackground = () => (
   <BackgroundLayout>
     <LoginPage />

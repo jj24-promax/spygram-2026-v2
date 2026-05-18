@@ -170,7 +170,7 @@ const InvasionConcludedPage: React.FC = () => {
 
         {/* FAQ e Garantia */}
         <LiveChatFAQ />
-        <GuaranteeBanner />
+        <GuaranteeBanner onUnlockClick={handleUnlockClick} />
         <StaticFAQSection />
 
         {/* Rodapé Final */}

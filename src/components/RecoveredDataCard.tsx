@@ -91,11 +91,22 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) 
         {/* Galeria de Fotos Recuperadas (Layout Vertical Centralizado) */}
         {selectedImages.length > 0 && (
           <div className="flex flex-col items-center justify-center gap-4 mb-8 bg-black/60 p-8 rounded-xl border border-red-700/50 max-w-sm mx-auto shadow-lg shadow-red-500/10">
-            {/* Miniaturas com sobreposição reduzida (mais separadas) */}
-            <div className="flex -space-x-3 ml-3"> {/* Reduzi o overlap de -8 para -3 e ajustei o margin lateral */}
+            {/* Miniaturas com sobreposição e ANIMAÇÃO DE MOVIMENTO */}
+            <div className="flex -space-x-3 ml-3">
               {selectedImages.map((src, index) => (
-                <div 
+                <motion.div 
                   key={index} 
+                  // Animação de flutuação individual
+                  animate={{ 
+                    y: [0, -12, 0],
+                    rotate: [0, index % 2 === 0 ? 2 : -2, 0]
+                  }}
+                  transition={{ 
+                    duration: 3 + index, // Durações diferentes para não ficarem sincronizadas
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: index * 0.4 // Atrasos diferentes para movimento orgânico
+                  }}
                   className="relative w-28 h-28 rounded-2xl overflow-hidden border-2 border-pink-500 shadow-2xl bg-gray-900"
                   style={{ zIndex: 3 - index }}
                 >
@@ -108,7 +119,7 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) 
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                     <Lock className="w-12 h-12 text-white/90 drop-shadow-md" />
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
 

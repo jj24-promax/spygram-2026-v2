@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../integrations/supabase/client';
 import { 
   Users, DollarSign, Target, TrendingUp, Search, Calendar, 
   MapPin, ExternalLink, Smartphone, Monitor, ShieldCheck, 
-  CreditCard, Eye, ArrowUpRight, Filter, Download
+  CreditCard, Eye, ArrowUpRight, Filter, Download, LogOut, RotateCcw
 } from 'lucide-react';
 import Loader from '../components/Loader';
+import toast from 'react-hot-toast';
 
 interface Lead {
   id: string;
@@ -24,25 +26,14 @@ interface Lead {
 }
 
 const AdminPage: React.FC = () => {
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  useEffect(() => {
-    fetchLeads();
-    
-    const channel = supabase
-      .channel('admin-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
-        fetchLeads();
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  const fetchLeads = async () => {
+  const fetchLeads = async (silent = false) => {
+    if (!silent) setLoading(true);
     const { data, error } = await supabase
       .from('leads')
       .select('*')
@@ -50,6 +41,30 @@ const AdminPage: React.FC = () => {
 
     if (data) setLeads(data);
     setLoading(false);
+    if (silent) toast.success('Dados atualizados!');
+  };
+
+  useEffect(() => {
+    fetchLeads();
+    
+    const channel = supabase
+      .channel('admin-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
+        fetchLeads(true);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('spygram_admin_auth');
+    toast.success('Sessão encerrada.');
+    navigate('/admin-login');
+  };
+
+  const handleRefresh = () => {
+    fetchLeads(true);
   };
 
   // Métricas Calculadas
@@ -115,14 +130,30 @@ const AdminPage: React.FC = () => {
           <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Monitoramento Tático de Leads e Conversões</p>
         </div>
         
-        <div className="flex gap-2">
-          <button onClick={() => window.location.reload()} className="p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all">
-            <Calendar className="w-5 h-5" />
+        <div className="flex items-center gap-3">
+          {/* Botão Atualizar */}
+          <button 
+            onClick={handleRefresh}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all text-xs font-bold uppercase tracking-widest"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span className="hidden sm:inline">Atualizar</span>
           </button>
-          <div className="bg-purple-600 px-6 py-3 rounded-xl flex items-center gap-2 shadow-lg shadow-purple-600/20">
-            <DollarSign className="w-5 h-5" />
-            <span className="font-black text-white">R$ {metrics.revenue.toFixed(2)}</span>
+
+          {/* Faturamento */}
+          <div className="bg-purple-600 px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-purple-600/20">
+            <DollarSign className="w-4 h-4" />
+            <span className="font-black text-white text-sm">R$ {metrics.revenue.toFixed(2)}</span>
           </div>
+
+          {/* Botão Sair */}
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2.5 bg-red-600/10 border border-red-600/20 text-red-500 rounded-xl hover:bg-red-600/20 transition-all text-xs font-bold uppercase tracking-widest"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Sair</span>
+          </button>
         </div>
       </header>
 
@@ -136,7 +167,7 @@ const AdminPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
         
-        {/* Lado Esquerdo: Filtros e Tabela */}
+        {/* Filtros e Tabela */}
         <div className="lg:col-span-3 space-y-6">
           <div className="bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
             <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">

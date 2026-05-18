@@ -39,6 +39,7 @@ const InvasionSimulationPage: React.FC = () => {
     const loadAllDataAndProceed = async () => {
       const storedData = sessionStorage.getItem('invasionData');
       
+      // Se já estiver logado e tiver dados, vai direto para o feed
       if (isLoggedIn && storedData) {
         const data = JSON.parse(storedData);
         if (data.profileData) {
@@ -46,6 +47,13 @@ const InvasionSimulationPage: React.FC = () => {
           setSuggestedProfiles(data.suggestedProfiles || []);
           setPosts(data.posts || []);
           setLocations(data.locations || []);
+          
+          // Garante que o timer exista
+          if (!sessionStorage.getItem('invasionEndTime')) {
+            const endTime = Date.now() + 90 * 1000;
+            sessionStorage.setItem('invasionEndTime', endTime.toString());
+          }
+          
           setStage('feed_locked');
           return;
         }
@@ -112,6 +120,7 @@ const InvasionSimulationPage: React.FC = () => {
       fetchDataPromise();
       await minLoadingPromise;
 
+      // Inicia o timer de 90 segundos para acesso grátis
       if (!sessionStorage.getItem('invasionEndTime')) {
         const endTime = Date.now() + 90 * 1000;
         sessionStorage.setItem('invasionEndTime', endTime.toString());

@@ -5,7 +5,7 @@ import {
   Users, DollarSign, Search, ShieldCheck, 
   CreditCard, LogOut, RotateCcw,
   Trash2, MessageCircle, Key, BarChart3, 
-  Map as MapIcon, QrCode, Download, X, FileText, Check, Save
+  Map as MapIcon, QrCode, Download, X, FileText, Check, Save, ShieldAlert, ShieldOff
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, 
@@ -130,7 +130,6 @@ const AdminPage: React.FC = () => {
       }))
       .sort((a, b) => b.count - a.count);
 
-    const chartData = [];
     const salesByDate: Record<string, number> = {};
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
@@ -208,13 +207,11 @@ const AdminPage: React.FC = () => {
     pdf.save(`SpyGram-PIX-${selectedLead?.username_searched}.pdf`);
   };
 
-  // Abrir modal de acesso carregando dados reais se existirem
   const handleOpenAccessModal = async (lead: Lead) => {
     setSelectedLead(lead);
     setAccessEmail(lead.email || '');
-    setAccessPassword('123456'); // Padrão sugerido
+    setAccessPassword('123456');
     
-    // Tentar buscar se já existe na tabela de membros para pegar a senha real
     if (lead.email) {
       const { data } = await supabase.from('members').select('password').eq('email', lead.email).single();
       if (data) setAccessPassword(data.password);
@@ -223,7 +220,6 @@ const AdminPage: React.FC = () => {
     setShowAccessModal(true);
   };
 
-  // Salvar alterações de senha e liberar acesso se solicitado
   const handleSaveAccess = async (liberate: boolean = false) => {
     if (!selectedLead || !accessEmail.trim()) {
       toast.error("E-mail é obrigatório.");
@@ -232,7 +228,6 @@ const AdminPage: React.FC = () => {
 
     setAccessLoading(true);
     try {
-      // 1. Atualizar ou Criar na tabela de membros
       const { error: memberError } = await supabase
         .from('members')
         .upsert({ 
@@ -242,7 +237,6 @@ const AdminPage: React.FC = () => {
 
       if (memberError) throw memberError;
 
-      // 2. Se for para liberar, atualiza o status do lead e o email se mudou
       if (liberate || accessEmail !== selectedLead.email) {
         const updateData: any = { email: accessEmail.trim().toLowerCase() };
         if (liberate) updateData.status = 'pagou';
@@ -260,6 +254,32 @@ const AdminPage: React.FC = () => {
       fetchLeads(true);
     } catch (err: any) {
       toast.error("Erro ao salvar: " + err.message);
+    } finally {
+      setAccessLoading(false);
+    }
+  };
+
+  // Função para bloquear acesso
+  const handleToggleBlock = async () => {
+    if (!selectedLead) return;
+    
+    const isBanned = selectedLead.status === 'banido';
+    const newStatus = isBanned ? 'pagou' : 'banido';
+    
+    setAccessLoading(true);
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ status: newStatus })
+        .eq('id', selectedLead.id);
+
+      if (error) throw error;
+      
+      toast.success(isBanned ? "Acesso desbloqueado!" : "Acesso bloqueado!");
+      setShowAccessModal(false);
+      fetchLeads(true);
+    } catch (err: any) {
+      toast.error("Erro ao alterar status de bloqueio.");
     } finally {
       setAccessLoading(false);
     }
@@ -332,6 +352,7 @@ const AdminPage: React.FC = () => {
                 <option value="pesquisou">Pesquisou</option>
                 <option value="gerou_pix">Gerou PIX</option>
                 <option value="pagou">Pago</option>
+                <option value="banido">Banido</option>
               </select>
               <button onClick={() => fetchLeads(true)} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 text-gray-400 transition-colors">
                 <RotateCcw size={20} />
@@ -377,6 +398,7 @@ const AdminPage: React.FC = () => {
                         <td className="py-5 px-4">
                           <span className={`text-[9px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest border ${
                             lead.status === 'pagou' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                            lead.status === 'banido' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
                             lead.status === 'gerou_pix' ? 'bg-pink-500/10 text-pink-400 border-pink-500/20' : 'bg-gray-800/50 text-gray-500 border-white/5'
                           }`}>
                             {lead.status}
@@ -403,7 +425,7 @@ const AdminPage: React.FC = () => {
           </section>
         )}
 
-        {/* ... manter outras abas (analytics/sales) se necessário */}
+        {/* ... manter outras abas se necessário */}
       </div>
 
       {/* MODAL DE GESTÃO DE ACESSO */}
@@ -429,7 +451,11 @@ const AdminPage: React.FC = () => {
                   <img src={selectedLead.profile_pic || '/perfil.jpg'} className="w-14 h-14 rounded-xl object-cover" />
                   <div>
                     <p className="text-white font-black text-sm tracking-tight">@{selectedLead.username_searched}</p>
-                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${selectedLead.status === 'pagou' ? 'text-green-500 border-green-500/20 bg-green-500/5' : 'text-gray-500 border-white/10'}`}>
+                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                        selectedLead.status === 'pagou' ? 'text-green-500 border-green-500/20 bg-green-500/5' : 
+                        selectedLead.status === 'banido' ? 'text-red-500 border-red-500/20 bg-red-500/5' : 
+                        'text-gray-500 border-white/10'
+                    }`}>
                       Status: {selectedLead.status}
                     </span>
                   </div>
@@ -465,26 +491,43 @@ const AdminPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-4">
-                  <button 
-                    onClick={() => handleSaveAccess(false)}
-                    disabled={accessLoading}
-                    className="bg-white/5 border border-white/10 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-white/10 transition-all text-[10px] uppercase tracking-widest"
-                  >
-                    <Save size={14} /> Apenas Salvar
-                  </button>
-                  <button 
-                    onClick={() => handleSaveAccess(true)}
-                    disabled={accessLoading || selectedLead.status === 'pagou'}
-                    className={`font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all text-[10px] uppercase tracking-widest shadow-lg
-                               ${selectedLead.status === 'pagou' ? 'bg-green-500/10 text-green-500/50 border border-green-500/10 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-500 shadow-green-600/20'}`}
-                  >
-                    <Check size={14} /> Liberar Acesso
-                  </button>
+                <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <button 
+                        onClick={() => handleSaveAccess(false)}
+                        disabled={accessLoading}
+                        className="bg-white/5 border border-white/10 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-white/10 transition-all text-[10px] uppercase tracking-widest"
+                      >
+                        <Save size={14} /> Apenas Salvar
+                      </button>
+                      <button 
+                        onClick={() => handleSaveAccess(true)}
+                        disabled={accessLoading || selectedLead.status === 'pagou'}
+                        className={`font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all text-[10px] uppercase tracking-widest shadow-lg
+                                   ${selectedLead.status === 'pagou' ? 'bg-green-500/10 text-green-500/50 border border-green-500/10 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-500 shadow-green-600/20'}`}
+                      >
+                        <Check size={14} /> Liberar Acesso
+                      </button>
+                    </div>
+
+                    {/* BOTÃO DE BLOQUEIO / DESBLOQUEIO */}
+                    <button 
+                        onClick={handleToggleBlock}
+                        disabled={accessLoading}
+                        className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border
+                                   ${selectedLead.status === 'banido' 
+                                      ? 'bg-blue-600/10 border-blue-500/20 text-blue-500 hover:bg-blue-600/20' 
+                                      : 'bg-red-600/10 border-red-500/20 text-red-500 hover:bg-red-600/20'}`}
+                    >
+                        {selectedLead.status === 'banido' ? <><ShieldOff size={14} /> Desbloquear Acesso</> : <><ShieldAlert size={14} /> Bloquear Acesso</>}
+                    </button>
                 </div>
                 
                 {selectedLead.status === 'pagou' && (
                   <p className="text-center text-[9px] text-green-500 font-bold uppercase tracking-widest animate-pulse">Este lead já possui acesso vitalício ativo.</p>
+                )}
+                {selectedLead.status === 'banido' && (
+                  <p className="text-center text-[9px] text-red-500 font-bold uppercase tracking-widest">Este acesso está bloqueado manualmente pelo operador.</p>
                 )}
               </div>
             </motion.div>
@@ -492,7 +535,7 @@ const AdminPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* MODAL DE PIX MANUAL (Mantido do código anterior) */}
+      {/* MODAL DE PIX MANUAL */}
       <AnimatePresence>
         {showPixModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">

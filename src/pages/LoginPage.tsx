@@ -25,10 +25,27 @@ const LoginPage: React.FC = () => {
     
     setIsLoading(true);
     try {
+      // 1. Verifica se o e-mail está bloqueado na tabela de leads
+      const { data: leadCheck } = await supabase
+        .from('leads')
+        .select('status')
+        .eq('email', email.trim().toLowerCase())
+        .eq('status', 'banido')
+        .limit(1);
+
+      if (leadCheck && leadCheck.length > 0) {
+        toast.error('Acesso bloqueado, entre em contato com o suporte', {
+            duration: 5000,
+            style: { background: '#ef4444', color: '#fff', fontWeight: 'bold' }
+        });
+        return;
+      }
+
+      // 2. Procede com o login normal
       const { data, error } = await supabase
         .from('members')
         .select('*')
-        .eq('email', email.trim())
+        .eq('email', email.trim().toLowerCase())
         .eq('password', password.trim())
         .single();
 
@@ -56,7 +73,6 @@ const LoginPage: React.FC = () => {
         transition={{ duration: 0.6 }}
         className="w-full max-w-[420px] relative"
       >
-        {/* Efeito de brilho atrás do card */}
         <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-500 to-yellow-500 rounded-[2.5rem] blur opacity-20"></div>
         
         <div className="relative bg-[#0a0c10]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-10 flex flex-col items-center shadow-2xl">

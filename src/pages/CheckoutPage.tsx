@@ -315,7 +315,7 @@ const CheckoutPage: React.FC = () => {
                 <h3 className="font-black text-gray-400 uppercase tracking-widest text-xs">Resumo da Compra</h3>
              </div>
              <div className="p-8 flex flex-col items-center">
-                <img src="/spygram_transparentebranco.png" className="h-16 brightness-0 opacity-80 mb-8" alt="SpyGram Logo" />
+                <img src="/spygram_transparentebranco.png" className="h-24 brightness-0 opacity-80 mb-8" alt="SpyGram Logo" />
                 <div className="w-full border-t border-gray-100 pt-6">
                    <div className="flex justify-between items-center mb-4">
                       <div className="flex flex-col">

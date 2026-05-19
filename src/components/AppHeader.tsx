@@ -6,23 +6,23 @@ const AppHeader: React.FC = () => {
   return (
     <header className="flex flex-col sm:flex-row justify-between items-center gap-6 mb-12 sm:mb-16 w-full">
       {/* Lado Esquerdo: Logo e Nome */}
-      <div className="flex items-center gap-3 sm:gap-4">
+      <div className="flex items-center gap-4 sm:gap-6">
         <motion.div 
           initial={{ rotate: -10, opacity: 0 }}
           animate={{ rotate: 0, opacity: 1 }}
           className="relative group"
         >
-          <div className="absolute -inset-2 bg-purple-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div className="relative p-2 sm:p-2.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl sm:rounded-2xl shadow-2xl">
-            <img src="/spygram_transparentebranco.png" alt="SpyGram" className="h-5 sm:h-7 w-auto object-contain" />
+          <div className="absolute -inset-3 bg-purple-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="relative p-3.5 sm:p-5 bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl">
+            <img src="/spygram_transparentebranco.png" alt="SpyGram" className="h-10 sm:h-14 w-auto object-contain" />
           </div>
         </motion.div>
         
         <div className="flex flex-col">
-          <h1 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tighter leading-none">
+          <h1 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tighter leading-none">
             Spy<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Gram</span>
           </h1>
-          <span className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-[0.4em] mt-1">Intelligence</span>
+          <span className="text-[10px] sm:text-xs font-black text-gray-500 uppercase tracking-[0.4em] mt-2">Intelligence</span>
         </div>
       </div>
       

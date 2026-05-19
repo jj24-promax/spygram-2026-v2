@@ -186,17 +186,17 @@ const CheckoutPage: React.FC = () => {
 
       <div className="max-w-xl mx-auto px-4 py-6 flex flex-col items-center">
         
-        {/* Adquirindo Card */}
-        <div className="w-full bg-white rounded-xl shadow-sm p-4 flex items-center gap-4 mb-6 border border-gray-100">
+        {/* Banner principal */}
+        <img src="/banner-topo.png" alt="Banner" className="w-full h-auto mb-6 rounded-2xl shadow-lg" />
+
+        {/* Adquirindo Card - AGORA ABAIXO DO BANNER */}
+        <div className="w-full bg-white rounded-xl shadow-sm p-4 flex items-center gap-4 mb-8 border border-gray-100">
            <div className="p-2 bg-gray-50 rounded-lg"><ShoppingCart size={20} className="text-gray-400" /></div>
            <div className="flex flex-col">
               <span className="text-[10px] font-black uppercase text-gray-400">Você está adquirindo:</span>
               <span className="text-xs font-bold">Relatório SpyGram Completo</span>
            </div>
         </div>
-
-        {/* Banner principal */}
-        <img src="/banner-topo.png" alt="Banner" className="w-full h-auto mb-8 rounded-2xl shadow-lg" />
 
         {/* Form Container */}
         <div className="w-full space-y-8">

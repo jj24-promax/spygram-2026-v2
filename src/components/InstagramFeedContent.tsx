@@ -3,6 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, MoreHorizontal, ChevronDown, Plus } from 'lucide-react';
 import { ProfileData, SuggestedProfile, FeedPost } from '../../types';
 
+// Lista de legendas variadas para posts bloqueados
+const MOCK_CAPTIONS = [
+  "Finalmente um tempo para mim... ✨",
+  "Que dia incrível! 📸",
+  "Sabadou do melhor jeito. 🍷",
+  "Trabalhando em algo novo. 🤫",
+  "Saudades desse lugar. 🏖️",
+  "A vida é curta demais para não aproveitar.",
+  "Mais um dia, mais uma meta. 💪",
+  "Mood de hoje: gratidão. 🙏",
+  "Coisas boas acontecem para quem espera.",
+  "Apenas vivendo o momento. 🍃"
+];
+
 // Helper function to mask usernames
 const maskUsername = (username: string) => {
   if (username.length <= 4) return username; 
@@ -116,9 +130,14 @@ const LockedPost: React.FC<{
   username: string; 
   profilePicUrl: string; 
   location?: string;
+  index: number;
   onLockedFeatureClick: (featureName: string) => void;
-}> = ({ username, profilePicUrl, location, onLockedFeatureClick }) => {
+}> = ({ username, profilePicUrl, location, index, onLockedFeatureClick }) => {
   const maskedUsername = maskUsername(username);
+  const caption = MOCK_CAPTIONS[index % MOCK_CAPTIONS.length];
+  const likes = Math.floor(Math.random() * 2000) + 120;
+  const comments = Math.floor(Math.random() * 60) + 5;
+
   return (
     <div className="border-b border-gray-800 mb-4">
       <div className="flex items-center justify-between p-3">
@@ -155,9 +174,9 @@ const LockedPost: React.FC<{
         </button>
       </div>
       <div className="px-3 pb-3 text-xs space-y-1 blur-sm select-none pointer-events-none">
-        <p className="font-semibold text-white mb-1">{Math.floor(Math.random() * 2000) + 100} curtidas</p>
-        <p className="text-white"><span className="font-semibold mr-1">{maskedUsername}</span><span>Lorem ipsum dolor sit amet, consectetur...</span></p>
-        <p className="text-gray-500 mt-1">Ver todos os {Math.floor(Math.random() * 50) + 10} comentários</p>
+        <p className="font-semibold text-white mb-1">{likes} curtidas</p>
+        <p className="text-white"><span className="font-semibold mr-1">{maskedUsername}</span><span>{caption}</span></p>
+        <p className="text-gray-500 mt-1">Ver todos os {comments} comentários</p>
       </div>
     </div>
   );
@@ -212,6 +231,7 @@ const InstagramFeedContent: React.FC<InstagramFeedContentProps> = ({ profileData
         )) : suggestedProfiles.slice(0, 5).map((profile, index) => (
           <LockedPost 
             key={profile.username || index} 
+            index={index}
             username={profile.username}
             profilePicUrl={profile.profile_pic_url}
             location={locations.length > 0 ? locations[index % locations.length] : undefined} 

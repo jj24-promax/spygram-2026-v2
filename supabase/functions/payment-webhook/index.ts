@@ -7,7 +7,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Responde a requisições OPTIONS para o CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -17,64 +16,71 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Lê o payload enviado pela Royal Banking
     const payload = await req.json()
-    console.log("[payment-webhook] Payload recebido:", JSON.stringify(payload));
+    console.log("[payment-webhook] PAYLOAD RECEBIDO:", JSON.stringify(payload));
 
-    // A documentação menciona idTransaction e externalReference
-    const transactionId = String(payload.idTransaction || payload.externalReference);
+    const transactionId = payload.idTransaction;
+    const externalRef = payload.externalReference;
     const status = payload.status;
 
-    if (!transactionId || !status) {
-      console.error("[payment-webhook] Dados insuficientes no payload.");
+    if (!status || (!transactionId && !externalRef)) {
+      console.error("[payment-webhook] Payload inválido - Faltam IDs ou Status");
       return new Response(JSON.stringify(400), { status: 400 });
     }
 
-    // 1. Atualiza o status na tabela de pagamentos
-    const { data: paymentData, error: paymentError } = await supabase
-      .from('payments')
-      .update({ 
-        status: status,
-        payload: payload,
-        updated_at: new Date().toISOString()
-      })
-      .eq('transaction_id', transactionId)
-      .select('lead_id')
-      .single();
+    let leadIdToUnlock = null;
 
-    if (paymentError) {
-      console.error("[payment-webhook] Erro ao atualizar pagamento:", paymentError.message);
+    // 1. Tentar localizar o pagamento pela transaction_id (ID da Royal)
+    if (transactionId) {
+      const { data: paymentData } = await supabase
+        .from('payments')
+        .update({ 
+          status: status,
+          payload: payload,
+          updated_at: new Date().toISOString()
+        })
+        .eq('transaction_id', String(transactionId))
+        .select('lead_id')
+        .single();
+      
+      if (paymentData?.lead_id) leadIdToUnlock = paymentData.lead_id;
     }
 
-    // 2. Se o status for 'paid' (Cash In), 'SaquePago' (Cash Out) ou 'approved'/'success'
-    // Atualizamos o lead para liberar o acesso
+    // 2. Backup: Se não achou pelo payment, tenta usar o externalReference como lead_id direto
+    // (Caso a API devolva nosso externalReference como o leadId enviado no cash in)
+    if (!leadIdToUnlock && externalRef && typeof externalRef === 'string' && externalRef.length > 30) {
+      console.log("[payment-webhook] Tentando identificar lead via externalReference...");
+      leadIdToUnlock = externalRef;
+    }
+
+    // 3. Verificação de Status para Liberação
     const isPaid = ['paid', 'SaquePago', 'approved', 'success'].includes(status);
 
-    if (paymentData?.lead_id && isPaid) {
-      console.log(`[payment-webhook] Confirmando lead: ${paymentData.lead_id} por transação ${transactionId}`);
+    if (leadIdToUnlock && isPaid) {
+      console.log(`[payment-webhook] LIBERANDO ACESSO para Lead: ${leadIdToUnlock}`);
       
       const { error: leadError } = await supabase
         .from('leads')
         .update({ status: 'pagou' })
-        .eq('id', paymentData.lead_id);
+        .eq('id', leadIdToUnlock);
 
       if (leadError) {
         console.error("[payment-webhook] Erro ao atualizar lead:", leadError.message);
+      } else {
+        console.log("[payment-webhook] Lead atualizado com sucesso para 'pagou'");
       }
     } else {
-      console.warn(`[payment-webhook] Pagamento ${transactionId} não resultou em liberação (Lead: ${paymentData?.lead_id || 'N/A'}, Status: ${status})`);
+      console.warn(`[payment-webhook] Sem liberação. Lead Encontrado: ${!!leadIdToUnlock}, Status Pago: ${isPaid}`);
     }
 
-    // A documentação exige retorno imediato de HTTP 200 com json_encode(200)
-    // No Deno/JS, JSON.stringify(200) retorna a string "200"
+    // Retorno obrigatório exigido pela Royal Banking: json_encode(200)
     return new Response(JSON.stringify(200), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error) {
-    console.error("[payment-webhook] Falha crítica:", error.message)
-    // Mesmo em erro de processamento, retornar 500 para permitir que a Royal Banking tente novamente (retry)
+    console.error("[payment-webhook] Erro Fatal:", error.message)
     return new Response(JSON.stringify(500), { status: 500 })
   }
 })

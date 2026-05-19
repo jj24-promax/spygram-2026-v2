@@ -26,9 +26,11 @@ serve(async (req) => {
     const cleanDocument = document.replace(/\D/g, '');
     const cleanPhone = phone.replace(/\D/g, '');
 
+    // Enviamos o leadId como externalReference para ter um backup de identificação
     const payload = {
       "api-key": ROYAL_BANKING_TOKEN,
       "amount": amount,
+      "externalReference": leadId,
       "client": {
         "name": name,
         "document": cleanDocument,
@@ -38,7 +40,7 @@ serve(async (req) => {
       "callbackUrl": 'https://wdxgxbvrealcalipuzay.supabase.co/functions/v1/payment-webhook'
     }
 
-    console.log("[royal-banking-payment] Solicitando Cash In...");
+    console.log(`[royal-banking-payment] Solicitando pagamento para lead ${leadId}...`);
 
     const response = await fetch('https://api.royalbanking.com.br/v1/gateway/', {
       method: 'POST',
@@ -51,9 +53,9 @@ serve(async (req) => {
 
     const data = await response.json()
 
-    if (response.ok && data.status !== 'failed' && data.idTransaction) {
-      // Registra o mapeamento transação <-> lead para o Webhook usar depois
-      await supabase
+    if (response.ok && data.idTransaction) {
+      // Registra o mapeamento transação <-> lead
+      const { error: pError } = await supabase
         .from('payments')
         .insert({
           transaction_id: String(data.idTransaction),
@@ -62,7 +64,10 @@ serve(async (req) => {
           payload: data
         });
       
-      console.log(`[royal-banking-payment] Transação ${data.idTransaction} vinculada ao lead ${leadId}`);
+      if (pError) console.error("[royal-banking-payment] Erro ao salvar payment:", pError.message);
+      console.log(`[royal-banking-payment] Transação ${data.idTransaction} criada com sucesso.`);
+    } else {
+      console.error("[royal-banking-payment] Resposta inválida da API:", JSON.stringify(data));
     }
 
     return new Response(JSON.stringify(data), {

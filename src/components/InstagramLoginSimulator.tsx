@@ -91,7 +91,7 @@ const InstagramLoginSimulator: React.FC<InstagramLoginSimulatorProps> = ({ profi
   };
 
   return (
-    <div className="w-full max-w-sm mx-auto p-6 bg-black text-white flex flex-col items-center justify-center min-h-screen font-sans">
+    <div className="w-full max-w-sm mx-auto p-6 bg-transparent text-white flex flex-col items-center justify-center min-h-screen font-sans">
       <div className="w-full text-center flex flex-col items-center">
         
         <img

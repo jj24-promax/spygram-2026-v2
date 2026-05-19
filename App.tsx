@@ -46,7 +46,7 @@ const MainAppContent: React.FC = () => {
       setProgressBarProgress(0);
       interval = setInterval(() => {
         setProgressBarProgress((prev: number) => (prev < 95 ? prev + 1 : prev));
-      }, 100);
+      }, 1000);
     } else {
       setProgressBarProgress(100);
     }
@@ -127,7 +127,7 @@ const MainAppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-transparent">
       <ProgressBar progress={progressBarProgress} isVisible={isLoading} />
       <div className="relative z-20 text-white flex flex-col items-center px-4 pt-12 pb-8 w-full"> 
         <header className="text-center mb-8 w-full max-xl">
@@ -158,7 +158,10 @@ const App: React.FC = () => {
           <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/admin" element={<AdminProtectedRoute><AdminPage /></AdminProtectedRoute>} />
-          <Route path="/instagram" element={<InvasionSimulationPage />} />
+          
+          {/* Rota de Simulação agora possui BackgroundLayout para manter o Matrix Rain durante o carregamento */}
+          <Route path="/instagram" element={<BackgroundLayout><InvasionSimulationPage /></BackgroundLayout>} />
+          
           <Route path="/invasion-concluded" element={<BackgroundLayout><InvasionConcludedPage /></BackgroundLayout>} />
           
           <Route path="/servers" element={<ProtectedRoute><BackgroundLayout><ServersPage /></BackgroundLayout></ProtectedRoute>} />

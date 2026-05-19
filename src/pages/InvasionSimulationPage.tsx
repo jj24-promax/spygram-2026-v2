@@ -149,13 +149,13 @@ const InvasionSimulationPage: React.FC = () => {
   if (!profileData || stage === 'loading') {
     if (errorMessage) {
       return (
-        <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="min-h-screen bg-transparent flex items-center justify-center">
           <ErrorMessage message={errorMessage} />
         </div>
       );
     }
     return (
-      <div className="min-h-screen bg-black" />
+      <div className="min-h-screen bg-transparent" />
     );
   }
 
@@ -192,7 +192,7 @@ const InvasionSimulationPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans w-full">
+    <div className="min-h-screen bg-transparent text-white font-sans w-full">
       <AnimatePresence mode="wait">
         <div className="flex items-center justify-center min-h-screen">
           {stage === 'login_attempt' && (

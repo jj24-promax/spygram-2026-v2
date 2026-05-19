@@ -21,9 +21,9 @@ const getProxyImageUrlLight = (imageUrl: string | undefined): string => {
     return `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=80&h=80&fit=cover&q=50`;
 };
 
-const shuffleArray = <T>(array: T[]): T[] => {
+function shuffleArray(array: any[]): any[] {
     return [...array].sort(() => Math.random() - 0.5);
-};
+}
 
 const simpleFetch = async (campo: string, username: string): Promise<any> => {
     const controller = new AbortController();

@@ -36,13 +36,14 @@ const citiesByState: { [key: string]: string[] } = {
   'Tocantins': ['Palmas', 'Araguaína', 'Gurupi', 'Porto Nacional']
 };
 
-const shuffleArray = <T>(array: T[]): T[] => {
-  for (let i = array.length - 1; i > 0; i--) {
+function shuffleArray(array: any[]): any[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return array;
-};
+  return arr;
+}
 
 export const getUserLocation = async (): Promise<LocationData> => {
   try {

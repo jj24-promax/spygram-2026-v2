@@ -18,8 +18,12 @@ const CheckoutSidebar: React.FC<CheckoutSidebarProps> = ({ total }) => {
           </div>
 
           <div className="flex flex-col items-center mb-8">
-            <div className="bg-gray-50 p-4 rounded-2xl mb-6">
-              <img src="/spygram_transparentebranco.png" className="h-10 brightness-0 opacity-60" alt="SpyGram" />
+            <div className="bg-gray-50 p-6 rounded-2xl mb-6 flex items-center justify-center w-full">
+              <img 
+                src="/spygram_transparentebranco.png" 
+                className="h-16 brightness-0 opacity-80 object-contain" 
+                alt="SpyGram" 
+              />
             </div>
 
             <div className="w-full text-center">

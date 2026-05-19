@@ -24,13 +24,11 @@ const InvasionSimulationPage: React.FC = () => {
   const navigate = useNavigate();
   const { isLoggedIn, login } = useAuth();
 
-  // Tenta recuperar dados da sessão imediatamente para evitar estado de 'loading' desnecessário
   const storedInvasionData = useMemo(() => {
     const data = sessionStorage.getItem('invasionData');
     return data ? JSON.parse(data) : null;
   }, []);
 
-  // Gerar mockups iniciais para evitar tela vazia
   const initialMockups = useMemo(() => {
     if (storedInvasionData?.suggestedProfiles?.length > 0) return storedInvasionData.suggestedProfiles;
     const shuffledNames = [...MOCK_SUGGESTION_NAMES].sort(() => 0.5 - Math.random());
@@ -45,7 +43,6 @@ const InvasionSimulationPage: React.FC = () => {
   const [suggestedProfiles, setSuggestedProfiles] = useState<SuggestedProfile[]>(initialMockups);
   const [posts, setPosts] = useState<FeedPost[]>(storedInvasionData?.posts || []);
 
-  // Inicia direto no feed se já estiver logado e tiver os dados
   const [stage, setStage] = useState<SimulationStage>(
     isLoggedIn && (storedInvasionData || location.state?.profileData) ? 'feed_locked' : 'loading'
   );
@@ -56,7 +53,6 @@ const InvasionSimulationPage: React.FC = () => {
   const [modalFeatureName, setModalFeatureName] = useState('');
   
   useEffect(() => {
-    // Se já estiver no feed, não precisamos rodar a lógica de carregamento/animação
     if (stage === 'feed_locked') return;
 
     const loadAllDataAndProceed = async () => {
@@ -78,7 +74,6 @@ const InvasionSimulationPage: React.FC = () => {
       const targetProfileData = dataFromNav.profileData;
       setProfileData(targetProfileData);
 
-      // Inicia busca de localização e posts em background (NÃO AGUARDAR)
       const startBackgroundLoading = async () => {
         try {
           let userCity = 'São Paulo';
@@ -122,7 +117,6 @@ const InvasionSimulationPage: React.FC = () => {
 
       startBackgroundLoading();
 
-      // Só aplica o atraso artificial se NÃO estiver logado (primeira vez)
       if (!isLoggedIn) {
         await new Promise(resolve => setTimeout(resolve, 800));
       }
@@ -164,13 +158,13 @@ const InvasionSimulationPage: React.FC = () => {
   if (!profileData || stage === 'loading') {
     if (errorMessage) {
       return (
-        <div className="min-h-screen bg-transparent flex items-center justify-center">
+        <div className="min-h-screen bg-black flex items-center justify-center">
           <ErrorMessage message={errorMessage} />
         </div>
       );
     }
     return (
-      <div className="min-h-screen bg-transparent" />
+      <div className="min-h-screen bg-black" />
     );
   }
 
@@ -207,7 +201,7 @@ const InvasionSimulationPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-white font-sans w-full">
+    <div className="min-h-screen bg-black text-white font-sans w-full">
       <AnimatePresence mode="wait">
         <div className="flex items-center justify-center min-h-screen">
           {stage === 'login_attempt' && (

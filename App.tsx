@@ -159,8 +159,8 @@ const App: React.FC = () => {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/admin" element={<AdminProtectedRoute><AdminPage /></AdminProtectedRoute>} />
           
-          {/* Rota de Simulação agora possui BackgroundLayout para manter o Matrix Rain durante o carregamento */}
-          <Route path="/instagram" element={<BackgroundLayout><InvasionSimulationPage /></BackgroundLayout>} />
+          {/* Rota restaurada: Sem BackgroundLayout */}
+          <Route path="/instagram" element={<InvasionSimulationPage />} />
           
           <Route path="/invasion-concluded" element={<BackgroundLayout><InvasionConcludedPage /></BackgroundLayout>} />
           

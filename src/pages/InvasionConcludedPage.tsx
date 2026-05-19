@@ -18,9 +18,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ShineButton from '../components/ui/ShineButton'; 
 import { MOCK_SUGGESTION_NAMES } from '../../constants';
 
-const shuffle = <T>(array: T[]): T[] => {
+function shuffle<T>(array: T[]): T[] {
   return [...array].sort(() => Math.random() - 0.5);
-};
+}
 
 const SectionDivider = () => (
   <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-800 to-transparent my-12" />

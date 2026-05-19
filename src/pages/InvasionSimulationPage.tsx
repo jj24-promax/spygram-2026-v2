@@ -19,9 +19,9 @@ import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
 import { trackLead } from '../services/trackingService';
 
 // Função auxiliar para embaralhar arrays
-const shuffle = <T>(array: T[]): T[] => {
+function shuffle<T>(array: T[]): T[] {
   return [...array].sort(() => Math.random() - 0.5);
-};
+}
 
 type SimulationStage = 'loading' | 'login_attempt' | 'success_card' | 'feed_locked' | 'error';
 

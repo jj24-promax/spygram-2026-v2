@@ -175,11 +175,12 @@ const InvasionSimulationPage: React.FC = () => {
 
   if (stage === 'feed_locked') {
     return (
-      <div className="h-screen bg-black md:bg-[#121212] text-white font-sans w-full relative flex flex-col items-center overflow-hidden">
+      <div className="min-h-screen bg-black md:bg-[#121212] text-white font-sans w-full relative flex flex-col items-center">
         <LockedFeatureModal isOpen={isModalOpen} onClose={closeModal} featureName={modalFeatureName} />
         <FreeTimeFloatingButton />
 
-        <div className="block md:hidden w-full h-full max-w-md">
+        {/* Mobile Mockup: Uso de fixed inset-0 para garantir que o rodapé nunca suma na navegação */}
+        <div className="block md:hidden fixed inset-0 z-10 bg-black">
           <InstagramFeedMockup 
             profileData={profileData} 
             suggestedProfiles={suggestedProfiles} 
@@ -188,9 +189,11 @@ const InvasionSimulationPage: React.FC = () => {
             onLockedFeatureClick={handleLockedFeatureClick}
           />
         </div>
-        <div className="hidden md:flex w-full h-full justify-center">
+
+        {/* Desktop View */}
+        <div className="hidden md:flex w-full h-screen justify-center overflow-hidden">
           <WebSidebar profileData={profileData} onLockedFeatureClick={handleLockedFeatureClick} />
-          <main className="w-full max-w-[630px] border-x border-gray-800 md:ml-64 overflow-y-auto">
+          <main className="w-full max-w-[630px] border-x border-gray-800 md:ml-64 overflow-y-auto h-full scrollbar-hide">
             <InstagramFeedContent 
               profileData={profileData} 
               suggestedProfiles={suggestedProfiles} 

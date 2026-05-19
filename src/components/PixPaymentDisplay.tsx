@@ -10,7 +10,7 @@ interface PixPaymentDisplayProps {
   transactionId: string;
   amount: number;
   onConfirm: () => void;
-  onSuccess?: () => void;
+  onSuccess?: () => void; // Callback para quando o pagamento for detectado
   leadData?: {
     nome: string;
     email: string;
@@ -30,12 +30,12 @@ const PixPaymentDisplay: React.FC<PixPaymentDisplayProps> = ({
   onSuccess,
   leadData
 }) => {
-  const TOTAL_TIME = 600; 
+  const TOTAL_TIME = 600; // 10 minutos em segundos
   const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
   const [copied, setCopied] = useState(false);
   const hasTracked = useRef(false);
 
-  // 1. Salvamento inicial do lead
+  // 1. Salvamento automático do lead ao carregar a página
   useEffect(() => {
     if (!hasTracked.current && leadData) {
       trackLead({
@@ -52,14 +52,12 @@ const PixPaymentDisplay: React.FC<PixPaymentDisplayProps> = ({
     }
   }, [leadData, amount]);
 
-  // 2. Verificação Automática (Polling) agressiva de status de pagamento
+  // 2. Verificação Automática (Polling) de status de pagamento
   useEffect(() => {
     const currentLeadId = sessionStorage.getItem('current_lead_id');
-    if (!currentLeadId) {
-        console.warn("[PixPaymentDisplay] Lead ID não encontrado na sessão.");
-        return;
-    }
+    if (!currentLeadId) return;
 
+    // Função que checa o status no banco
     const checkPaymentStatus = async () => {
       const { data, error } = await supabase
         .from('leads')
@@ -68,17 +66,16 @@ const PixPaymentDisplay: React.FC<PixPaymentDisplayProps> = ({
         .single();
 
       if (!error && data?.status === 'pagou') {
-        console.log("[PixPaymentDisplay] Pagamento detectado via polling!");
         if (onSuccess) onSuccess();
       }
     };
 
-    // Intervalo de checagem a cada 3 segundos (mais rápido para melhor UX)
-    const interval = setInterval(checkPaymentStatus, 3000);
+    // Intervalo de checagem a cada 5 segundos
+    const interval = setInterval(checkPaymentStatus, 5000);
     
-    // Inscrição Real-time como backup
+    // Inscrição em tempo real como reforço
     const channel = supabase
-      .channel(`pix-check-${currentLeadId}`)
+      .channel('pix-status-check')
       .on('postgres_changes', { 
         event: 'UPDATE', 
         schema: 'public', 
@@ -86,7 +83,6 @@ const PixPaymentDisplay: React.FC<PixPaymentDisplayProps> = ({
         filter: `id=eq.${currentLeadId}`
       }, (payload) => {
         if (payload.new.status === 'pagou') {
-          console.log("[PixPaymentDisplay] Pagamento detectado via real-time!");
           if (onSuccess) onSuccess();
         }
       })
@@ -98,12 +94,18 @@ const PixPaymentDisplay: React.FC<PixPaymentDisplayProps> = ({
     };
   }, [onSuccess]);
 
+  // 3. Timer regressivo
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const cleanBase64 = paymentCodeBase64?.replace(/\s/g, '') || '';
+  const qrCodeSrc = cleanBase64.startsWith('data:image') 
+    ? cleanBase64 
+    : `data:image/png;base64,${cleanBase64}`;
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -119,9 +121,6 @@ const PixPaymentDisplay: React.FC<PixPaymentDisplayProps> = ({
   };
 
   const progressPercentage = (timeLeft / TOTAL_TIME) * 100;
-  const qrCodeSrc = paymentCodeBase64?.startsWith('data:image') 
-    ? paymentCodeBase64 
-    : `data:image/png;base64,${paymentCodeBase64?.replace(/\s/g, '') || ''}`;
 
   return (
     <div className="w-full max-w-2xl mx-auto bg-white rounded-lg shadow-xl overflow-hidden border border-gray-100 text-gray-800 animate-fade-in">
@@ -130,7 +129,7 @@ const PixPaymentDisplay: React.FC<PixPaymentDisplayProps> = ({
           <span className="text-[10px] text-gray-400 font-bold uppercase">Pedido: <span className="text-gray-600">{transactionId.substring(0, 15).toUpperCase()}</span></span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm font-bold text-gray-500">Valor: <span className="text-[#00bcd4]">R$ {(amount || 0).toFixed(2).replace('.', ',')}</span></span>
+          <span className="text-sm font-bold text-gray-500">Valor: <span className="text-[#00bcd4]">R$ {amount.toFixed(2).replace('.', ',')}</span></span>
           <img src="https://logopng.com.br/logos/pix-106.png" alt="Pix" className="h-4 grayscale opacity-50" />
         </div>
       </div>
@@ -200,7 +199,18 @@ const PixPaymentDisplay: React.FC<PixPaymentDisplayProps> = ({
             A compra será confirmada automaticamente após o pagamento e você receberá imediatamente sua compra.
           </p>
         </div>
+
+        <div className="mt-12 text-left">
+          <h3 className="text-sm font-bold text-gray-800 mb-6">Está com dúvidas de como realizar o pagamento?</h3>
+          <ul className="space-y-4 text-[11px] text-gray-500">
+            <li className="flex gap-2">1. <p>Abra o aplicativo do seu banco;</p></li>
+            <li className="flex gap-2">2. <p>Selecione a opção <span className="font-bold">PIX copia e cola</span>, e cole o código. Ou você pode escanear o QR Code utilizando a opção de <span className="font-bold">Pagar com Pix / Escanear QR code</span></p></li>
+            <li className="flex gap-2">3. <p>Após o pagamento, você receberá por email os dados de acesso à sua compra. Lembre-se de verificar a caixa de SPAM.</p></li>
+          </ul>
+        </div>
       </div>
+      
+      <div className="w-full h-1 bg-gradient-to-r from-transparent via-gray-100 to-transparent mb-8 mx-auto max-w-[80%]" />
     </div>
   );
 };

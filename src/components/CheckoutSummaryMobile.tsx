@@ -13,13 +13,6 @@ interface CheckoutSummaryMobileProps {
 }
 
 const CheckoutSummaryMobile: React.FC<CheckoutSummaryMobileProps> = ({ total, basePrice, selectedBumps, bumpDetails }) => {
-  // Segurança: Se os dados essenciais não existirem, não renderiza para não quebrar o app
-  if (typeof basePrice === 'undefined' || !bumpDetails) return null;
-
-  const formatBRL = (val: number) => {
-    return (val || 0).toFixed(2).replace('.', ',');
-  };
-
   return (
     <div className="md:hidden w-full max-w-sm mx-auto mb-10 relative mt-6">
       {/* Badge Superior */}
@@ -54,18 +47,17 @@ const CheckoutSummaryMobile: React.FC<CheckoutSummaryMobileProps> = ({ total, ba
           {/* Produto Base */}
           <div className="flex justify-between items-center text-[11px] font-bold">
             <span className="text-gray-500 uppercase tracking-tighter">Relatório SpyGram Completo</span>
-            <span className="text-[#78cc6d]">R$ {formatBRL(basePrice)}</span>
+            <span className="text-[#78cc6d]">R$ {basePrice.toFixed(2).replace('.', ',')}</span>
           </div>
 
           {/* Order Bumps Selecionados */}
           {Object.entries(selectedBumps).map(([key, isSelected]) => {
             if (!isSelected) return null;
             const item = bumpDetails[key];
-            if (!item) return null;
             return (
               <div key={key} className="flex justify-between items-center text-[11px] font-bold animate-fade-in">
                 <span className="text-gray-500 uppercase tracking-tighter">{item.title}</span>
-                <span className="text-[#78cc6d]">R$ {formatBRL(item.price)}</span>
+                <span className="text-[#78cc6d]">R$ {item.price.toFixed(2).replace('.', ',')}</span>
               </div>
             );
           })}
@@ -74,7 +66,7 @@ const CheckoutSummaryMobile: React.FC<CheckoutSummaryMobileProps> = ({ total, ba
         {/* Total Hoje */}
         <div className="w-full bg-[#f2f2f2] rounded-xl px-4 py-3 flex justify-between items-center">
           <span className="text-[12px] font-bold text-gray-600 uppercase">Total Hoje:</span>
-          <span className="text-[12px] font-black text-[#78cc6d]">R$ {formatBRL(total)}</span>
+          <span className="text-[12px] font-black text-[#78cc6d]">R$ {total.toFixed(2).replace('.', ',')}</span>
         </div>
       </div>
     </div>

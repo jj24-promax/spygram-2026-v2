@@ -14,12 +14,6 @@ interface CheckoutSidebarProps {
 }
 
 const CheckoutSidebar: React.FC<CheckoutSidebarProps> = ({ total, basePrice, selectedBumps, bumpDetails }) => {
-  if (typeof basePrice === 'undefined' || !bumpDetails) return null;
-
-  const formatBRL = (val: number) => {
-    return (val || 0).toFixed(2).replace('.', ',');
-  };
-
   return (
     <aside className="hidden lg:block w-80 flex-shrink-0 sticky top-32 h-fit">
       <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl shadow-gray-200/50 overflow-hidden">
@@ -55,17 +49,16 @@ const CheckoutSidebar: React.FC<CheckoutSidebarProps> = ({ total, basePrice, sel
             
             <div className="flex justify-between items-center text-[11px] font-medium text-gray-600">
               <span>Relatório SpyGram</span>
-              <span>R$ {formatBRL(basePrice)}</span>
+              <span>R$ {basePrice.toFixed(2).replace('.', ',')}</span>
             </div>
 
             {Object.entries(selectedBumps).map(([key, isSelected]) => {
               if (!isSelected) return null;
               const item = bumpDetails[key];
-              if (!item) return null;
               return (
                 <div key={key} className="flex justify-between items-center text-[11px] font-medium text-gray-600 animate-fade-in">
                   <span>{item.title}</span>
-                  <span>R$ {formatBRL(item.price)}</span>
+                  <span>R$ {item.price.toFixed(2).replace('.', ',')}</span>
                 </div>
               );
             })}
@@ -77,7 +70,7 @@ const CheckoutSidebar: React.FC<CheckoutSidebarProps> = ({ total, basePrice, sel
             
             <div className="bg-gray-50 p-5 rounded-2xl flex justify-between items-center mt-6 border border-gray-100/50">
               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total a pagar:</span>
-              <span className="text-lg font-black text-[#78cc6d]">R$ {formatBRL(total)}</span>
+              <span className="text-lg font-black text-[#78cc6d]">R$ {total.toFixed(2).replace('.', ',')}</span>
             </div>
           </div>
 

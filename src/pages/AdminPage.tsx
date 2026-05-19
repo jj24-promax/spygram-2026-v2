@@ -259,7 +259,6 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  // Função para bloquear acesso
   const handleToggleBlock = async () => {
     if (!selectedLead) return;
     
@@ -425,10 +424,63 @@ const AdminPage: React.FC = () => {
           </section>
         )}
 
-        {/* ... manter outras abas se necessário */}
+        {activeTab === 'analytics' && (
+          <section className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-10 backdrop-blur-3xl shadow-2xl">
+            <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-10 flex items-center gap-4">
+              <MapIcon className="text-purple-500" /> Distribuição Geográfica
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {metrics.geoData.length > 0 ? metrics.geoData.map((item, idx) => (
+                <div key={idx} className="bg-black/40 border border-white/10 rounded-[2rem] p-6 hover:border-purple-500/30 transition-all shadow-xl">
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-4">
+                      <span className="text-3xl font-black text-white">{item.uf}</span>
+                      <span className="text-[10px] font-black text-purple-400 bg-purple-500/10 px-3 py-1 rounded-full uppercase">{item.percent}%</span>
+                    </div>
+                    <span className="text-2xl font-black text-white">{item.count}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-6">
+                    <div className="h-full bg-gradient-to-r from-purple-600 to-pink-500" style={{ width: `${item.percent}%` }} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                     <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Principais Cidades</span>
+                     <p className="text-[10px] text-gray-400 font-bold uppercase leading-relaxed">{item.mainCities}</p>
+                  </div>
+                </div>
+              )) : <div className="col-span-full py-10 text-center text-gray-600 font-bold uppercase">Aguardando novos leads...</div>}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'sales' && (
+          <section className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-10 backdrop-blur-3xl shadow-2xl">
+            <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-10 flex items-center gap-4">
+              <BarChart3 className="text-green-500" /> Performance Operacional
+            </h2>
+            <div className="h-[450px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={metrics.chartData}>
+                  <defs>
+                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
+                  <XAxis dataKey="date" stroke="#525252" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#525252" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `R$${val}`} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}
+                    itemStyle={{ color: '#a78bfa', fontWeight: 'bold' }}
+                  />
+                  <Area type="monotone" dataKey="amount" stroke="#8b5cf6" strokeWidth={5} fillOpacity={1} fill="url(#colorSales)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+        )}
       </div>
 
-      {/* MODAL DE GESTÃO DE ACESSO */}
       <AnimatePresence>
         {showAccessModal && selectedLead && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
@@ -510,7 +562,6 @@ const AdminPage: React.FC = () => {
                       </button>
                     </div>
 
-                    {/* BOTÃO DE BLOQUEIO / DESBLOQUEIO */}
                     <button 
                         onClick={handleToggleBlock}
                         disabled={accessLoading}
@@ -535,7 +586,6 @@ const AdminPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* MODAL DE PIX MANUAL */}
       <AnimatePresence>
         {showPixModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">

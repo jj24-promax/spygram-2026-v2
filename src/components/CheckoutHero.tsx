@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star } from 'lucide-react';
+import { Star, ShoppingCart } from 'lucide-react';
 
 const CheckoutHero: React.FC = () => {
   return (

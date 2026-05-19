@@ -11,6 +11,7 @@ import {
   XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, AreaChart, Area 
 } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion'; // Adicionado para corrigir o erro
 import Loader from '../components/Loader';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
@@ -77,13 +78,12 @@ const AdminPage: React.FC = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Métricas Seguras (Evita divisão por zero e erros de nulo)
+  // Métricas Seguras
   const metrics = useMemo(() => {
     const total = leads.length || 0;
     const paid = leads.filter(l => l.status === 'pagou');
     const revenue = paid.reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0);
     
-    // Geolocalização
     const geoMap: Record<string, { count: number, cities: Record<string, number> }> = {};
     leads.forEach(l => {
       const st = l.state || 'Outros';
@@ -106,7 +106,6 @@ const AdminPage: React.FC = () => {
       }))
       .sort((a, b) => b.count - a.count);
 
-    // Gráfico de Vendas
     const salesByDate: Record<string, number> = {};
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
@@ -188,14 +187,12 @@ const AdminPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0f0f12] text-gray-200 font-sans selection:bg-purple-500/30">
-      {/* Background Decorativo */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-purple-900/10 blur-[150px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[150px] rounded-full" />
       </div>
 
       <div className="relative z-10 p-4 md:p-8 max-w-7xl mx-auto">
-        {/* Header Superior */}
         <header className="mb-12 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 border-b border-white/5 pb-8">
           <div>
             <div className="flex items-center gap-4 mb-4">
@@ -226,7 +223,6 @@ const AdminPage: React.FC = () => {
           </div>
         </header>
 
-        {/* Dashboards */}
         <div className="space-y-10">
           {activeTab === 'leads' && (
             <section className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-6 backdrop-blur-3xl shadow-2xl overflow-hidden">
@@ -373,11 +369,15 @@ const AdminPage: React.FC = () => {
         </div>
       </div>
 
-      {/* PIX Modal */}
       <AnimatePresence>
         {showPixModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
-            <div className="bg-[#0f0f12] border border-white/10 w-full max-w-lg rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(139,92,246,0.1)]">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#0f0f12] border border-white/10 w-full max-w-lg rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(139,92,246,0.1)]"
+            >
               <div className="p-8">
                 <div className="flex justify-between items-center mb-10">
                   <h3 className="text-xl font-black text-white uppercase tracking-tighter">Gerar Invasão Manual</h3>
@@ -418,7 +418,7 @@ const AdminPage: React.FC = () => {
                       </div>
                       <div className="mb-10">
                         <h4 className="text-2xl font-black uppercase tracking-tighter">Protocolo de Pagamento</h4>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-2">ID: {selectedLead?.username_searched?.toUpperCase()}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">ID: {selectedLead?.username_searched?.toUpperCase()}</p>
                       </div>
                       
                       <div className="bg-gray-100 p-10 rounded-[2.5rem] inline-block mb-10 border border-gray-200 shadow-inner">
@@ -456,7 +456,7 @@ const AdminPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>

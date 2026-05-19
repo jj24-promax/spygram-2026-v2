@@ -44,7 +44,7 @@ const InteractionProfilesCarousel: React.FC<InteractionProfilesCarouselProps> = 
       >
         {duplicatedProfiles.map((profile, index) => {
           // Mantemos uma estética de 'protegido' mas usamos os dados REAIS
-          // Alternamos o nível de blur para dar profundidade
+          // Alternamos o nível de blur para dar profundidade - VALORES AUMENTADOS
           const isMoreBlurred = (index % 3) === 0;
           
           return (
@@ -61,11 +61,11 @@ const InteractionProfilesCarousel: React.FC<InteractionProfilesCarouselProps> = 
                     <img 
                       src={profile.profile_pic_url} 
                       alt={profile.username} 
-                      className={`w-full h-full object-cover transition-all duration-700 ${isMoreBlurred ? 'blur-[4px]' : 'blur-[2px]'} group-hover:blur-0 opacity-80 group-hover:opacity-100`}
+                      className={`w-full h-full object-cover transition-all duration-700 ${isMoreBlurred ? 'blur-[12px]' : 'blur-[8px]'} group-hover:blur-0 opacity-80 group-hover:opacity-100`}
                     />
                     
                     {/* Overlay de Cadeado/Bloqueio (Somente visual) */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px] group-hover:bg-transparent group-hover:backdrop-blur-none transition-all">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[3px] group-hover:bg-transparent group-hover:backdrop-blur-none transition-all">
                       <Lock className="w-6 h-6 text-white/70 drop-shadow-lg" />
                     </div>
                  </div>

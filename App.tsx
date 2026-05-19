@@ -27,7 +27,6 @@ import BackgroundLayout from './src/components/BackgroundLayout';
 import InvasionCounter from '@/src/components/InvasionCounter';
 import { trackLead } from './src/services/trackingService';
 import { getUserLocation } from './src/services/geolocationService';
-import { supabase } from './src/integrations/supabase/client';
 
 const MainAppContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -68,22 +67,6 @@ const MainAppContent: React.FC = () => {
     setError(null);
     
     try {
-      const location = await getUserLocation();
-
-      // Verificação segura de IP
-      const { data: existingLead } = await supabase
-        .from('leads')
-        .select('id')
-        .eq('ip_address' as any, location.ip)
-        .limit(1)
-        .maybeSingle();
-
-      if (existingLead) {
-        setError('Limite de pesquisa atingido para este IP. Adquira o acesso VIP para continuar.');
-        setIsLoading(false);
-        return;
-      }
-
       // RESET TOTAL PARA NOVA PESQUISA
       logout(); 
       sessionStorage.removeItem('invasionEndTime');
@@ -91,8 +74,9 @@ const MainAppContent: React.FC = () => {
       sessionStorage.removeItem('current_lead_id');
       localStorage.removeItem('spygram_banned_session');
 
-      const [fetchResult] = await Promise.all([
+      const [fetchResult, location] = await Promise.all([
         fetchProfileData(searchQuery.trim()),
+        getUserLocation(),
         new Promise(resolve => setTimeout(resolve, MIN_LOADING_DURATION))
       ]);
       

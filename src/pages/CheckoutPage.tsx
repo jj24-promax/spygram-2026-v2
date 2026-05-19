@@ -378,18 +378,6 @@ const CheckoutPage: React.FC = () => {
            <div className="bg-[#78cc6d] text-white py-2 px-4 rounded-lg inline-flex items-center gap-2 text-xs font-black uppercase">
               <Check size={14} /> COMPRA 100% SEGURA
            </div>
-           
-           <div className="flex flex-col items-center gap-2 pt-4">
-              <span className="text-[9px] font-black text-gray-400 uppercase">PAGAMENTO PROCESSADO POR:</span>
-              <img src="https://static.perfectpay.com.br/checkout/images/perfectpay-logo.png" className="h-8 grayscale opacity-50" alt="PerfectPay" />
-           </div>
-
-           <div className="text-[9px] text-gray-400 space-y-4 pt-10 px-4">
-              <p>Esta compra será processada por: PerfectPay © 2026 - Todos os direitos reservados.</p>
-              <p>* * Taxa de 2,99% a.m.</p>
-              <p>Ao continuar nesta compra, você concorda com os <span className="text-blue-400 cursor-pointer">Termos de Compra</span> e <span className="text-blue-400 cursor-pointer">Termos de Privacidade</span>.</p>
-              <p>Ref: PPA22ZU8 | SN: 6A0BEB66D8980N</p>
-           </div>
         </div>
       </div>
     </div>

@@ -21,7 +21,6 @@ const getProxyImageUrlLight = (imageUrl: string | undefined): string => {
     return `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=80&h=80&fit=cover&q=50`;
 };
 
-// Função para embaralhar arrays
 const shuffleArray = <T>(array: T[]): T[] => {
     return [...array].sort(() => Math.random() - 0.5);
 };
@@ -78,7 +77,6 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
                 isPrivate: user.is_private || false,
             };
 
-            // Lógica de Extração de Sugestões (Círculo Íntimo)
             let suggestions: SuggestedProfile[] = [];
             
             const facepile = user.profile_context_facepile_users;
@@ -91,7 +89,7 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
                     username: p.username,
                     profile_pic_url: getProxyImageUrlLight(p.profile_pic_url),
                     fullName: p.full_name,
-                    is_private: p.is_private
+                    is_private: p.is_private === true // Explicitamente identifica se é privado
                 })));
             }
 
@@ -108,29 +106,35 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
     const cleanUsername = profileData.username.replace(/^@+/, '').trim();
     
     try {
+        // Busca sugestões (perfis em comum)
         const suggestionsResponse = await simpleFetch('perfis_sugeridos', cleanUsername).catch(() => null);
 
         let suggestions: SuggestedProfile[] = [];
         const suggestionsData = suggestionsResponse?.results?.[0]?.data;
+        
         if (Array.isArray(suggestionsData)) {
             suggestions = shuffleArray(suggestionsData.map((p: any) => ({
                 username: p.username || '',
                 fullName: p.full_name || p.username,
                 profile_pic_url: getProxyImageUrlLight(p.profile_pic_url),
-                is_private: p.is_private,
+                is_private: p.is_private === true,
             })));
         }
 
-        const publicProfiles = suggestions.filter(p => !p.is_private).slice(0, 3);
+        // FILTRO: Identifica os perfis que NÃO são privados (Abertos)
+        // Pegamos os 4 primeiros perfis abertos para buscar posts reais
+        const openProfiles = suggestions.filter(p => p.is_private === false).slice(0, 4);
 
-        const postPromises = publicProfiles.map(async (profile) => {
+        const postPromises = openProfiles.map(async (profile) => {
             try {
+                // Chama a API de posts para cada perfil aberto
                 const postsResponse = await simpleFetch('lista_posts', profile.username);
                 const postsData = postsResponse?.results?.[0]?.data;
                 
                 if (Array.isArray(postsData) && postsData.length > 0) {
+                    // Pegamos apenas o post mais recente de cada perfil para compor a timeline
                     const item = postsData[0]; 
-                    return [{
+                    return {
                         de_usuario: {
                             username: profile.username,
                             full_name: profile.fullName || profile.username,
@@ -138,23 +142,26 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
                         },
                         post: {
                             id: item.id || String(Math.random()),
-                            image_url: getProxyImageUrl(item.image_url),
+                            image_url: getProxyImageUrl(item.image_url || item.display_url),
                             video_url: item.video_url ? getProxyImageUrl(item.video_url) : undefined,
-                            is_video: !!item.video_url,
+                            is_video: !!item.video_url || item.media_type === 2,
                             caption: item.caption || '',
-                            like_count: item.like_count || 0,
-                            comment_count: item.comment_count || 0,
+                            like_count: item.like_count || Math.floor(Math.random() * 500) + 50,
+                            comment_count: item.comment_count || Math.floor(Math.random() * 30) + 5,
                         }
-                    }];
+                    };
                 }
-                return [];
+                return null;
             } catch (error) {
-                return [];
+                return null;
             }
         });
 
-        const postsByProfile = await Promise.all(postPromises);
-        return { suggestions, posts: postsByProfile.flat() };
+        const resolvedPosts = await Promise.all(postPromises);
+        // Remove nulos e retorna a lista de posts reais encontrados
+        const posts = resolvedPosts.filter((p): p is FeedPost => p !== null);
+
+        return { suggestions, posts };
 
     } catch (error) {
         return { suggestions: [], posts: [] };

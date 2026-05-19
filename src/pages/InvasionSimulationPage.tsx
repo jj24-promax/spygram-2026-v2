@@ -43,6 +43,7 @@ const InvasionSimulationPage: React.FC = () => {
       username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
       fullName: name,
       profile_pic_url: '/perfil.jpg', 
+      is_private: true
     }));
   }, [storedInvasionData]);
 
@@ -101,6 +102,7 @@ const InvasionSimulationPage: React.FC = () => {
           }
           setLocations(cityList);
 
+          // Busca dados completos incluindo posts de perfis públicos
           const { suggestions: extraSuggestions, posts: fetchedPosts } = await fetchFullInvasionData(targetProfileData);
 
           const finalSuggestions = extraSuggestions.length > 0 ? shuffle(extraSuggestions) : suggestedProfiles;
@@ -179,7 +181,7 @@ const InvasionSimulationPage: React.FC = () => {
         <LockedFeatureModal isOpen={isModalOpen} onClose={closeModal} featureName={modalFeatureName} />
         <FreeTimeFloatingButton />
 
-        {/* Mobile Mockup: Uso de fixed inset-0 para garantir que o rodapé nunca suma na navegação */}
+        {/* Mobile Mockup */}
         <div className="block md:hidden fixed inset-0 z-10 bg-black">
           <InstagramFeedMockup 
             profileData={profileData} 

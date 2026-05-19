@@ -335,12 +335,12 @@ const CheckoutPage: React.FC = () => {
                 <div className="space-y-6">
                   {Object.entries(bumpDetails).map(([key, item]) => (
                     <div key={key} onClick={() => toggleBump(key as keyof typeof bumps)} className={`p-5 border border-gray-100 rounded-2xl transition-all cursor-pointer ${bumps[key as keyof typeof bumps] ? 'bg-green-50 border-[#78cc6d]' : 'bg-[#fcfcfc]'}`}>
-                       <div className="flex items-start gap-6 mb-4">
-                          <img src={item.img} className="w-24 h-24 rounded-2xl object-cover shadow-sm" alt="Order Bump" />
-                          <div className="flex-1">
-                             <div className="flex justify-between items-start">
-                                <p className="text-[10px] font-black leading-tight text-gray-600 uppercase max-w-[200px]">{item.checkText}</p>
-                                <div className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${bumps[key as keyof typeof bumps] ? 'bg-[#78cc6d] border-[#78cc6d]' : 'bg-white border-gray-300'}`}>
+                       <div className="flex items-start gap-4 mb-4">
+                          <img src={item.img} className="w-24 h-24 rounded-2xl object-cover shadow-sm flex-shrink-0" alt="Order Bump" />
+                          <div className="flex-1 min-w-0">
+                             <div className="flex justify-between items-start gap-2">
+                                <p className="text-[10px] font-black leading-tight text-gray-600 uppercase flex-1">{item.checkText}</p>
+                                <div className={`w-6 h-6 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${bumps[key as keyof typeof bumps] ? 'bg-[#78cc6d] border-[#78cc6d]' : 'bg-white border-gray-300'}`}>
                                    {bumps[key as keyof typeof bumps] && <Check size={14} className="text-white" />}
                                 </div>
                              </div>

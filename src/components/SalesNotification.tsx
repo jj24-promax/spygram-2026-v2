@@ -10,8 +10,8 @@ const SalesNotification: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Inicializa o áudio
-    audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    // Inicializa o áudio com um novo som de notificação (Sucess/Chime)
+    audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
     audioRef.current.volume = 0.4;
 
     const showRandomNotification = () => {

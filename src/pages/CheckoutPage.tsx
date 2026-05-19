@@ -186,35 +186,6 @@ const CheckoutPage: React.FC = () => {
 
       <div className="max-w-xl mx-auto px-4 py-6 flex flex-col items-center">
         
-        {/* Social Proof Section */}
-        <div className="flex flex-col items-center mb-8">
-           <div className="flex -space-x-3 mb-4">
-             {[1,2,3,4,5,6,7,8].map(i => (
-               <img key={i} src={`/recovered/img_${i}.jpg`} className="w-12 h-12 rounded-full border-2 border-white object-cover shadow-sm" alt="User" />
-             ))}
-             <div className="w-12 h-12 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center shadow-sm">
-                <img src="/spygram_transparentebranco.png" className="w-6 h-6 brightness-0 opacity-40" />
-             </div>
-           </div>
-           <h2 className="text-lg font-black text-center">+12,3mil pessoas utilizam e aprovam o SpyGram®.</h2>
-           <p className="text-[10px] text-gray-500 text-center max-w-[320px] mt-2 leading-relaxed">Este aplicativo foi testado e aprovado por profissionais, contando com o selo de confiança 'Google Reviews'.</p>
-        </div>
-
-        {/* Google Reviews Card */}
-        <div className="w-full bg-white rounded-xl shadow-sm p-4 flex items-center justify-between mb-4 border border-gray-100">
-          <div className="flex items-center gap-3">
-             <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" className="w-6 h-6" alt="Google" />
-             <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase text-gray-400">Google Reviews:</span>
-                <span className="text-xs font-bold">(12,3mil) Avaliações</span>
-             </div>
-          </div>
-          <div className="flex items-center gap-1">
-             {[1,2,3,4,5].map(i => <Check key={i} size={12} className="text-yellow-400 fill-yellow-400" />)}
-             <span className="text-xs font-bold text-gray-400 ml-1">(4,9)</span>
-          </div>
-        </div>
-
         {/* Adquirindo Card */}
         <div className="w-full bg-white rounded-xl shadow-sm p-4 flex items-center gap-4 mb-6 border border-gray-100">
            <div className="p-2 bg-gray-50 rounded-lg"><ShoppingCart size={20} className="text-gray-400" /></div>

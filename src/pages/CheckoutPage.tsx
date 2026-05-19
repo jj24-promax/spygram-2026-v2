@@ -5,6 +5,7 @@ import SalesNotification from '../components/SalesNotification';
 import PixPaymentDisplay from '../components/PixPaymentDisplay';
 import CheckoutHero from '../components/CheckoutHero';
 import CheckoutSidebar from '../components/CheckoutSidebar';
+import PaymentSuccessDisplay from '../components/PaymentSuccessDisplay';
 import { supabase } from '../integrations/supabase/client';
 import toast from 'react-hot-toast';
 import { trackLead } from '../services/trackingService';
@@ -30,6 +31,7 @@ const CheckoutPage: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(240); // 4 minutos
   const [isProcessing, setIsProcessing] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -57,13 +59,44 @@ const CheckoutPage: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Monitoramento do status do lead em tempo real
+  useEffect(() => {
+    if (pixData && !paymentConfirmed) {
+      const currentLeadId = sessionStorage.getItem('current_lead_id');
+      if (!currentLeadId) return;
+
+      const subscription = supabase
+        .channel('lead-status')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'leads',
+            filter: `id=eq.${currentLeadId}`
+          },
+          (payload) => {
+            if (payload.new.status === 'pagou') {
+              setPaymentConfirmed(true);
+              toast.success("Pagamento confirmado com sucesso!");
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(subscription);
+      };
+    }
+  }, [pixData, paymentConfirmed]);
+
   const formatTimer = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
-  const basePrice = 1.00; // Alterado para teste
+  const basePrice = 1.00; // Valor para teste
   const bumpDetails = {
     pro: { title: 'ACESSO VITALÍCIO PRO', price: 9.90, img: '/order-bumps/vitalicio.jpg', desc: 'Tenha acesso permanente a ferramenta SpyGram PRO!', checkText: 'ADQUIRIR TAMBÉM ACESSO VITALÍCIO AO SPYGRAM PRO ✅ À VISTA POR R$ 9,90' },
     social: { title: 'ESPIÃO SOCIAL COMPLETO', price: 19.90, img: '/order-bumps/social.jpg', desc: 'Tenha acesso a todas as redes sociais de quem você quiser!', checkText: 'ADQUIRIR TAMBÉM ESPIÃO INSTAGRAM + FACEBOOK + WHATSAPP À VISTA POR R$ 19,90' },
@@ -157,6 +190,15 @@ const CheckoutPage: React.FC = () => {
     setBumps(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  // Se o pagamento for confirmado, mostra a tela de sucesso
+  if (paymentConfirmed) {
+    return (
+      <div className="min-h-screen bg-[#f4f4f4] py-12 px-4 flex items-center justify-center">
+        <PaymentSuccessDisplay email={formData.email} />
+      </div>
+    );
+  }
+
   if (pixData) {
     return (
       <div className="min-h-screen bg-[#f4f4f4] py-12 px-4">
@@ -166,7 +208,19 @@ const CheckoutPage: React.FC = () => {
           transactionId={pixData.idTransaction}
           amount={pixData.amount}
           leadData={pixData.leadInfo}
-          onConfirm={() => toast.success("Aguardando confirmação...")}
+          onConfirm={() => {
+            // Verifica manualmente o status ao clicar
+            const checkStatus = async () => {
+              const leadId = sessionStorage.getItem('current_lead_id');
+              const { data } = await supabase.from('leads').select('status').eq('id', leadId).single();
+              if (data?.status === 'pagou') {
+                setPaymentConfirmed(true);
+              } else {
+                toast.error("Pagamento ainda não identificado.");
+              }
+            };
+            checkStatus();
+          }}
         />
       </div>
     );

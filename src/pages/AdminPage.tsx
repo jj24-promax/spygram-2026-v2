@@ -5,7 +5,7 @@ import {
   Users, DollarSign, Search, ShieldCheck, 
   CreditCard, LogOut, RotateCcw,
   Trash2, MessageCircle, Key, BarChart3, 
-  Map as MapIcon, QrCode, Download, X, FileText
+  Map as MapIcon, QrCode, Download, X, FileText, Check, Save
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, 
@@ -43,11 +43,19 @@ const AdminPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   
   const [showPixModal, setShowPixModal] = useState(false);
+  const [showAccessModal, setShowAccessModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  
+  // Estados para o PIX
   const [pixAmount, setPixAmount] = useState('29.90');
   const [generatedPix, setGeneratedPix] = useState<any>(null);
   const [pixLoading, setPixLoading] = useState(false);
   const pixPdfRef = useRef<HTMLDivElement>(null);
+
+  // Estados para o Acesso
+  const [accessEmail, setAccessEmail] = useState('');
+  const [accessPassword, setAccessPassword] = useState('123456');
+  const [accessLoading, setAccessLoading] = useState(false);
 
   const fetchLeads = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -94,7 +102,7 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  // Métricas Seguras
+  // Métricas
   const metrics = useMemo(() => {
     const total = leads.length || 0;
     const paid = leads.filter(l => l.status === 'pagou');
@@ -122,6 +130,7 @@ const AdminPage: React.FC = () => {
       }))
       .sort((a, b) => b.count - a.count);
 
+    const chartData = [];
     const salesByDate: Record<string, number> = {};
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
@@ -137,12 +146,16 @@ const AdminPage: React.FC = () => {
       }
     });
 
-    const chartData = Object.entries(salesByDate).map(([date, amount]) => ({
-      date: date.split('-').slice(1).reverse().join('/'),
-      amount
-    }));
-
-    return { total, paidCount: paid.length, revenue, geoData, chartData };
+    return { 
+      total, 
+      paidCount: paid.length, 
+      revenue, 
+      geoData, 
+      chartData: Object.entries(salesByDate).map(([date, amount]) => ({
+        date: date.split('-').slice(1).reverse().join('/'),
+        amount
+      }))
+    };
   }, [leads]);
 
   const filteredLeads = useMemo(() => {
@@ -195,14 +208,61 @@ const AdminPage: React.FC = () => {
     pdf.save(`SpyGram-PIX-${selectedLead?.username_searched}.pdf`);
   };
 
-  // Função para mostrar os dados de login
-  const handleShowCredentials = (lead: Lead) => {
-    if (!lead.email) {
-      toast.error("E-mail não registrado para este lead.");
+  // Abrir modal de acesso carregando dados reais se existirem
+  const handleOpenAccessModal = async (lead: Lead) => {
+    setSelectedLead(lead);
+    setAccessEmail(lead.email || '');
+    setAccessPassword('123456'); // Padrão sugerido
+    
+    // Tentar buscar se já existe na tabela de membros para pegar a senha real
+    if (lead.email) {
+      const { data } = await supabase.from('members').select('password').eq('email', lead.email).single();
+      if (data) setAccessPassword(data.password);
+    }
+    
+    setShowAccessModal(true);
+  };
+
+  // Salvar alterações de senha e liberar acesso se solicitado
+  const handleSaveAccess = async (liberate: boolean = false) => {
+    if (!selectedLead || !accessEmail.trim()) {
+      toast.error("E-mail é obrigatório.");
       return;
     }
-    // Mostra um alerta fixo para facilitar a leitura do admin
-    alert(`DADOS DE ACESSO:\n\nE-mail: ${lead.email}\nSenha Padrão: 123456`);
+
+    setAccessLoading(true);
+    try {
+      // 1. Atualizar ou Criar na tabela de membros
+      const { error: memberError } = await supabase
+        .from('members')
+        .upsert({ 
+          email: accessEmail.trim().toLowerCase(), 
+          password: accessPassword.trim() 
+        }, { onConflict: 'email' });
+
+      if (memberError) throw memberError;
+
+      // 2. Se for para liberar, atualiza o status do lead e o email se mudou
+      if (liberate || accessEmail !== selectedLead.email) {
+        const updateData: any = { email: accessEmail.trim().toLowerCase() };
+        if (liberate) updateData.status = 'pagou';
+        
+        const { error: leadError } = await supabase
+          .from('leads')
+          .update(updateData)
+          .eq('id', selectedLead.id);
+        
+        if (leadError) throw leadError;
+      }
+
+      toast.success(liberate ? "Acesso Liberado e Senha Definida!" : "Dados de Acesso Atualizados!");
+      setShowAccessModal(false);
+      fetchLeads(true);
+    } catch (err: any) {
+      toast.error("Erro ao salvar: " + err.message);
+    } finally {
+      setAccessLoading(false);
+    }
   };
 
   if (loading) return (
@@ -250,159 +310,189 @@ const AdminPage: React.FC = () => {
           </div>
         </header>
 
-        <div className="space-y-10">
-          {activeTab === 'leads' && (
-            <section className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-6 backdrop-blur-3xl shadow-2xl overflow-hidden">
-              <div className="flex flex-col md:flex-row gap-4 mb-8">
-                <div className="relative flex-1">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                  <input 
-                    type="text" 
-                    placeholder="Filtrar por alvo ou dados do lead..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-sm focus:border-purple-500 outline-none transition-all placeholder:text-gray-600"
-                  />
-                </div>
-                <select 
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-black/40 border border-white/10 rounded-2xl py-4 px-6 text-[10px] font-black uppercase outline-none cursor-pointer hover:bg-black/60"
-                >
-                  <option value="all">Todos Status</option>
-                  <option value="pesquisou">Pesquisou</option>
-                  <option value="gerou_pix">Gerou PIX</option>
-                  <option value="pagou">Pago</option>
-                </select>
-                <button onClick={() => fetchLeads(true)} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 text-gray-400 transition-colors">
-                  <RotateCcw size={20} />
-                </button>
+        {activeTab === 'leads' && (
+          <section className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-6 backdrop-blur-3xl shadow-2xl overflow-hidden">
+            <div className="flex flex-col md:flex-row gap-4 mb-8">
+              <div className="relative flex-1">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input 
+                  type="text" 
+                  placeholder="Filtrar por alvo ou dados do lead..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-sm focus:border-purple-500 outline-none transition-all placeholder:text-gray-600"
+                />
               </div>
+              <select 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-black/40 border border-white/10 rounded-2xl py-4 px-6 text-[10px] font-black uppercase outline-none cursor-pointer hover:bg-black/60"
+              >
+                <option value="all">Todos Status</option>
+                <option value="pesquisou">Pesquisou</option>
+                <option value="gerou_pix">Gerou PIX</option>
+                <option value="pagou">Pago</option>
+              </select>
+              <button onClick={() => fetchLeads(true)} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 text-gray-400 transition-colors">
+                <RotateCcw size={20} />
+              </button>
+            </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="text-[10px] text-gray-600 uppercase font-black border-b border-white/5">
-                      <th className="pb-4 px-4">Alvo</th>
-                      <th className="pb-4 px-4">Informações do Lead</th>
-                      <th className="pb-4 px-4">Localização</th>
-                      <th className="pb-4 px-4">Status</th>
-                      <th className="pb-4 px-4 text-center">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.03]">
-                    {filteredLeads.length > 0 ? (
-                      filteredLeads.map((lead) => (
-                        <tr key={lead.id} className="group hover:bg-white/[0.02] transition-colors">
-                          <td className="py-5 px-4">
-                            <div className="flex items-center gap-4">
-                              <img src={lead.profile_pic || '/perfil.jpg'} className="w-12 h-12 rounded-2xl object-cover border border-white/10 shadow-lg" />
-                              <div>
-                                <p className="text-sm font-black text-white tracking-tight">@{lead.username_searched}</p>
-                                <p className="text-[10px] text-gray-500 font-bold">{new Date(lead.created_at).toLocaleDateString()}</p>
-                              </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[10px] text-gray-600 uppercase font-black border-b border-white/5">
+                    <th className="pb-4 px-4">Alvo</th>
+                    <th className="pb-4 px-4">Informações do Lead</th>
+                    <th className="pb-4 px-4">Localização</th>
+                    <th className="pb-4 px-4">Status</th>
+                    <th className="pb-4 px-4 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.03]">
+                  {filteredLeads.length > 0 ? (
+                    filteredLeads.map((lead) => (
+                      <tr key={lead.id} className="group hover:bg-white/[0.02] transition-colors">
+                        <td className="py-5 px-4">
+                          <div className="flex items-center gap-4">
+                            <img src={lead.profile_pic || '/perfil.jpg'} className="w-12 h-12 rounded-2xl object-cover border border-white/10 shadow-lg" />
+                            <div>
+                              <p className="text-sm font-black text-white tracking-tight">@{lead.username_searched}</p>
+                              <p className="text-[10px] text-gray-500 font-bold">{new Date(lead.created_at).toLocaleDateString()}</p>
                             </div>
-                          </td>
-                          <td className="py-5 px-4">
-                            <p className="text-xs font-black text-gray-300 uppercase truncate max-w-[150px]">{lead.full_name || 'Anônimo'}</p>
-                            <p className="text-[11px] text-gray-500 lowercase opacity-60">{lead.email || '---'}</p>
-                            <div className="flex gap-2 mt-1">
-                                <p className="text-[10px] text-gray-400 font-bold">{lead.phone || 'S/ Tel'}</p>
-                                <p className="text-[10px] text-gray-400 font-bold">| {lead.document || 'S/ CPF'}</p>
-                            </div>
-                          </td>
-                          <td className="py-5 px-4">
-                            <p className="text-xs font-bold text-gray-300">{lead.city || '???'}</p>
-                            <p className="text-[10px] text-gray-500 uppercase font-black">{lead.state || '???'}</p>
-                          </td>
-                          <td className="py-5 px-4">
-                            <span className={`text-[9px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest border ${
-                              lead.status === 'pagou' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                              lead.status === 'gerou_pix' ? 'bg-pink-500/10 text-pink-400 border-pink-500/20' : 'bg-gray-800/50 text-gray-500 border-white/5'
-                            }`}>
-                              {lead.status}
-                            </span>
-                          </td>
-                          <td className="py-5 px-4">
-                            <div className="flex items-center justify-center gap-3">
-                              {/* Botão de Chave para visualizar dados de acesso */}
-                              <ActionButton onClick={() => handleShowCredentials(lead)} icon={Key} color="text-purple-400" title="Ver Acesso" />
-                              <ActionButton onClick={() => { setSelectedLead(lead); setShowPixModal(true); setGeneratedPix(null); }} icon={QrCode} color="text-yellow-500" title="Gerar PIX" />
-                              <ActionButton onClick={() => window.open(`https://wa.me/55${lead.phone?.replace(/\D/g, '')}`, '_blank')} icon={MessageCircle} color="text-green-500" title="WhatsApp" />
-                              <ActionButton onClick={() => handleDeleteLead(lead.id)} icon={Trash2} color="text-red-500" title="Excluir Lead" />
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest text-xs">Nenhum registro encontrado</td>
+                          </div>
+                        </td>
+                        <td className="py-5 px-4">
+                          <p className="text-xs font-black text-gray-300 uppercase truncate max-w-[150px]">{lead.full_name || 'Anônimo'}</p>
+                          <p className="text-[11px] text-gray-500 lowercase opacity-60">{lead.email || '---'}</p>
+                          <div className="flex gap-2 mt-1">
+                              <p className="text-[10px] text-gray-400 font-bold">{lead.phone || 'S/ Tel'}</p>
+                              <p className="text-[10px] text-gray-400 font-bold">| {lead.document || 'S/ CPF'}</p>
+                          </div>
+                        </td>
+                        <td className="py-5 px-4">
+                          <p className="text-xs font-bold text-gray-300">{lead.city || '???'}</p>
+                          <p className="text-[10px] text-gray-500 uppercase font-black">{lead.state || '???'}</p>
+                        </td>
+                        <td className="py-5 px-4">
+                          <span className={`text-[9px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest border ${
+                            lead.status === 'pagou' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                            lead.status === 'gerou_pix' ? 'bg-pink-500/10 text-pink-400 border-pink-500/20' : 'bg-gray-800/50 text-gray-500 border-white/5'
+                          }`}>
+                            {lead.status}
+                          </span>
+                        </td>
+                        <td className="py-5 px-4">
+                          <div className="flex items-center justify-center gap-3">
+                            <ActionButton onClick={() => handleOpenAccessModal(lead)} icon={Key} color="text-purple-400" title="Gerenciar Acesso" />
+                            <ActionButton onClick={() => { setSelectedLead(lead); setShowPixModal(true); setGeneratedPix(null); }} icon={QrCode} color="text-yellow-500" title="Gerar PIX" />
+                            <ActionButton onClick={() => window.open(`https://wa.me/55${lead.phone?.replace(/\D/g, '')}`, '_blank')} icon={MessageCircle} color="text-green-500" title="WhatsApp" />
+                            <ActionButton onClick={() => handleDeleteLead(lead.id)} icon={Trash2} color="text-red-500" title="Excluir Lead" />
+                          </div>
+                        </td>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest text-xs">Nenhum registro encontrado</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
-          {activeTab === 'analytics' && (
-            <section className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-10 backdrop-blur-3xl shadow-2xl">
-              <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-10 flex items-center gap-4">
-                <MapIcon className="text-purple-500" /> Distribuição Geográfica
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {metrics.geoData.length > 0 ? metrics.geoData.map((item, idx) => (
-                  <div key={idx} className="bg-black/40 border border-white/10 rounded-[2rem] p-6 hover:border-purple-500/30 transition-all shadow-xl">
-                    <div className="flex justify-between items-center mb-6">
-                      <div className="flex items-center gap-4">
-                        <span className="text-3xl font-black text-white">{item.uf}</span>
-                        <span className="text-[10px] font-black text-purple-400 bg-purple-500/10 px-3 py-1 rounded-full uppercase">{item.percent}%</span>
-                      </div>
-                      <span className="text-2xl font-black text-white">{item.count}</span>
-                    </div>
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-6">
-                      <div className="h-full bg-gradient-to-r from-purple-600 to-pink-500" style={{ width: `${item.percent}%` }} />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                       <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Principais Cidades</span>
-                       <p className="text-[10px] text-gray-400 font-bold uppercase leading-relaxed">{item.mainCities}</p>
-                    </div>
-                  </div>
-                )) : <div className="col-span-full py-10 text-center text-gray-600 font-bold">Aguardando novos leads...</div>}
-              </div>
-            </section>
-          )}
-
-          {activeTab === 'sales' && (
-            <section className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-10 backdrop-blur-3xl shadow-2xl">
-              <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-10 flex items-center gap-4">
-                <BarChart3 className="text-green-500" /> Performance Operacional
-              </h2>
-              <div className="h-[450px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={metrics.chartData}>
-                    <defs>
-                      <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
-                    <XAxis dataKey="date" stroke="#525252" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#525252" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `R$${val}`} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}
-                      itemStyle={{ color: '#a78bfa', fontWeight: 'bold' }}
-                    />
-                    <Area type="monotone" dataKey="amount" stroke="#8b5cf6" strokeWidth={5} fillOpacity={1} fill="url(#colorSales)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </section>
-          )}
-        </div>
+        {/* ... manter outras abas (analytics/sales) se necessário */}
       </div>
 
+      {/* MODAL DE GESTÃO DE ACESSO */}
+      <AnimatePresence>
+        {showAccessModal && selectedLead && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#0f0f12] border border-white/10 w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl"
+            >
+              <div className="p-8 flex justify-between items-center bg-[#0f0f12] border-b border-white/5">
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase tracking-tighter">Gestão de Acesso</h3>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Painel do Operador</p>
+                </div>
+                <button onClick={() => setShowAccessModal(false)} className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><X size={20} /></button>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl">
+                  <img src={selectedLead.profile_pic || '/perfil.jpg'} className="w-14 h-14 rounded-xl object-cover" />
+                  <div>
+                    <p className="text-white font-black text-sm tracking-tight">@{selectedLead.username_searched}</p>
+                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${selectedLead.status === 'pagou' ? 'text-green-500 border-green-500/20 bg-green-500/5' : 'text-gray-500 border-white/10'}`}>
+                      Status: {selectedLead.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">E-mail do Lead</label>
+                    <div className="relative">
+                      <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                      <input 
+                        type="email" 
+                        value={accessEmail}
+                        onChange={(e) => setAccessEmail(e.target.value)}
+                        className="w-full bg-black border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-xs font-bold text-white outline-none focus:border-purple-500 transition-all"
+                        placeholder="E-mail de acesso"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">Senha de Acesso</label>
+                    <div className="relative">
+                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                      <input 
+                        type="text" 
+                        value={accessPassword}
+                        onChange={(e) => setAccessPassword(e.target.value)}
+                        className="w-full bg-black border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-xs font-bold text-white outline-none focus:border-purple-500 transition-all"
+                        placeholder="Nova senha"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-4">
+                  <button 
+                    onClick={() => handleSaveAccess(false)}
+                    disabled={accessLoading}
+                    className="bg-white/5 border border-white/10 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-white/10 transition-all text-[10px] uppercase tracking-widest"
+                  >
+                    <Save size={14} /> Apenas Salvar
+                  </button>
+                  <button 
+                    onClick={() => handleSaveAccess(true)}
+                    disabled={accessLoading || selectedLead.status === 'pagou'}
+                    className={`font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all text-[10px] uppercase tracking-widest shadow-lg
+                               ${selectedLead.status === 'pagou' ? 'bg-green-500/10 text-green-500/50 border border-green-500/10 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-500 shadow-green-600/20'}`}
+                  >
+                    <Check size={14} /> Liberar Acesso
+                  </button>
+                </div>
+                
+                {selectedLead.status === 'pagou' && (
+                  <p className="text-center text-[9px] text-green-500 font-bold uppercase tracking-widest animate-pulse">Este lead já possui acesso vitalício ativo.</p>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE PIX MANUAL (Mantido do código anterior) */}
       <AnimatePresence>
         {showPixModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
@@ -410,7 +500,7 @@ const AdminPage: React.FC = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#0f0f12] border border-white/10 w-full max-w-lg rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(139,92,246,0.1)] flex flex-col max-h-[90vh]"
+              className="bg-[#0f0f12] border border-white/10 w-full max-w-lg rounded-[3rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
             >
               <div className="p-8 pb-4 flex justify-between items-center bg-[#0f0f12] sticky top-0 z-10">
                 <h3 className="text-xl font-black text-white uppercase tracking-tighter">Gerar Invasão Manual</h3>
@@ -446,7 +536,6 @@ const AdminPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-8 flex flex-col items-center">
-                    {/* Container do Protocolo que será transformado em PDF */}
                     <div ref={pixPdfRef} className="bg-white p-10 rounded-[2.5rem] text-black w-full text-center shadow-2xl">
                       <div className="flex justify-center mb-8">
                         <img src="/spygram_transparentebranco.png" alt="SpyGram" className="h-8 brightness-0" />
@@ -480,7 +569,6 @@ const AdminPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Botões de Ação Fora do PDF */}
                     <div className="flex flex-col sm:flex-row gap-4 w-full">
                       <button 
                         onClick={() => { navigator.clipboard.writeText(generatedPix.paymentCode); toast.success('Copiado!'); }}

@@ -11,7 +11,7 @@ import {
   XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, AreaChart, Area 
 } from 'recharts';
-import { motion, AnimatePresence } from 'framer-motion'; // Adicionado para corrigir o erro
+import { motion, AnimatePresence } from 'framer-motion';
 import Loader from '../components/Loader';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
@@ -78,6 +78,22 @@ const AdminPage: React.FC = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  const handleDeleteLead = async (id: string) => {
+    if (!window.confirm("Deseja realmente excluir este lead permanentemente? Todos os dados vinculados serão apagados.")) return;
+    
+    try {
+      const { error } = await supabase.functions.invoke('delete-lead', {
+        body: { leadId: id },
+      });
+
+      if (error) throw error;
+      toast.success("Lead excluído com sucesso.");
+      fetchLeads(true);
+    } catch (err) {
+      toast.error("Erro ao excluir lead.");
+    }
+  };
+
   // Métricas Seguras
   const metrics = useMemo(() => {
     const total = leads.length || 0;
@@ -135,7 +151,8 @@ const AdminPage: React.FC = () => {
       const matchesSearch = searchLower === '' || 
         (lead.username_searched || '').toLowerCase().includes(searchLower) ||
         (lead.email || '').toLowerCase().includes(searchLower) ||
-        (lead.full_name || '').toLowerCase().includes(searchLower);
+        (lead.full_name || '').toLowerCase().includes(searchLower) ||
+        (lead.document || '').includes(searchLower);
       const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -279,6 +296,10 @@ const AdminPage: React.FC = () => {
                           <td className="py-5 px-4">
                             <p className="text-xs font-black text-gray-300 uppercase truncate max-w-[150px]">{lead.full_name || 'Anônimo'}</p>
                             <p className="text-[11px] text-gray-500 lowercase opacity-60">{lead.email || '---'}</p>
+                            <div className="flex gap-2 mt-1">
+                                <p className="text-[10px] text-gray-400 font-bold">{lead.phone || 'S/ Tel'}</p>
+                                <p className="text-[10px] text-gray-400 font-bold">| {lead.document || 'S/ CPF'}</p>
+                            </div>
                           </td>
                           <td className="py-5 px-4">
                             <p className="text-xs font-bold text-gray-300">{lead.city || '???'}</p>
@@ -296,6 +317,7 @@ const AdminPage: React.FC = () => {
                             <div className="flex items-center justify-center gap-3">
                               <ActionButton onClick={() => { setSelectedLead(lead); setShowPixModal(true); setGeneratedPix(null); }} icon={QrCode} color="text-yellow-500" title="Gerar PIX" />
                               <ActionButton onClick={() => window.open(`https://wa.me/55${lead.phone?.replace(/\D/g, '')}`, '_blank')} icon={MessageCircle} color="text-green-500" title="WhatsApp" />
+                              <ActionButton onClick={() => handleDeleteLead(lead.id)} icon={Trash2} color="text-red-500" title="Excluir Lead" />
                             </div>
                           </td>
                         </tr>

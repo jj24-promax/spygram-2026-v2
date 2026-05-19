@@ -177,7 +177,7 @@ const InvasionConcludedPage: React.FC = () => {
             <p className="text-gray-400 text-sm mb-8">Junte-se a mais de 12.000 usuários satisfeitos que usam o SpyGram diariamente.</p>
           </div>
 
-          <PriceDiscountCard originalPrice="R$ 97,90" discountedPrice="R$ 1,00" onUnlockClick={handleUnlockClick} />
+          <PriceDiscountCard originalPrice="R$ 97,90" discountedPrice="R$ 37,90" onUnlockClick={handleUnlockClick} />
         </section>
 
         <SectionDivider />

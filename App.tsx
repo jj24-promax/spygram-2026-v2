@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { RouterProvider, createBrowserRouter, useNavigate, Outlet } from 'react-router-dom';
+import { RouterProvider, createBrowserRouter, useNavigate } from 'react-router-dom';
 import CustomSearchBar from '@/src/components/ui/CustomSearchBar';
 import SparkleButton from '@/src/components/ui/SparkleButton';
 import ErrorMessage from '@/src/components/ErrorMessage';
@@ -160,67 +160,51 @@ const MainAppContent: React.FC = () => {
   );
 };
 
-// Componente de Layout Global para prover o contexto de Rotas aos elementos como o WhatsAppButton
-const AppLayout: React.FC = () => {
-  return (
-    <>
-      <Outlet />
-      <WhatsAppButton />
-    </>
-  );
-};
-
 // Configurando o roteamento baseado em objeto do React Router v7
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <AppLayout />,
-    children: [
-      {
-        path: "",
-        element: <BackgroundLayout><MainAppContent /></BackgroundLayout>,
-      },
-      {
-        path: "login",
-        element: <LoginPage />,
-      },
-      {
-        path: "admin-login",
-        element: <AdminLoginPage />,
-      },
-      {
-        path: "checkout",
-        element: <CheckoutPage />,
-      },
-      {
-        path: "admin",
-        element: <AdminProtectedRoute><AdminPage /></AdminProtectedRoute>,
-      },
-      {
-        path: "instagram",
-        element: <InvasionSimulationPage />,
-      },
-      {
-        path: "invasion-concluded",
-        element: <BackgroundLayout><InvasionConcludedPage /></BackgroundLayout>,
-      },
-      {
-        path: "servers",
-        element: <ProtectedRoute><BackgroundLayout><ServersPage /></BackgroundLayout></ProtectedRoute>,
-      },
-      {
-        path: "credits",
-        element: <ProtectedRoute><BackgroundLayout><CreditsPage /></BackgroundLayout></ProtectedRoute>,
-      },
-      {
-        path: "messages",
-        element: <ProtectedRoute><MessagesPage /></ProtectedRoute>,
-      },
-      {
-        path: "chat/:id",
-        element: <ProtectedRoute><ChatPage /></ProtectedRoute>,
-      }
-    ]
+    element: <BackgroundLayout><MainAppContent /></BackgroundLayout>,
+  },
+  {
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
+    path: "/admin-login",
+    element: <AdminLoginPage />,
+  },
+  {
+    path: "/checkout",
+    element: <CheckoutPage />,
+  },
+  {
+    path: "/admin",
+    element: <AdminProtectedRoute><AdminPage /></AdminProtectedRoute>,
+  },
+  {
+    path: "/instagram",
+    element: <InvasionSimulationPage />,
+  },
+  {
+    path: "/invasion-concluded",
+    element: <BackgroundLayout><InvasionConcludedPage /></BackgroundLayout>,
+  },
+  {
+    path: "/servers",
+    element: <ProtectedRoute><BackgroundLayout><ServersPage /></BackgroundLayout></ProtectedRoute>,
+  },
+  {
+    path: "/credits",
+    element: <ProtectedRoute><BackgroundLayout><CreditsPage /></BackgroundLayout></ProtectedRoute>,
+  },
+  {
+    path: "/messages",
+    element: <ProtectedRoute><MessagesPage /></ProtectedRoute>,
+  },
+  {
+    path: "/chat/:id",
+    element: <ProtectedRoute><ChatPage /></ProtectedRoute>,
   }
 ]);
 
@@ -228,6 +212,7 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <RouterProvider router={router} />
+      <WhatsAppButton />
     </AuthProvider>
   );
 };

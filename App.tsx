@@ -135,14 +135,6 @@ const MainAppContent: React.FC = () => {
       <ProgressBar progress={progressBarProgress} isVisible={isLoading} />
       <div className="relative z-20 text-white flex flex-col items-center px-4 pt-12 pb-8 w-full"> 
         <header className="text-center mb-8 w-full max-xl flex flex-col items-center">
-          {/* Nova logo do detetive estilizada para fundo escuro */}
-          <div className="relative mb-4 group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-500 to-yellow-500 rounded-full blur opacity-40 group-hover:opacity-100 transition duration-500 animate-pulse"></div>
-            <div className="relative w-24 h-24 bg-white p-3 rounded-full shadow-2xl flex items-center justify-center">
-              <img src="/detective.png" alt="Detetive SpyGram" className="w-full h-full object-contain" />
-            </div>
-          </div>
-          
           <img src="/spygram_transparentebranco.png" alt="Logo Text" className="h-16 mx-auto mb-4" />
           <h1 className="text-5xl font-extrabold mb-4 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-transparent bg-clip-text uppercase">SpyGram</h1>
           <p className="text-xl font-bold">ACESSE O <span className="text-pink-500">INSTAGRAM</span> DE QUALQUER PESSOA <span className="text-yellow-500">SEM SENHA</span></p>

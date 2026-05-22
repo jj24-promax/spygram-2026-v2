@@ -1,8 +1,54 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Coins } from 'lucide-react';
+import { supabase } from '../integrations/supabase/client';
 
 const AppHeader: React.FC = () => {
+  const [credits, setCredits] = useState<string | number>('0');
+  const [username, setUsername] = useState<string>('user-403');
+  const [isPaid, setIsPaid] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchLeadCredits = async () => {
+      const email = sessionStorage.getItem('logged_in_email');
+      if (!email) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('leads')
+          .select('status, total_amount, username_searched')
+          .eq('email', email.trim().toLowerCase())
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          const lead = data[0];
+          if (lead.username_searched) {
+            setUsername(lead.username_searched);
+          }
+          
+          if (lead.status === 'pagou') {
+            setIsPaid(true);
+            const amount = Number(lead.total_amount) || 0;
+            if (amount >= 140) {
+              setCredits('Ilimitado');
+            } else if (amount >= 70) {
+              setCredits(30);
+            } else {
+              setCredits(10);
+            }
+          } else {
+            setCredits('0');
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao carregar créditos:", err);
+      }
+    };
+
+    fetchLeadCredits();
+  }, []);
+
   return (
     <header className="flex flex-col sm:flex-row justify-between items-center gap-6 mb-12 sm:mb-16 w-full">
       {/* Lado Esquerdo: Logo e Nome */}
@@ -38,7 +84,9 @@ const AppHeader: React.FC = () => {
             <span className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest">Créditos</span>
             <Coins className="w-2 sm:w-2.5 h-2 sm:h-2.5 text-yellow-500" />
           </div>
-          <span className="text-xs sm:text-sm font-black text-white tabular-nums">0</span>
+          <span className={`text-xs sm:text-sm font-black tabular-nums ${isPaid ? 'text-green-400' : 'text-white'}`}>
+            {credits}
+          </span>
         </div>
 
         {/* Divisor */}
@@ -55,7 +103,7 @@ const AppHeader: React.FC = () => {
           </div>
           
           <div className="flex flex-col">
-            <span className="text-[10px] sm:text-xs font-black text-white tracking-tight">@user-403</span>
+            <span className="text-[10px] sm:text-xs font-black text-white tracking-tight">@{username}</span>
             <div className="flex items-center gap-1">
               <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-[7px] sm:text-[8px] font-black text-green-500 uppercase tracking-widest">Online</span>

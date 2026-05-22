@@ -54,6 +54,9 @@ const LoginPage: React.FC = () => {
         return;
       }
 
+      // Salva o e-mail do membro logado para verificação de créditos
+      sessionStorage.setItem('logged_in_email', email.trim().toLowerCase());
+
       login('user');
       toast.success('Acesso liberado!');
       navigate('/servers');
@@ -139,7 +142,7 @@ const LoginPage: React.FC = () => {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  Entrar no Painel
+                  Entrar no Panel
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

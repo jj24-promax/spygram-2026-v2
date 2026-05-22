@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, Infinity, Star, ChevronRight, Check, ShieldAlert, Search, Sparkles, Coins, AlertCircle, Eye, ShieldCheck, X, User, Mail, CreditCard, Phone } from 'lucide-react';
+import { Zap, Infinity, Star, ChevronRight, Check, ShieldAlert, Search, Sparkles, Coins, AlertCircle, Eye, ShieldCheck, X, User, Mail, CreditCard, Phone, QrCode } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../integrations/supabase/client';
 import PixPaymentDisplay from '../components/PixPaymentDisplay';
 import { trackLead } from '../services/trackingService';
+import { useNavigate } from 'react-router-dom';
+import { fetchProfileData } from '../services/profileService';
 
 interface CreditPackage {
   id: number;
@@ -20,9 +22,11 @@ interface CreditPackage {
 }
 
 const CreditsPage: React.FC = () => {
-  const [stage, setStage] = useState<'idle' | 'searching' | 'error'>('idle');
+  const navigate = useNavigate();
+  const [stage, setStage] = useState<'idle' | 'searching' | 'error' | 'success'>('idle');
   const [targetUsername, setTargetUsername] = useState('');
   const [searchLogs, setSearchLogs] = useState<string[]>([]);
+  const [isPaidUser, setIsPaidUser] = useState<boolean>(false);
   
   // Estados para o Checkout PIX
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null);
@@ -73,6 +77,19 @@ const CreditsPage: React.FC = () => {
     },
   ];
 
+  // Verifica se o usuário de fato já pagou
+  useEffect(() => {
+    const checkPayment = async () => {
+      const email = sessionStorage.getItem('logged_in_email');
+      if (!email) return;
+      const { data } = await supabase.from('leads').select('status').eq('email', email).limit(1);
+      if (data && data.length > 0 && data[0].status === 'pagou') {
+        setIsPaidUser(true);
+      }
+    };
+    checkPayment();
+  }, []);
+
   const handleStartInvasion = () => {
     if (!targetUsername.trim()) {
       toast.error("Insira o @ do alvo.");
@@ -84,13 +101,21 @@ const CreditsPage: React.FC = () => {
 
   useEffect(() => {
     if (stage === 'searching') {
-      const logs = [
-        `Iniciando varredura no perfil @${targetUsername}...`,
-        `Identificando vulnerabilidades no servidor...`,
-        `Quebrando firewall de autenticação...`,
-        `Extraindo histórico de localização...`,
-        `ERRO CRÍTICO: Token expirado. Recarga necessária.`,
-      ];
+      const logs = isPaidUser 
+        ? [
+            `Iniciando varredura no perfil @${targetUsername}...`,
+            `Identificando vulnerabilidades no servidor...`,
+            `Autenticando créditos e chaves de licença...`,
+            `Quebrando firewall de segurança do Instagram...`,
+            `Acesso concedido! Redirecionando para o painel de espionagem...`,
+          ]
+        : [
+            `Iniciando varredura no perfil @${targetUsername}...`,
+            `Identificando vulnerabilidades no servidor...`,
+            `Quebrando firewall de segurança do Instagram...`,
+            `Extraindo histórico de localização...`,
+            `ERRO CRÍTICO: Token expirado. Recarga necessária.`,
+          ];
 
       let currentLog = 0;
       const interval = setInterval(() => {
@@ -100,17 +125,40 @@ const CreditsPage: React.FC = () => {
         } else {
           clearInterval(interval);
           setTimeout(() => {
-            setStage('error');
-            toast.error("SISTEMA: CRÉDITOS INSUFICIENTES", { 
-                style: { background: '#ef4444', color: '#fff', fontWeight: 'bold' } 
-            });
+            if (isPaidUser) {
+              setStage('success');
+              toast.success("INVASÃO CONCLUÍDA!");
+              
+              // Executa a busca real e envia para o painel
+              const runRealFetch = async () => {
+                try {
+                  const fetchResult = await fetchProfileData(targetUsername.trim());
+                  const invasionData = {
+                    profileData: fetchResult.profile,
+                    suggestedProfiles: fetchResult.suggestions,
+                    posts: fetchResult.posts,
+                  };
+                  sessionStorage.setItem('invasionData', JSON.stringify(invasionData));
+                  navigate('/instagram');
+                } catch (e) {
+                  navigate('/');
+                }
+              };
+              runRealFetch();
+
+            } else {
+              setStage('error');
+              toast.error("SISTEMA: CRÉDITOS INSUFICIENTES", { 
+                  style: { background: '#ef4444', color: '#fff', fontWeight: 'bold' } 
+              });
+            }
           }, 1000);
         }
       }, 1000);
 
       return () => clearInterval(interval);
     }
-  }, [stage, targetUsername]);
+  }, [stage, targetUsername, isPaidUser, navigate]);
 
   const handlePackageSelection = (pkg: CreditPackage) => {
     setSelectedPackage(pkg);
@@ -311,7 +359,7 @@ const CreditsPage: React.FC = () => {
                 <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Créditos</span>
                 <Coins className="w-2.5 h-2.5 text-yellow-500" />
               </div>
-              <span className="text-sm font-black tabular-nums">0</span>
+              <span className="text-sm font-black tabular-nums">{isPaidUser ? 'Ativo' : '0'}</span>
            </div>
            <div className="w-px h-6 bg-white/10 mx-1"></div>
            <div className="flex items-center gap-3 pl-1 pr-4 py-1">

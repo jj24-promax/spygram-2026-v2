@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Server, Globe, Users as UsersIcon, Zap, Activity, ShieldCheck } from 'lucide-react';
+import { Server, Globe, Users as UsersIcon, Zap, Activity, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AppHeader from '../components/AppHeader';
+import { supabase } from '../integrations/supabase/client';
 
 interface ServerCardProps {
   serverNumber: number;
@@ -67,12 +68,37 @@ const ServerCard: React.FC<ServerCardProps> = ({ serverNumber, ping, onClick }) 
 const ServersPage: React.FC = () => {
   const navigate = useNavigate();
   const [onlineUsers, setOnlineUsers] = useState(423);
+  const [isPaid, setIsPaid] = useState<boolean | null>(null);
   const [servers, setServers] = useState([
     { id: 0, ping: 24 }, { id: 1, ping: 42 }, { id: 2, ping: 18 },
     { id: 3, ping: 35 }, { id: 4, ping: 51 }, { id: 5, ping: 12 }
   ]);
 
   useEffect(() => {
+    const checkPaymentStatus = async () => {
+      const email = sessionStorage.getItem('logged_in_email');
+      if (!email) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('leads')
+          .select('status')
+          .eq('email', email.trim().toLowerCase())
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          setIsPaid(data[0].status === 'pagou');
+        } else {
+          setIsPaid(false);
+        }
+      } catch (err) {
+        setIsPaid(false);
+      }
+    };
+
+    checkPaymentStatus();
+
     const interval = setInterval(() => {
       setServers(prev => prev.map(s => ({
         ...s,
@@ -93,6 +119,47 @@ const ServersPage: React.FC = () => {
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <AppHeader />
+
+        {/* BANNER DINÂMICO DE CONFIRMAÇÃO DE PAGAMENTO */}
+        {isPaid !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`w-full max-w-4xl mx-auto mb-10 p-5 rounded-2xl border-2 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-xl shadow-2xl ${
+              isPaid 
+                ? 'bg-green-500/10 border-green-500/30 text-green-400' 
+                : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+            }`}
+          >
+            <div className="flex items-center gap-4">
+              {isPaid ? (
+                <CheckCircle2 className="w-10 h-10 text-green-500 animate-pulse flex-shrink-0" />
+              ) : (
+                <AlertTriangle className="w-10 h-10 text-yellow-500 animate-bounce flex-shrink-0" />
+              )}
+              <div className="text-center sm:text-left">
+                <h3 className="text-white font-black uppercase tracking-tight text-lg">
+                  {isPaid ? 'Acesso Confirmado!' : 'Aguardando Pagamento'}
+                </h3>
+                <p className="text-xs text-gray-400 font-medium mt-1">
+                  {isPaid 
+                    ? 'Sua conta possui créditos ativos. Selecione qualquer servidor abaixo para iniciar o rastreamento.' 
+                    : 'Não identificamos créditos vinculados ao seu e-mail. Recarregue no menu para liberar o painel.'
+                  }
+                </p>
+              </div>
+            </div>
+
+            {!isPaid && (
+              <button 
+                onClick={() => navigate('/credits')}
+                className="bg-yellow-500 hover:bg-yellow-600 text-black font-black text-xs uppercase px-6 py-3 rounded-xl transition-all shadow-lg active:scale-95"
+              >
+                Comprar Créditos
+              </button>
+            )}
+          </motion.div>
+        )}
 
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-12 mb-16">
           <div className="max-w-2xl text-center lg:text-left">

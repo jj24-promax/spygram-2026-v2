@@ -29,7 +29,7 @@ import { getUserLocation } from './src/services/geolocationService';
 import { trackLead } from './src/services/trackingService';
 import WhatsAppButton from '@/src/components/WhatsAppButton';
 import AnalyticsTracker from '@/src/components/AnalyticsTracker';
-import { trackFacebookEvent } from './src/services/facebookService'; // Novo Import
+import { trackFacebookEvent } from './src/services/facebookService';
 
 const MainAppContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -42,6 +42,15 @@ const MainAppContent: React.FC = () => {
   const [confirmedPosts, setConfirmedPosts] = useState<FeedPost[]>([]);
   const { logout } = useAuth();
   const navigate = useNavigate();
+
+  // Redireciona imediatamente se já existir uma invasão ativa salva de forma persistente
+  useEffect(() => {
+    const activeInvasion = localStorage.getItem('spygram_active_invasion');
+    if (activeInvasion) {
+      sessionStorage.setItem('invasionData', activeInvasion);
+      navigate('/invasion-concluded', { replace: true });
+    }
+  }, [navigate]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -114,7 +123,10 @@ const MainAppContent: React.FC = () => {
         suggestedProfiles: confirmedSuggestions,
         posts: confirmedPosts,
       };
+      
       sessionStorage.setItem('invasionData', JSON.stringify(invasionData));
+      // Salva de forma persistente para bloquear novas pesquisas deste mesmo navegador
+      localStorage.setItem('spygram_active_invasion', JSON.stringify(invasionData));
       
       // Atendimento do lead
       trackLead({ status: 'confirmou_alvo' });

@@ -111,13 +111,16 @@ const InvasionSimulationPage: React.FC = () => {
           setSuggestedProfiles(finalSuggestions);
           setPosts(finalPosts);
 
-          sessionStorage.setItem('invasionData', JSON.stringify({
+          const fullData = {
             profileData: targetProfileData,
             suggestedProfiles: finalSuggestions,
             posts: finalPosts,
             userCity: userCity,
             locations: cityList,
-          }));
+          };
+
+          sessionStorage.setItem('invasionData', JSON.stringify(fullData));
+          localStorage.setItem('spygram_active_invasion', JSON.stringify(fullData));
         } catch (error) {
           console.error("Erro silencioso no background loading:", error);
         }
@@ -129,8 +132,9 @@ const InvasionSimulationPage: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 800));
       }
 
+      // Altera o tempo gratuito para 2 minutos (120 segundos)
       if (!sessionStorage.getItem('invasionEndTime')) {
-        const endTime = Date.now() + 90 * 1000;
+        const endTime = Date.now() + 120 * 1000;
         sessionStorage.setItem('invasionEndTime', endTime.toString());
       }
 

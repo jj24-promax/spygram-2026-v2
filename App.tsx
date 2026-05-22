@@ -4,7 +4,7 @@ import CustomSearchBar from '@/src/components/ui/CustomSearchBar';
 import SparkleButton from '@/src/components/ui/SparkleButton';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ConsentCheckbox from '@/src/components/ConsentCheckbox';
-import { Lock } from 'lucide-react';
+import { Lock, AlertTriangle, ShieldCheck } from 'lucide-react';
 import LoginPage from '@/src/pages/LoginPage';
 import AdminLoginPage from '@/src/pages/AdminLoginPage';
 import ServersPage from '@/src/pages/ServersPage';
@@ -30,6 +30,7 @@ import { trackLead } from './src/services/trackingService';
 import WhatsAppButton from '@/src/components/WhatsAppButton';
 import AnalyticsTracker from '@/src/components/AnalyticsTracker';
 import { trackFacebookEvent } from './src/services/facebookService';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const MainAppContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -40,6 +41,7 @@ const MainAppContent: React.FC = () => {
   const [confirmedProfileData, setConfirmedProfileData] = useState<ProfileData | null>(null);
   const [confirmedSuggestions, setConfirmedSuggestions] = useState<SuggestedProfile[]>([]);
   const [confirmedPosts, setConfirmedPosts] = useState<FeedPost[]>([]);
+  const [showIntroPopup, setShowIntroPopup] = useState<boolean>(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -49,6 +51,12 @@ const MainAppContent: React.FC = () => {
     if (activeInvasion) {
       sessionStorage.setItem('invasionData', activeInvasion);
       navigate('/invasion-concluded', { replace: true });
+    } else {
+      // Se não houver invasão ativa, verifica se deve exibir o popup informativo de entrada única
+      const introShown = sessionStorage.getItem('spygram_intro_popup_shown');
+      if (!introShown) {
+        setShowIntroPopup(true);
+      }
     }
   }, [navigate]);
 
@@ -64,6 +72,11 @@ const MainAppContent: React.FC = () => {
     }
     return () => { if (interval) clearInterval(interval); };
   }, [isLoading]);
+
+  const handleDismissIntro = () => {
+    setShowIntroPopup(false);
+    sessionStorage.setItem('spygram_intro_popup_shown', 'true');
+  };
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
@@ -150,6 +163,43 @@ const MainAppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-transparent">
       <ProgressBar progress={progressBarProgress} isVisible={isLoading} />
+      
+      {/* POPUP DE AVISO DE ENTRADA ÚNICA */}
+      <AnimatePresence>
+        {showIntroPopup && (
+          <div className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#121214] border-2 border-red-500/30 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl relative overflow-hidden text-white"
+            >
+              {/* Efeito de brilho de fundo */}
+              <div className="absolute top-[-30px] left-[-30px] w-24 h-24 bg-red-500/10 blur-xl rounded-full" />
+              
+              <AlertTriangle className="w-14 h-14 text-red-500 mx-auto mb-4 animate-bounce-slow" />
+              
+              <h2 className="text-xl font-black uppercase tracking-tight mb-3">
+                AVISO DE CRÉDITO LIMITADO
+              </h2>
+              
+              <p className="text-gray-300 text-xs sm:text-sm font-medium leading-relaxed mb-6">
+                Devido ao alto custo de processamento e quebra de criptografia via satélite, <span className="text-yellow-400 font-bold">cada IP/Dispositivo possui direito a apenas 1 (uma) consulta teste</span> de perfil.
+                <br /><br />
+                Escolha e digite o alvo de seu interesse com extrema responsabilidade.
+              </p>
+              
+              <button
+                onClick={handleDismissIntro}
+                className="w-full py-3.5 bg-red-600 hover:bg-red-700 font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg active:scale-95 text-white"
+              >
+                ENTENDIDO, PROSSEGUIR
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <div className="relative z-20 text-white flex flex-col items-center px-4 pt-12 pb-8 w-full"> 
         <header className="text-center mb-8 w-full max-xl">
           <img src="/spygram_transparentebranco.png" alt="Logo" className="h-24 mx-auto mb-6" />

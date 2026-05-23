@@ -5,7 +5,7 @@ import { supabase } from '../integrations/supabase/client';
 
 const AppHeader: React.FC = () => {
   const [credits, setCredits] = useState<string | number>('0');
-  const [username, setUsername] = useState<string>('user-403');
+  const [username, setUsername] = useState<string>('OPERADOR-403');
   const [isPaid, setIsPaid] = useState<boolean>(false);
 
   useEffect(() => {
@@ -16,16 +16,13 @@ const AppHeader: React.FC = () => {
       try {
         const { data: leadsData, error: leadError } = await supabase
           .from('leads')
-          .select('id, status, username_searched')
+          .select('id, status')
           .eq('email', email.trim().toLowerCase())
           .order('created_at', { ascending: false })
           .limit(1);
 
         if (!leadError && leadsData && leadsData.length > 0) {
           const lead = leadsData[0];
-          if (lead.username_searched) {
-            setUsername(lead.username_searched);
-          }
           
           if (lead.status === 'pagou') {
             setIsPaid(true);
@@ -127,7 +124,7 @@ const AppHeader: React.FC = () => {
           </div>
           
           <div className="flex flex-col">
-            <span className="text-[10px] sm:text-xs font-black text-white tracking-tight">@{username}</span>
+            <span className="text-[10px] sm:text-xs font-black text-white tracking-tight">{username}</span>
             <div className="flex items-center gap-1">
               <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-[7px] sm:text-[8px] font-black text-green-500 uppercase tracking-widest">Online</span>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Zap, Infinity, Star, Check, ShieldAlert, Search, Sparkles, Coins, Eye, ShieldCheck, X, User, Mail, CreditCard, Phone, QrCode, Terminal } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,7 +30,7 @@ const CreditsPage: React.FC = () => {
   const [hasCredits, setHasCredits] = useState<boolean>(false);
   const [creditsCount, setCreditsCount] = useState<string | number>('0');
   
-  // Dados do lead logado para reutilização automática (One-Click)
+  // Dados do lead logado
   const [leadDetails, setLeadDetails] = useState<{
     id: string;
     full_name: string;
@@ -39,7 +39,7 @@ const CreditsPage: React.FC = () => {
     phone: string;
   } | null>(null);
 
-  // Estados para o Checkout PIX (Pacotes de Créditos Comuns)
+  // Estados para o Checkout PIX
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [isGeneratingPix, setIsGeneratingPix] = useState(false);
@@ -88,70 +88,71 @@ const CreditsPage: React.FC = () => {
     },
   ];
 
-  // Verifica se o usuário possui créditos de pacotes de créditos comprados
-  useEffect(() => {
-    const checkPayment = async () => {
-      const email = sessionStorage.getItem('logged_in_email');
-      if (!email) return;
-      try {
-        const { data: leadsData } = await supabase
-          .from('leads')
-          .select('id, status, full_name, email, document, phone')
-          .eq('email', email.trim().toLowerCase())
-          .order('created_at', { ascending: false })
-          .limit(1);
+  const checkPayment = useCallback(async () => {
+    const email = sessionStorage.getItem('logged_in_email');
+    if (!email) return;
+    try {
+      const { data: leadsData } = await supabase
+        .from('leads')
+        .select('id, status, full_name, email, document, phone')
+        .eq('email', email.trim().toLowerCase())
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-        if (leadsData && leadsData.length > 0) {
-          const lead = leadsData[0];
-          const paid = lead.status === 'pagou';
-          setIsPaidUser(paid);
-          
-          // Salva os dados do lead logado para uso automático (One-Click Buy)
-          setLeadDetails({
-            id: lead.id,
-            full_name: lead.full_name || '',
-            email: lead.email || '',
-            document: lead.document || '',
-            phone: lead.phone || ''
+      if (leadsData && leadsData.length > 0) {
+        const lead = leadsData[0];
+        const paid = lead.status === 'pagou';
+        setIsPaidUser(paid);
+        
+        setLeadDetails({
+          id: lead.id,
+          full_name: lead.full_name || '',
+          email: lead.email || '',
+          document: lead.document || '',
+          phone: lead.phone || ''
+        });
+
+        if (paid) {
+          const { data: edgeData, error: edgeError } = await supabase.functions.invoke('manage-credits', {
+            body: { leadId: lead.id, action: 'get' }
           });
 
-          if (paid) {
-            const { data: edgeData, error: edgeError } = await supabase.functions.invoke('manage-credits', {
-              body: { leadId: lead.id, action: 'get' }
+          if (!edgeError && edgeData) {
+            const paymentsData = edgeData.payments || [];
+            const successStatuses = ['paid', 'saquepago', 'approved', 'success', 'pago'];
+            
+            const creditPayments = paymentsData.filter((p: any) => {
+              const isSuccess = successStatuses.includes(String(p.status).toLowerCase());
+              const amt = Number(p.payload?.amount) || 0;
+              const itemsStr = Array.isArray(p.payload?.items) ? p.payload.items.join(' ').toLowerCase() : '';
+              
+              const isCreditValue = Math.abs(amt - 49.5) < 0.1 || Math.abs(amt - 79.5) < 0.1 || Math.abs(amt - 149) < 0.1;
+              const isCreditItem = itemsStr.includes('recarga') || itemsStr.includes('crédito') || itemsStr.includes('ilimitado');
+              
+              return isSuccess && (isCreditValue || isCreditItem);
             });
 
-            if (!edgeError && edgeData) {
-              const paymentsData = edgeData.payments || [];
-              const successStatuses = ['paid', 'saquepago', 'approved', 'success', 'pago'];
+            if (creditPayments.length > 0) {
+              setHasCredits(true);
+              let total = 0;
+              let unlim = false;
               
-              const creditPayments = paymentsData.filter((p: any) => {
-                const isSuccess = successStatuses.includes(String(p.status).toLowerCase());
-                const payAmt = Number(p.payload?.amount) || 0;
-                return isSuccess && (payAmt === 49.50 || payAmt === 79.50 || payAmt === 149.00);
-              });
+              creditPayments.forEach((p: any) => {
+                const amt = Number(p.payload?.amount) || 0;
+                const itemsStr = Array.isArray(p.payload?.items) ? p.payload.items.join(' ').toLowerCase() : '';
 
-              if (creditPayments.length > 0) {
-                setHasCredits(true);
-                let total = 0;
-                let unlim = false;
-                
-                // Acumula os créditos
-                creditPayments.forEach((p: any) => {
-                  const payAmt = Number(p.payload?.amount) || 0;
-                  if (payAmt === 149.00) {
-                    unlim = true;
-                  } else if (payAmt === 79.50) {
-                    total += 30;
-                  } else if (payAmt === 49.50) {
-                    total += 10;
-                  }
-                });
-                
-                setCreditsCount(unlim ? 'Ilimitado' : total.toString());
-              } else {
-                setHasCredits(false);
-                setCreditsCount('0');
-              }
+                if (Math.abs(amt - 149) < 0.1 || itemsStr.includes('ilimitado') || itemsStr.includes('dominação')) {
+                  unlim = true;
+                } else if (Math.abs(amt - 79.5) < 0.1 || itemsStr.includes('elite') || itemsStr.includes('30')) {
+                  total += 30;
+                } else if (Math.abs(amt - 49.5) < 0.1 || itemsStr.includes('lite') || itemsStr.includes('10')) {
+                  total += 10;
+                } else {
+                  total += 10;
+                }
+              });
+              
+              setCreditsCount(unlim ? 'Ilimitado' : total.toString());
             } else {
               setHasCredits(false);
               setCreditsCount('0');
@@ -160,15 +161,23 @@ const CreditsPage: React.FC = () => {
             setHasCredits(false);
             setCreditsCount('0');
           }
+        } else {
+          setHasCredits(false);
+          setCreditsCount('0');
         }
-      } catch (e) {
-        console.error("Erro ao validar créditos:", e);
-        setHasCredits(false);
-        setCreditsCount('0');
       }
-    };
-    checkPayment();
+    } catch (e) {
+      console.error("Erro ao validar créditos:", e);
+      setHasCredits(false);
+      setCreditsCount('0');
+    }
   }, []);
+
+  useEffect(() => {
+    checkPayment();
+    const interval = setInterval(checkPayment, 5000);
+    return () => clearInterval(interval);
+  }, [checkPayment]);
 
   const handleStartInvasion = () => {
     if (!targetUsername.trim()) {
@@ -255,7 +264,6 @@ const CreditsPage: React.FC = () => {
     }
   };
 
-  // ONE-CLICK BUY: Função para gerar PIX instantâneo (Firewall e Upsell) usando os dados do Lead Logado
   const handleBypassPayment = async (type: 'firewall' | 'upsell') => {
     if (!leadDetails) {
       toast.error("Sua sessão inspirou. Faça login novamente para prosseguir.");
@@ -271,7 +279,6 @@ const CreditsPage: React.FC = () => {
       : ['Firewall Bypass SSL 🛡️'];
     const status = type === 'upsell' ? 'gerou_pix_upsell_dados' : 'gerou_pix_firewall';
 
-    // Fallbacks simples caso faltem dados no banco de dados para evitar erro na API do Banco
     const safeDocument = leadDetails.document || '00000000000';
     const safePhone = leadDetails.phone || '11999999999';
     const safeName = leadDetails.full_name || leadDetails.email || 'Cliente SpyGram';
@@ -417,7 +424,7 @@ const CreditsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden selection:bg-blue-500/30">
       
-      {/* Modal de Checkout (Para Pacotes de Crédito Comuns) */}
+      {/* Modal de Checkout */}
       <AnimatePresence>
         {showCheckoutModal && selectedPackage && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
@@ -436,7 +443,7 @@ const CreditsPage: React.FC = () => {
                   <button onClick={() => setShowCheckoutModal(false)} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><X size={20} /></button>
                 </div>
 
-                <form onSubmit={(e) => handleGeneratePix(e)} className="space-y-4">
+                <form onSubmit={handleGeneratePix} className="space-y-4">
                   <div className="relative group">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     <input 
@@ -521,13 +528,13 @@ const CreditsPage: React.FC = () => {
         </div>
 
         {/* Status Pill com Contagem de Créditos Real */}
-        <div className="flex items-center gap-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full p-1 mb-12 shadow-2xl">
+        <div className="flex items-center gap-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full p-1 mb-12 shadow-2xl transition-all">
            <div className="flex flex-col items-end px-4 py-1">
               <div className="flex items-center gap-1">
                 <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Créditos</span>
                 <Coins className="w-2.5 h-2.5 text-yellow-500" />
               </div>
-              <span className={`text-sm font-black tabular-nums ${hasCredits ? 'text-green-400' : 'text-white'}`}>
+              <span className={`text-sm font-black tabular-nums transition-colors duration-500 ${hasCredits ? 'text-green-400' : 'text-white'}`}>
                 {creditsCount}
               </span>
            </div>
@@ -768,7 +775,7 @@ const CreditsPage: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* PACOTES DE CRÉDITO (Mostra se não estiver no terminal de invasão ativa) */}
+        {/* PACOTES DE CRÉDITO */}
         {stage !== 'searching' && stage !== 'firewall_lock' && stage !== 'upsell_data_recovery' && (
           <div className="w-full mt-16 space-y-12">
             <div className="flex flex-col items-center justify-center text-center px-4">

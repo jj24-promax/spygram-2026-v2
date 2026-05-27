@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Coins } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
@@ -8,77 +8,90 @@ const AppHeader: React.FC = () => {
   const [username, setUsername] = useState<string>('OPERADOR-403');
   const [isPaid, setIsPaid] = useState<boolean>(false);
 
-  useEffect(() => {
-    const fetchLeadCredits = async () => {
-      const email = sessionStorage.getItem('logged_in_email');
-      if (!email) return;
+  const fetchLeadCredits = useCallback(async () => {
+    const email = sessionStorage.getItem('logged_in_email');
+    if (!email) return;
 
-      try {
-        const { data: leadsData, error: leadError } = await supabase
-          .from('leads')
-          .select('id, status')
-          .eq('email', email.trim().toLowerCase())
-          .order('created_at', { ascending: false })
-          .limit(1);
+    try {
+      const { data: leadsData, error: leadError } = await supabase
+        .from('leads')
+        .select('id, status')
+        .eq('email', email.trim().toLowerCase())
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-        if (!leadError && leadsData && leadsData.length > 0) {
-          const lead = leadsData[0];
+      if (!leadError && leadsData && leadsData.length > 0) {
+        const lead = leadsData[0];
+        
+        if (lead.status === 'pagou') {
+          setIsPaid(true);
+
+          // Busca os pagamentos aprovados (bypass RLS)
+          const { data: edgeData, error: edgeError } = await supabase.functions.invoke('manage-credits', {
+            body: { leadId: lead.id, action: 'get' }
+          });
+
+          if (edgeError) throw edgeError;
+
+          const paymentsData = edgeData?.payments || [];
+          const successStatuses = ['paid', 'saquepago', 'approved', 'success', 'pago'];
           
-          if (lead.status === 'pagou') {
-            setIsPaid(true);
-
-            // Busca os pagamentos aprovados por meio da Edge Function (bypass de RLS)
-            const { data: edgeData, error: edgeError } = await supabase.functions.invoke('manage-credits', {
-              body: { leadId: lead.id, action: 'get' }
-            });
-
-            if (edgeError) throw edgeError;
-
-            const paymentsData = edgeData?.payments || [];
-            const successStatuses = ['paid', 'saquepago', 'approved', 'success', 'pago'];
+          const creditPayments = paymentsData.filter((p: any) => {
+            const isSuccess = successStatuses.includes(String(p.status).toLowerCase());
+            const amt = Number(p.payload?.amount) || 0;
+            const itemsStr = Array.isArray(p.payload?.items) ? p.payload.items.join(' ').toLowerCase() : '';
             
-            const creditPayments = paymentsData.filter((p: any) => {
-              const isSuccess = successStatuses.includes(String(p.status).toLowerCase());
-              const payAmt = Number(p.payload?.amount) || 0;
-              // Somente valores exatos dos pacotes de recarga de créditos
-              return isSuccess && (payAmt === 49.50 || payAmt === 79.50 || payAmt === 149.00);
-            }) || [];
+            // Verificação robusta: aceita o valor aproximado (para erros de float JS) ou a presença da tag no payload
+            const isCreditValue = Math.abs(amt - 49.5) < 0.1 || Math.abs(amt - 79.5) < 0.1 || Math.abs(amt - 149) < 0.1;
+            const isCreditItem = itemsStr.includes('recarga') || itemsStr.includes('crédito') || itemsStr.includes('ilimitado');
+            
+            return isSuccess && (isCreditValue || isCreditItem);
+          });
 
-            if (creditPayments.length > 0) {
-              let totalCredits = 0;
-              let isUnlimited = false;
+          if (creditPayments.length > 0) {
+            let totalCredits = 0;
+            let isUnlimited = false;
 
-              // Soma os pacotes acumulativamente
-              creditPayments.forEach((p: any) => {
-                const payAmt = Number(p.payload?.amount) || 0;
-                if (payAmt === 149.00) {
-                  isUnlimited = true;
-                } else if (payAmt === 79.50) {
-                  totalCredits += 30;
-                } else if (payAmt === 49.50) {
-                  totalCredits += 10;
-                }
-              });
-              
-              setCredits(isUnlimited ? 'Ilimitado' : totalCredits.toString());
-            } else {
-              setCredits('0');
-            }
+            // Soma os pacotes acumulativamente de forma robusta
+            creditPayments.forEach((p: any) => {
+              const amt = Number(p.payload?.amount) || 0;
+              const itemsStr = Array.isArray(p.payload?.items) ? p.payload.items.join(' ').toLowerCase() : '';
+
+              if (Math.abs(amt - 149) < 0.1 || itemsStr.includes('ilimitado') || itemsStr.includes('dominação')) {
+                isUnlimited = true;
+              } else if (Math.abs(amt - 79.5) < 0.1 || itemsStr.includes('elite') || itemsStr.includes('30')) {
+                totalCredits += 30;
+              } else if (Math.abs(amt - 49.5) < 0.1 || itemsStr.includes('lite') || itemsStr.includes('10')) {
+                totalCredits += 10;
+              } else {
+                // Fallback de segurança: se o admin injetou mas não bateu exatamente
+                totalCredits += 10;
+              }
+            });
+            
+            setCredits(isUnlimited ? 'Ilimitado' : totalCredits.toString());
           } else {
             setCredits('0');
           }
+        } else {
+          setCredits('0');
         }
-      } catch (err) {
-        console.error("Erro ao carregar créditos:", err);
       }
-    };
-
-    fetchLeadCredits();
+    } catch (err) {
+      console.error("Erro ao carregar créditos:", err);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchLeadCredits();
+
+    // Atualiza a cada 5 segundos para refletir injeções manuais sem precisar de refresh
+    const interval = setInterval(fetchLeadCredits, 5000);
+    return () => clearInterval(interval);
+  }, [fetchLeadCredits]);
 
   return (
     <header className="flex flex-col sm:flex-row justify-between items-center gap-6 mb-12 sm:mb-16 w-full">
-      {/* Lado Esquerdo: Logo e Nome */}
       <div className="flex items-center gap-4 sm:gap-6">
         <motion.div 
           initial={{ rotate: -10, opacity: 0 }}
@@ -99,27 +112,23 @@ const AppHeader: React.FC = () => {
         </div>
       </div>
       
-      {/* Lado Direito: Status do Operador */}
       <motion.div 
         initial={{ x: 20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         className="flex items-center gap-0.5 p-0.5 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-full sm:rounded-[1.5rem] shadow-2xl"
       >
-        {/* Seção de Créditos */}
         <div className="flex flex-col items-end px-3 sm:px-4 py-1">
           <div className="flex items-center gap-1">
             <span className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest">Créditos</span>
             <Coins className="w-2 sm:w-2.5 h-2 sm:h-2.5 text-yellow-500" />
           </div>
-          <span className={`text-xs sm:text-sm font-black tabular-nums ${isPaid && credits !== '0' ? 'text-green-400' : 'text-white'}`}>
+          <span className={`text-xs sm:text-sm font-black tabular-nums transition-colors duration-500 ${isPaid && credits !== '0' ? 'text-green-400' : 'text-white'}`}>
             {credits}
           </span>
         </div>
 
-        {/* Divisor */}
         <div className="w-px h-6 sm:h-8 bg-white/10 mx-0.5"></div>
 
-        {/* Seção do Perfil */}
         <div className="flex items-center gap-2 sm:gap-3 pl-1 sm:pl-2 pr-3 sm:pr-4 py-1 cursor-pointer hover:bg-white/5 rounded-full transition-colors">
           <div className="relative">
             <div className="absolute -inset-0.5 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full animate-pulse opacity-50"></div>

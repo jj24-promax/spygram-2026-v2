@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Server, Globe, Users as UsersIcon, Zap, Activity, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -75,67 +75,79 @@ const ServersPage: React.FC = () => {
     { id: 3, ping: 35 }, { id: 4, ping: 51 }, { id: 5, ping: 12 }
   ]);
 
-  useEffect(() => {
-    const checkPaymentStatus = async () => {
-      const email = sessionStorage.getItem('logged_in_email');
-      if (!email) return;
+  const checkPaymentStatus = useCallback(async () => {
+    const email = sessionStorage.getItem('logged_in_email');
+    if (!email) return;
 
-      try {
-        const { data: leadsData, error: leadError } = await supabase
-          .from('leads')
-          .select('id, status')
-          .eq('email', email.trim().toLowerCase())
-          .order('created_at', { ascending: false })
-          .limit(1);
+    try {
+      const { data: leadsData, error: leadError } = await supabase
+        .from('leads')
+        .select('id, status')
+        .eq('email', email.trim().toLowerCase())
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-        if (!leadError && leadsData && leadsData.length > 0) {
-          const lead = leadsData[0];
-          const paid = lead.status === 'pagou';
-          setIsPaid(paid);
+      if (!leadError && leadsData && leadsData.length > 0) {
+        const lead = leadsData[0];
+        const paid = lead.status === 'pagou';
+        setIsPaid(paid);
 
-          if (paid) {
-            // Busca os pagamentos aprovados por meio da Edge Function (bypass de RLS)
-            const { data: edgeData, error: edgeError } = await supabase.functions.invoke('manage-credits', {
-              body: { leadId: lead.id, action: 'get' }
+        if (paid) {
+          const { data: edgeData, error: edgeError } = await supabase.functions.invoke('manage-credits', {
+            body: { leadId: lead.id, action: 'get' }
+          });
+
+          if (!edgeError && edgeData) {
+            const paymentsData = edgeData.payments || [];
+            const successStatuses = ['paid', 'saquepago', 'approved', 'success', 'pago'];
+            
+            const creditPayments = paymentsData.filter((p: any) => {
+              const isSuccess = successStatuses.includes(String(p.status).toLowerCase());
+              const amt = Number(p.payload?.amount) || 0;
+              const itemsStr = Array.isArray(p.payload?.items) ? p.payload.items.join(' ').toLowerCase() : '';
+              
+              const isCreditValue = Math.abs(amt - 49.5) < 0.1 || Math.abs(amt - 79.5) < 0.1 || Math.abs(amt - 149) < 0.1;
+              const isCreditItem = itemsStr.includes('recarga') || itemsStr.includes('crédito') || itemsStr.includes('ilimitado');
+              
+              return isSuccess && (isCreditValue || isCreditItem);
             });
 
-            if (!edgeError && edgeData) {
-              const paymentsData = edgeData.payments || [];
-              const successStatuses = ['paid', 'saquepago', 'approved', 'success', 'pago'];
-              const hasValidCreditPayment = paymentsData.some((p: any) => {
-                const isSuccess = successStatuses.includes(String(p.status).toLowerCase());
-                const payAmt = Number(p.payload?.amount) || 0;
-                return isSuccess && (payAmt === 49.50 || payAmt === 79.50 || payAmt === 149.00);
-              });
-
-              setHasCredits(!!hasValidCreditPayment);
-            } else {
-              setHasCredits(false);
-            }
+            setHasCredits(creditPayments.length > 0);
           } else {
             setHasCredits(false);
           }
         } else {
-          setIsPaid(false);
           setHasCredits(false);
         }
-      } catch (err) {
+      } else {
         setIsPaid(false);
         setHasCredits(false);
       }
-    };
+    } catch (err) {
+      setIsPaid(false);
+      setHasCredits(false);
+    }
+  }, []);
 
+  useEffect(() => {
     checkPaymentStatus();
 
-    const interval = setInterval(() => {
+    // Checa a cada 5 segundos para atualização em tempo real
+    const statusInterval = setInterval(checkPaymentStatus, 5000);
+
+    const pingInterval = setInterval(() => {
       setServers(prev => prev.map(s => ({
         ...s,
         ping: Math.floor(Math.random() * (70 - 10 + 1)) + 10
       })));
       setOnlineUsers(prev => prev + (Math.random() > 0.5 ? 1 : -1));
     }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+
+    return () => {
+      clearInterval(statusInterval);
+      clearInterval(pingInterval);
+    };
+  }, [checkPaymentStatus]);
 
   return (
     <div className="min-h-screen bg-transparent text-gray-300 font-sans selection:bg-purple-500/30 overflow-x-hidden">
@@ -148,12 +160,11 @@ const ServersPage: React.FC = () => {
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <AppHeader />
 
-        {/* BANNER DINÂMICO DE CONFIRMAÇÃO DE PAGAMENTO */}
         {isPaid !== null && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`w-full max-w-4xl mx-auto mb-10 p-5 rounded-2xl border-2 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-xl shadow-2xl ${
+            className={`w-full max-w-4xl mx-auto mb-10 p-5 rounded-2xl border-2 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-xl shadow-2xl transition-colors duration-500 ${
               hasCredits 
                 ? 'bg-green-500/10 border-green-500/30 text-green-400' 
                 : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
@@ -181,7 +192,7 @@ const ServersPage: React.FC = () => {
             {!hasCredits && (
               <button 
                 onClick={() => navigate('/credits')}
-                className="bg-yellow-500 hover:bg-yellow-600 text-black font-black text-xs uppercase px-6 py-3 rounded-xl transition-all shadow-lg active:scale-95"
+                className="bg-yellow-500 hover:bg-yellow-600 text-black font-black text-xs uppercase px-6 py-3 rounded-xl transition-all shadow-lg active:scale-95 whitespace-nowrap"
               >
                 Comprar Créditos
               </button>

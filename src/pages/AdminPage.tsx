@@ -5,7 +5,7 @@ import {
   Users, DollarSign, Search, ShieldCheck, 
   CreditCard, LogOut, RotateCcw,
   Trash2, MessageCircle, Key, BarChart3, 
-  Map as MapIcon, QrCode, Download, X, FileText, Check, Save, ShieldAlert, ShieldOff, Coins
+  Map as MapIcon, QrCode, Download, X, FileText, Check, Save, ShieldAlert, ShieldOff, Coins, ShoppingBag
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, 
@@ -34,9 +34,19 @@ interface Lead {
   updated_at: string;
 }
 
+interface Payment {
+  id: string;
+  transaction_id: string;
+  lead_id: string;
+  status: string;
+  payload: any;
+  created_at: string;
+}
+
 const AdminPage: React.FC = () => {
   const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'leads' | 'analytics' | 'sales'>('leads');
   const [searchTerm, setSearchTerm] = useState('');
@@ -61,30 +71,28 @@ const AdminPage: React.FC = () => {
   // Estados para Créditos
   const [creditAmount, setCreditAmount] = useState<number>(49.50);
 
-  const fetchLeads = async (silent = false) => {
+  const fetchLeadsAndPayments = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('leads')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.functions.invoke('get-admin-data');
 
       if (error) throw error;
-      setLeads(data || []);
+      setLeads(data?.leads || []);
+      setPayments(data?.payments || []);
       if (silent) toast.success('Dados sincronizados!');
     } catch (error: any) {
-      toast.error('Erro de conexão com o banco');
+      toast.error('Erro ao buscar dados do painel.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchLeads();
+    fetchLeadsAndPayments();
     const channel = supabase
       .channel('admin-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
-        fetchLeads(true);
+        fetchLeadsAndPayments(true);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -100,7 +108,7 @@ const AdminPage: React.FC = () => {
 
       if (error) throw error;
       toast.success("Lead excluído com sucesso.");
-      fetchLeads(true);
+      fetchLeadsAndPayments(true);
     } catch (err) {
       toast.error("Erro ao excluir lead.");
     }
@@ -173,6 +181,57 @@ const AdminPage: React.FC = () => {
       return matchesSearch && matchesStatus;
     });
   }, [leads, searchTerm, statusFilter]);
+
+  // Função inteligente para analisar itens comprados com base no valor e payload
+  const getPurchasedItems = (lead: Lead) => {
+    const successStatuses = ['paid', 'saquepago', 'approved', 'success', 'pago'];
+    const leadPayments = payments.filter(p => p.lead_id === lead.id && successStatuses.includes(String(p.status).toLowerCase()));
+    
+    if (leadPayments.length === 0 && lead.status !== 'pagou') return [];
+
+    const items: string[] = [];
+    
+    // Se o status for pago, assume pelo menos o Relatório Base caso não haja registros de pagamentos detalhados
+    let hasBaseReport = lead.status === 'pagou';
+    
+    leadPayments.forEach(payment => {
+      const amount = Number(payment.payload?.amount) || 0;
+      
+      if (amount === 49.50) {
+        items.push("Recarga: 10 Créditos 🪙");
+      } else if (amount === 79.50) {
+        items.push("Recarga: 30 Créditos 🪙");
+      } else if (amount === 149.00) {
+        items.push("Recarga: Créditos Ilimitados 🪙");
+      } else {
+        hasBaseReport = true;
+        // Se pagou o base, deduz os bumps pela diferença de preço (Base = 37.90)
+        let remaining = Math.round((amount - 37.90) * 100) / 100;
+        
+        if (remaining > 0) {
+          const bumps = [
+            { title: 'Espião Social 👥', price: 19.90 },
+            { title: 'Recuperador Mensagens 💬', price: 15.90 },
+            { title: 'Rastreamento 24h 📍', price: 15.90 },
+            { title: 'Vitalício PRO ⚡', price: 9.90 },
+          ];
+          
+          bumps.forEach(bump => {
+            if (remaining >= bump.price - 0.05) {
+              items.push(bump.title);
+              remaining = Math.round((remaining - bump.price) * 100) / 100;
+            }
+          });
+        }
+      }
+    });
+
+    if (hasBaseReport && !items.some(i => i.startsWith("Relatório SpyGram"))) {
+      items.unshift("Relatório SpyGram 🕵️");
+    }
+
+    return items;
+  };
 
   const handleGeneratePix = async () => {
     if (!selectedLead) return;
@@ -255,7 +314,7 @@ const AdminPage: React.FC = () => {
 
       toast.success(liberate ? "Acesso Liberado e Senha Definida!" : "Dados de Acesso Atualizados!");
       setShowAccessModal(false);
-      fetchLeads(true);
+      fetchLeadsAndPayments(true);
     } catch (err: any) {
       toast.error("Erro ao salvar: " + err.message);
     } finally {
@@ -280,7 +339,7 @@ const AdminPage: React.FC = () => {
       
       toast.success(isBanned ? "Acesso desbloqueado!" : "Acesso bloqueado!");
       setShowAccessModal(false);
-      fetchLeads(true);
+      fetchLeadsAndPayments(true);
     } catch (err: any) {
       toast.error("Erro ao alterar status de bloqueio.");
     } finally {
@@ -292,8 +351,7 @@ const AdminPage: React.FC = () => {
     if (!selectedLead) return;
     setAccessLoading(true);
     try {
-      // Injeta os créditos chamando a nova Edge Function (Bypass de RLS)
-      const { data, error } = await supabase.functions.invoke('manage-credits', {
+      const { error } = await supabase.functions.invoke('manage-credits', {
         body: { 
           leadId: selectedLead.id,
           action: 'add',
@@ -305,7 +363,7 @@ const AdminPage: React.FC = () => {
 
       toast.success("Créditos injetados com sucesso!");
       setShowCreditsModal(false);
-      fetchLeads(true);
+      fetchLeadsAndPayments(true);
     } catch (err: any) {
       toast.error("Erro ao processar: " + err.message);
     } finally {
@@ -319,8 +377,7 @@ const AdminPage: React.FC = () => {
     
     setAccessLoading(true);
     try {
-      // Remove os créditos chamando a nova Edge Function (Bypass de RLS)
-      const { data, error } = await supabase.functions.invoke('manage-credits', {
+      const { error } = await supabase.functions.invoke('manage-credits', {
         body: { 
           leadId: selectedLead.id,
           action: 'remove'
@@ -331,7 +388,7 @@ const AdminPage: React.FC = () => {
 
       toast.success("Todos os créditos foram removidos!");
       setShowCreditsModal(false);
-      fetchLeads(true);
+      fetchLeadsAndPayments(true);
     } catch (err: any) {
       toast.error("Erro ao processar: " + err.message);
     } finally {
@@ -408,7 +465,7 @@ const AdminPage: React.FC = () => {
                 <option value="pagou">Pago</option>
                 <option value="banido">Banido</option>
               </select>
-              <button onClick={() => fetchLeads(true)} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 text-gray-400 transition-colors">
+              <button onClick={() => fetchLeadsAndPayments(true)} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 text-gray-400 transition-colors">
                 <RotateCcw size={20} />
               </button>
             </div>
@@ -420,60 +477,77 @@ const AdminPage: React.FC = () => {
                     <th className="pb-4 px-4">Alvo</th>
                     <th className="pb-4 px-4">Informações do Lead</th>
                     <th className="pb-4 px-4">Localização</th>
+                    <th className="pb-4 px-4">Produtos Comprados</th>
                     <th className="pb-4 px-4">Status</th>
                     <th className="pb-4 px-4 text-center">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.03]">
                   {filteredLeads.length > 0 ? (
-                    filteredLeads.map((lead) => (
-                      <tr key={lead.id} className="group hover:bg-white/[0.02] transition-colors">
-                        <td className="py-5 px-4">
-                          <div className="flex items-center gap-4">
-                            <img src={lead.profile_pic || '/perfil.jpg'} className="w-12 h-12 rounded-2xl object-cover border border-white/10 shadow-lg" />
-                            <div>
-                              <p className="text-sm font-black text-white tracking-tight">@{lead.username_searched}</p>
-                              <p className="text-[10px] text-gray-500 font-bold">
-                                {new Date(lead.created_at).toLocaleDateString('pt-BR')} - {new Date(lead.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                              </p>
+                    filteredLeads.map((lead) => {
+                      const purchasedItems = getPurchasedItems(lead);
+                      return (
+                        <tr key={lead.id} className="group hover:bg-white/[0.02] transition-colors">
+                          <td className="py-5 px-4">
+                            <div className="flex items-center gap-4">
+                              <img src={lead.profile_pic || '/perfil.jpg'} className="w-12 h-12 rounded-2xl object-cover border border-white/10 shadow-lg" />
+                              <div>
+                                <p className="text-sm font-black text-white tracking-tight">@{lead.username_searched}</p>
+                                <p className="text-[10px] text-gray-500 font-bold">
+                                  {new Date(lead.created_at).toLocaleDateString('pt-BR')} - {new Date(lead.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-5 px-4">
-                          <p className="text-xs font-black text-gray-300 uppercase truncate max-w-[150px]">{lead.full_name || 'Anônimo'}</p>
-                          <p className="text-[11px] text-gray-500 lowercase opacity-60">{lead.email || '---'}</p>
-                          <div className="flex gap-2 mt-1">
-                              <p className="text-[10px] text-gray-400 font-bold">{lead.phone || 'S/ Tel'}</p>
-                              <p className="text-[10px] text-gray-400 font-bold">| {lead.document || 'S/ CPF'}</p>
-                          </div>
-                        </td>
-                        <td className="py-5 px-4">
-                          <p className="text-xs font-bold text-gray-300">{lead.city || '???'}</p>
-                          <p className="text-[10px] text-gray-500 uppercase font-black">{lead.state || '???'}</p>
-                        </td>
-                        <td className="py-5 px-4">
-                          <span className={`text-[9px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest border ${
-                            lead.status === 'pagou' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                            lead.status === 'banido' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                            lead.status === 'gerou_pix' ? 'bg-pink-500/10 text-pink-400 border-pink-500/20' : 'bg-gray-800/50 text-gray-500 border-white/5'
-                          }`}>
-                            {lead.status}
-                          </span>
-                        </td>
-                        <td className="py-5 px-4">
-                          <div className="flex items-center justify-center gap-3">
-                            <ActionButton onClick={() => handleOpenAccessModal(lead)} icon={Key} color="text-purple-400" title="Gerenciar Acesso" />
-                            <ActionButton onClick={() => { setSelectedLead(lead); setCreditAmount(49.50); setShowCreditsModal(true); }} icon={Coins} color="text-yellow-400" title="Adicionar/Remover Créditos" />
-                            <ActionButton onClick={() => { setSelectedLead(lead); setShowPixModal(true); setGeneratedPix(null); }} icon={QrCode} color="text-yellow-500" title="Gerar PIX" />
-                            <ActionButton onClick={() => window.open(`https://wa.me/55${lead.phone?.replace(/\D/g, '')}`, '_blank')} icon={MessageCircle} color="text-green-500" title="WhatsApp" />
-                            <ActionButton onClick={() => handleDeleteLead(lead.id)} icon={Trash2} color="text-red-500" title="Excluir Lead" />
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="py-5 px-4">
+                            <p className="text-xs font-black text-gray-300 uppercase truncate max-w-[150px]">{lead.full_name || 'Anônimo'}</p>
+                            <p className="text-[11px] text-gray-500 lowercase opacity-60">{lead.email || '---'}</p>
+                            <div className="flex gap-2 mt-1">
+                                <p className="text-[10px] text-gray-400 font-bold">{lead.phone || 'S/ Tel'}</p>
+                                <p className="text-[10px] text-gray-400 font-bold">| {lead.document || 'S/ CPF'}</p>
+                            </div>
+                          </td>
+                          <td className="py-5 px-4">
+                            <p className="text-xs font-bold text-gray-300">{lead.city || '???'}</p>
+                            <p className="text-[10px] text-gray-500 uppercase font-black">{lead.state || '???'}</p>
+                          </td>
+                          <td className="py-5 px-4 max-w-[200px]">
+                            {purchasedItems.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {purchasedItems.map((item, idx) => (
+                                  <span key={idx} className="text-[8px] font-black px-2 py-1 bg-white/5 border border-white/5 rounded-md text-purple-400 uppercase tracking-tight">
+                                    {item}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-gray-600 font-bold italic">Nenhum</span>
+                            )}
+                          </td>
+                          <td className="py-5 px-4">
+                            <span className={`text-[9px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest border ${
+                              lead.status === 'pagou' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                              lead.status === 'banido' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                              lead.status === 'gerou_pix' ? 'bg-pink-500/10 text-pink-400 border-pink-500/20' : 'bg-gray-800/50 text-gray-500 border-white/5'
+                            }`}>
+                              {lead.status}
+                            </span>
+                          </td>
+                          <td className="py-5 px-4">
+                            <div className="flex items-center justify-center gap-3">
+                              <ActionButton onClick={() => handleOpenAccessModal(lead)} icon={Key} color="text-purple-400" title="Gerenciar Acesso" />
+                              <ActionButton onClick={() => { setSelectedLead(lead); setCreditAmount(49.50); setShowCreditsModal(true); }} icon={Coins} color="text-yellow-400" title="Adicionar/Remover Créditos" />
+                              <ActionButton onClick={() => { setSelectedLead(lead); setShowPixModal(true); setGeneratedPix(null); }} icon={QrCode} color="text-yellow-500" title="Gerar PIX" />
+                              <ActionButton onClick={() => window.open(`https://wa.me/55${lead.phone?.replace(/\D/g, '')}`, '_blank')} icon={MessageCircle} color="text-green-500" title="WhatsApp" />
+                              <ActionButton onClick={() => handleDeleteLead(lead.id)} icon={Trash2} color="text-red-500" title="Excluir Lead" />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest text-xs">Nenhum registro encontrado</td>
+                      <td colSpan={6} className="py-20 text-center text-gray-600 font-bold uppercase tracking-widest text-xs">Nenhum registro encontrado</td>
                     </tr>
                   )}
                 </tbody>
@@ -546,9 +620,9 @@ const AdminPage: React.FC = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#0f0f12] border border-white/10 w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl"
+              className="bg-[#0f0f12] border border-white/10 w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
             >
-              <div className="p-8 flex justify-between items-center bg-[#0f0f12] border-b border-white/5">
+              <div className="p-8 flex justify-between items-center bg-[#0f0f12] border-b border-white/5 sticky top-0 z-10">
                 <div>
                   <h3 className="text-xl font-black text-white uppercase tracking-tighter">Gestão de Acesso</h3>
                   <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Painel do Operador</p>
@@ -556,7 +630,7 @@ const AdminPage: React.FC = () => {
                 <button onClick={() => setShowAccessModal(false)} className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><X size={20} /></button>
               </div>
 
-              <div className="p-8 space-y-6">
+              <div className="p-8 space-y-6 overflow-y-auto flex-1 scrollbar-hide">
                 <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl">
                   <img src={selectedLead.profile_pic || '/perfil.jpg'} className="w-14 h-14 rounded-xl object-cover" />
                   <div>
@@ -569,6 +643,24 @@ const AdminPage: React.FC = () => {
                       Status: {selectedLead.status}
                     </span>
                   </div>
+                </div>
+
+                {/* Exibição detalhada de faturas e compras */}
+                <div className="p-5 bg-white/[0.02] border border-white/5 rounded-2xl">
+                  <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <ShoppingBag size={14} className="text-purple-500" /> Histórico de Compras do Cliente
+                  </h4>
+                  {getPurchasedItems(selectedLead).length > 0 ? (
+                    <ul className="space-y-2">
+                      {getPurchasedItems(selectedLead).map((item, i) => (
+                        <li key={i} className="text-xs font-bold text-gray-300 flex items-center gap-2">
+                          <Check size={12} className="text-green-500" /> {item}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-gray-600 italic">Nenhum produto adquirido ainda.</p>
+                  )}
                 </div>
 
                 <div className="space-y-4">

@@ -30,7 +30,7 @@ const CreditsPage: React.FC = () => {
   const [hasCredits, setHasCredits] = useState<boolean>(false);
   const [creditsCount, setCreditsCount] = useState<string | number>('0');
   
-  // Dados do lead logado
+  // Dados do lead logado para reutilização automática (One-Click)
   const [leadDetails, setLeadDetails] = useState<{
     id: string;
     full_name: string;
@@ -39,7 +39,7 @@ const CreditsPage: React.FC = () => {
     phone: string;
   } | null>(null);
 
-  // Estados para o Checkout PIX
+  // Estados para o Checkout PIX (Pacotes de Créditos Comuns)
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [isGeneratingPix, setIsGeneratingPix] = useState(false);
@@ -89,7 +89,7 @@ const CreditsPage: React.FC = () => {
   ];
 
   const checkPayment = useCallback(async () => {
-    const email = sessionStorage.getItem('logged_in_email');
+    const email = localStorage.getItem('logged_in_email') || sessionStorage.getItem('logged_in_email');
     if (!email) return;
     try {
       const { data: leadsData } = await supabase
@@ -104,6 +104,7 @@ const CreditsPage: React.FC = () => {
         const paid = lead.status === 'pagou';
         setIsPaidUser(paid);
         
+        // Salva os dados do lead logado para uso automático (One-Click Buy)
         setLeadDetails({
           id: lead.id,
           full_name: lead.full_name || '',
@@ -264,6 +265,7 @@ const CreditsPage: React.FC = () => {
     }
   };
 
+  // ONE-CLICK BUY: Função para gerar PIX instantâneo (Firewall e Upsell) usando os dados do Lead Logado
   const handleBypassPayment = async (type: 'firewall' | 'upsell') => {
     if (!leadDetails) {
       toast.error("Sua sessão inspirou. Faça login novamente para prosseguir.");
@@ -279,6 +281,7 @@ const CreditsPage: React.FC = () => {
       : ['Firewall Bypass SSL 🛡️'];
     const status = type === 'upsell' ? 'gerou_pix_upsell_dados' : 'gerou_pix_firewall';
 
+    // Fallbacks simples caso faltem dados no banco de dados para evitar erro na API do Banco
     const safeDocument = leadDetails.document || '00000000000';
     const safePhone = leadDetails.phone || '11999999999';
     const safeName = leadDetails.full_name || leadDetails.email || 'Cliente SpyGram';
@@ -424,7 +427,7 @@ const CreditsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden selection:bg-blue-500/30">
       
-      {/* Modal de Checkout */}
+      {/* Modal de Checkout (Para Pacotes de Crédito Comuns) */}
       <AnimatePresence>
         {showCheckoutModal && selectedPackage && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
@@ -443,7 +446,7 @@ const CreditsPage: React.FC = () => {
                   <button onClick={() => setShowCheckoutModal(false)} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><X size={20} /></button>
                 </div>
 
-                <form onSubmit={handleGeneratePix} className="space-y-4">
+                <form onSubmit={(e) => handleGeneratePix(e)} className="space-y-4">
                   <div className="relative group">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     <input 
@@ -775,7 +778,7 @@ const CreditsPage: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* PACOTES DE CRÉDITO */}
+        {/* PACOTES DE CRÉDITO (Mostra se não estiver no terminal de invasão ativa) */}
         {stage !== 'searching' && stage !== 'firewall_lock' && stage !== 'upsell_data_recovery' && (
           <div className="w-full mt-16 space-y-12">
             <div className="flex flex-col items-center justify-center text-center px-4">

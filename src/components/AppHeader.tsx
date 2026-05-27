@@ -15,11 +15,12 @@ const AppHeader: React.FC = () => {
   const handleLogout = () => {
     logout();
     sessionStorage.removeItem('logged_in_email');
+    localStorage.removeItem('logged_in_email');
     navigate('/login');
   };
 
   const fetchLeadCredits = useCallback(async () => {
-    const email = sessionStorage.getItem('logged_in_email');
+    const email = localStorage.getItem('logged_in_email') || sessionStorage.getItem('logged_in_email');
     if (!email) return;
 
     try {
@@ -51,7 +52,6 @@ const AppHeader: React.FC = () => {
             const amt = Number(p.payload?.amount) || 0;
             const itemsStr = Array.isArray(p.payload?.items) ? p.payload.items.join(' ').toLowerCase() : '';
             
-            // Verificação robusta: aceita o valor aproximado (para erros de float JS) ou a presença da tag no payload
             const isCreditValue = Math.abs(amt - 49.5) < 0.1 || Math.abs(amt - 79.5) < 0.1 || Math.abs(amt - 149) < 0.1;
             const isCreditItem = itemsStr.includes('recarga') || itemsStr.includes('crédito') || itemsStr.includes('ilimitado');
             
@@ -74,7 +74,6 @@ const AppHeader: React.FC = () => {
               } else if (Math.abs(amt - 49.5) < 0.1 || itemsStr.includes('lite') || itemsStr.includes('10')) {
                 totalCredits += 10;
               } else {
-                // Fallback de segurança: se o admin injetou mas não bateu exatamente
                 totalCredits += 10;
               }
             });

@@ -76,7 +76,7 @@ const ServersPage: React.FC = () => {
   ]);
 
   const checkPaymentStatus = useCallback(async () => {
-    const email = sessionStorage.getItem('logged_in_email');
+    const email = localStorage.getItem('logged_in_email') || sessionStorage.getItem('logged_in_email');
     if (!email) return;
 
     try {

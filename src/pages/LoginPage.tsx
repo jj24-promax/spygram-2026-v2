@@ -54,8 +54,10 @@ const LoginPage: React.FC = () => {
         return;
       }
 
-      // Salva o e-mail do membro logado para verificação de créditos
-      sessionStorage.setItem('logged_in_email', email.trim().toLowerCase());
+      const cleanEmail = email.trim().toLowerCase();
+      // Salva em ambos para garantir total persistência contra F5 e fechamento de aba
+      sessionStorage.setItem('logged_in_email', cleanEmail);
+      localStorage.setItem('logged_in_email', cleanEmail);
 
       login('user');
       toast.success('Acesso liberado!');

@@ -1,12 +1,22 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Coins } from 'lucide-react';
+import { Coins, LogOut } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const AppHeader: React.FC = () => {
   const [credits, setCredits] = useState<string | number>('0');
   const [username, setUsername] = useState<string>('OPERADOR-403');
   const [isPaid, setIsPaid] = useState<boolean>(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    sessionStorage.removeItem('logged_in_email');
+    navigate('/login');
+  };
 
   const fetchLeadCredits = useCallback(async () => {
     const email = sessionStorage.getItem('logged_in_email');
@@ -129,7 +139,7 @@ const AppHeader: React.FC = () => {
 
         <div className="w-px h-6 sm:h-8 bg-white/10 mx-0.5"></div>
 
-        <div className="flex items-center gap-2 sm:gap-3 pl-1 sm:pl-2 pr-3 sm:pr-4 py-1 cursor-pointer hover:bg-white/5 rounded-full transition-colors">
+        <div className="flex items-center gap-2 sm:gap-3 pl-1 sm:pl-2 pr-2 sm:pr-2 py-1">
           <div className="relative">
             <div className="absolute -inset-0.5 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full animate-pulse opacity-50"></div>
             <div className="relative w-7 sm:w-9 h-7 sm:h-9 rounded-full bg-black border border-white/10 flex items-center justify-center overflow-hidden">
@@ -138,7 +148,7 @@ const AppHeader: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex flex-col">
+          <div className="flex flex-col mr-1">
             <span className="text-[10px] sm:text-xs font-black text-white tracking-tight">{username}</span>
             <div className="flex items-center gap-1">
               <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></div>
@@ -146,6 +156,18 @@ const AppHeader: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Divisor do Botão de Sair */}
+        <div className="w-px h-6 sm:h-8 bg-white/10 mx-0.5"></div>
+
+        {/* Botão de Logout */}
+        <button
+          onClick={handleLogout}
+          title="Sair da conta"
+          className="p-2 sm:p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-full transition-colors mr-1"
+        >
+          <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
       </motion.div>
     </header>
   );

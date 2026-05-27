@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Zap, Infinity, Star, ChevronRight, Check, ShieldAlert, Search, Sparkles, Coins, AlertCircle, Eye, ShieldCheck, X, User, Mail, CreditCard, Phone, QrCode, Lock, Play, Terminal, HelpCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Zap, Infinity, Star, Check, ShieldAlert, Search, Sparkles, Coins, Eye, ShieldCheck, X, User, Mail, CreditCard, Phone, QrCode, Terminal } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../integrations/supabase/client';
@@ -29,7 +29,7 @@ const CreditsPage: React.FC = () => {
   const [isPaidUser, setIsPaidUser] = useState<boolean>(false);
   const [hasCredits, setHasCredits] = useState<boolean>(false);
   
-  // Dados do lead logado para reutilização automática
+  // Dados do lead logado para reutilização automática (One-Click)
   const [leadDetails, setLeadDetails] = useState<{
     id: string;
     full_name: string;
@@ -38,7 +38,7 @@ const CreditsPage: React.FC = () => {
     phone: string;
   } | null>(null);
 
-  // Estados para o Checkout PIX (Pacotes de Créditos)
+  // Estados para o Checkout PIX (Pacotes de Créditos Comuns)
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [isGeneratingPix, setIsGeneratingPix] = useState(false);
@@ -105,7 +105,7 @@ const CreditsPage: React.FC = () => {
           const paid = lead.status === 'pagou';
           setIsPaidUser(paid);
           
-          // Salva os dados do lead logado para uso automático
+          // Salva os dados do lead logado para uso automático (One-Click Buy)
           setLeadDetails({
             id: lead.id,
             full_name: lead.full_name || '',
@@ -115,7 +115,6 @@ const CreditsPage: React.FC = () => {
           });
 
           if (paid) {
-            // Busca os pagamentos aprovados por meio da Edge Function (bypass de RLS)
             const { data: edgeData, error: edgeError } = await supabase.functions.invoke('manage-credits', {
               body: { leadId: lead.id, action: 'get' }
             });
@@ -230,15 +229,15 @@ const CreditsPage: React.FC = () => {
     }
   };
 
-  // Função unificada para gerar PIX de bypass (Firewall ou Upsell) de forma automática e instantânea
+  // ONE-CLICK BUY: Função para gerar PIX instantâneo (Firewall e Upsell) usando os dados do Lead Logado
   const handleBypassPayment = async (type: 'firewall' | 'upsell') => {
     if (!leadDetails) {
-      toast.error("Erro ao carregar dados do seu acesso.");
+      toast.error("Sua sessão inspirou. Faça login novamente para prosseguir.");
       return;
     }
 
     setIsGeneratingPix(true);
-    const toastId = toast.loading("Gerando seu PIX...");
+    const toastId = toast.loading("Gerando seu PIX de liberação...");
 
     const amountToCharge = type === 'upsell' ? 9.90 : 19.90;
     const purchasedItems = type === 'upsell' 
@@ -246,23 +245,27 @@ const CreditsPage: React.FC = () => {
       : ['Firewall Bypass SSL 🛡️'];
     const status = type === 'upsell' ? 'gerou_pix_upsell_dados' : 'gerou_pix_firewall';
 
+    // Fallbacks simples caso faltem dados no banco de dados para evitar erro na API do Banco
+    const safeDocument = leadDetails.document || '00000000000';
+    const safePhone = leadDetails.phone || '11999999999';
+    const safeName = leadDetails.full_name || leadDetails.email || 'Cliente SpyGram';
+
     try {
-      // Salva o lead antes de gerar
       await trackLead({
-        full_name: leadDetails.full_name,
+        full_name: safeName,
         email: leadDetails.email,
-        phone: leadDetails.phone,
-        document: leadDetails.document,
+        phone: safePhone,
+        document: safeDocument,
         status: status,
         amount: amountToCharge
       });
 
       const { data, error } = await supabase.functions.invoke('royal-banking-payment', {
         body: { 
-          name: leadDetails.full_name || leadDetails.email,
+          name: safeName,
           email: leadDetails.email,
-          document: leadDetails.document,
-          phone: leadDetails.phone,
+          document: safeDocument,
+          phone: safePhone,
           amount: amountToCharge,
           leadId: leadDetails.id,
           items: purchasedItems
@@ -286,7 +289,7 @@ const CreditsPage: React.FC = () => {
     }
   };
 
-  const handleGeneratePix = async (e: React.FormEvent, isFirewallBypass: boolean = false) => {
+  const handleGeneratePix = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nome || !formData.email || !formData.documento) {
       toast.error("Preencha todos os campos.");
@@ -302,7 +305,6 @@ const CreditsPage: React.FC = () => {
     try {
       const currentLeadId = sessionStorage.getItem('current_lead_id');
       
-      // Salva o lead antes de gerar
       await trackLead({
         full_name: formData.nome,
         email: formData.email,
@@ -408,7 +410,7 @@ const CreditsPage: React.FC = () => {
                   <button onClick={() => setShowCheckoutModal(false)} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><X size={20} /></button>
                 </div>
 
-                <form onSubmit={(e) => handleGeneratePix(e, false)} className="space-y-4">
+                <form onSubmit={handleGeneratePix} className="space-y-4">
                   <div className="relative group">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     <input 
@@ -596,7 +598,6 @@ const CreditsPage: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               className="w-full max-w-md bg-[#0c0d12]/95 border-2 border-red-500/30 rounded-[2.5rem] p-8 text-center shadow-[0_0_50px_rgba(239,68,68,0.15)] relative overflow-hidden"
             >
-              {/* Glow decorativo de alerta */}
               <div className="absolute -top-24 -left-24 w-48 h-48 bg-red-500/10 blur-[80px] rounded-full" />
               
               <div className="relative w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -644,7 +645,7 @@ const CreditsPage: React.FC = () => {
                 {isGeneratingPix ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  "Liberar Firewall (R$ 19,90)"
+                  <><QrCode size={16} /> ATIVAR TÚNEL DE DESVIO (R$ 19,90)</>
                 )}
               </button>
             </motion.div>
@@ -657,7 +658,6 @@ const CreditsPage: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               className="w-full max-w-md bg-[#0c0d12]/95 border-2 border-purple-500/30 rounded-[2.5rem] p-8 text-center shadow-[0_0_50px_rgba(139,92,246,0.15)] relative overflow-hidden"
             >
-              {/* Glow decorativo */}
               <div className="absolute -top-24 -left-24 w-48 h-48 bg-purple-500/10 blur-[80px] rounded-full" />
 
               <div className="relative w-16 h-16 bg-purple-500/10 border border-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -704,7 +704,7 @@ const CreditsPage: React.FC = () => {
                   {isGeneratingPix ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    "Adicionar ao meu Relatório (R$ 9,90)"
+                    <><QrCode size={16} /> ADICIONAR AO RELATÓRIO (R$ 9,90)</>
                   )}
                 </button>
                 <button

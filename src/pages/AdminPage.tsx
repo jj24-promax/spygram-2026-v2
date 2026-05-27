@@ -568,13 +568,411 @@ const AdminPage: React.FC = () => {
           </section>
         )}
 
-        {/* Mantém as outras abas intocadas */}
+        {activeTab === 'analytics' && (
+          <section className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-10 backdrop-blur-3xl shadow-2xl">
+            <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-10 flex items-center gap-4">
+              <MapIcon className="text-purple-500" /> Distribuição Geográfica
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {metrics.geoData.length > 0 ? metrics.geoData.map((item, idx) => (
+                <div key={idx} className="bg-black/40 border border-white/10 rounded-[2rem] p-6 hover:border-purple-500/30 transition-all shadow-xl">
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-4">
+                      <span className="text-3xl font-black text-white">{item.uf}</span>
+                      <span className="text-[10px] font-black text-purple-400 bg-purple-500/10 px-3 py-1 rounded-full uppercase">{item.percent}%</span>
+                    </div>
+                    <span className="text-2xl font-black text-white">{item.count}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-6">
+                    <div className="h-full bg-gradient-to-r from-purple-600 to-pink-500" style={{ width: `${item.percent}%` }} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                     <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Principais Cidades</span>
+                     <p className="text-[10px] text-gray-400 font-bold uppercase leading-relaxed">{item.mainCities}</p>
+                  </div>
+                </div>
+              )) : <div className="col-span-full py-10 text-center text-gray-600 font-bold uppercase">Aguardando novos leads...</div>}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'sales' && (
+          <section className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-10 backdrop-blur-3xl shadow-2xl">
+            <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-10 flex items-center gap-4">
+              <BarChart3 className="text-green-500" /> Performance Operacional
+            </h2>
+            <div className="h-[450px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={metrics.chartData}>
+                  <defs>
+                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
+                  <XAxis dataKey="date" stroke="#525252" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#525252" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `R$${val}`} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}
+                    itemStyle={{ color: '#a78bfa', fontWeight: 'bold' }}
+                  />
+                  <Area type="monotone" dataKey="amount" stroke="#8b5cf6" strokeWidth={5} fillOpacity={1} fill="url(#colorSales)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+        )}
       </div>
 
-      {/* Mantém modais */}
+      <AnimatePresence>
+        {showAccessModal && selectedLead && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#0f0f12] border border-white/10 w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 flex justify-between items-center bg-[#0f0f12] border-b border-white/5 sticky top-0 z-10">
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase tracking-tighter">Gestão de Acesso</h3>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Painel do Operador</p>
+                </div>
+                <button onClick={() => setShowAccessModal(false)} className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><X size={20} /></button>
+              </div>
+
+              <div className="p-8 space-y-6 overflow-y-auto flex-1 scrollbar-hide">
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl">
+                  <img src={selectedLead.profile_pic || '/perfil.jpg'} className="w-14 h-14 rounded-xl object-cover" />
+                  <div>
+                    <p className="text-white font-black text-sm tracking-tight">@{selectedLead.username_searched}</p>
+                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                        selectedLead.status === 'pagou' ? 'text-green-500 border-green-500/20 bg-green-500/5' : 
+                        selectedLead.status === 'banido' ? 'text-red-500 border-red-500/20 bg-red-500/5' : 
+                        'text-gray-500 border-white/10'
+                    }`}>
+                      Status: {selectedLead.status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Exibição detalhada de faturas e compras */}
+                <div className="p-5 bg-white/[0.02] border border-white/5 rounded-2xl">
+                  <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <ShoppingBag size={14} className="text-purple-500" /> Histórico de Compras do Cliente
+                  </h4>
+                  {getPurchasedItems(selectedLead).length > 0 ? (
+                    <ul className="space-y-2">
+                      {getPurchasedItems(selectedLead).map((item, i) => (
+                        <li key={i} className="text-xs font-bold text-gray-300 flex items-center gap-2">
+                          <Check size={12} className="text-green-500" /> {item}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-gray-600 italic">Nenhum produto adquirido ainda.</p>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">E-mail do Lead</label>
+                    <div className="relative">
+                      <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                      <input 
+                        type="email" 
+                        value={accessEmail}
+                        onChange={(e) => setAccessEmail(e.target.value)}
+                        className="w-full bg-black border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-xs font-bold text-white outline-none focus:border-purple-500 transition-all"
+                        placeholder="E-mail de acesso"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">Senha de Acesso</label>
+                    <div className="relative">
+                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                      <input 
+                        type="text" 
+                        value={accessPassword}
+                        onChange={(e) => setAccessPassword(e.target.value)}
+                        className="w-full bg-black border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-xs font-bold text-white outline-none focus:border-purple-500 transition-all"
+                        placeholder="Nova senha"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <button 
+                        onClick={() => handleSaveAccess(false)}
+                        disabled={accessLoading}
+                        className="bg-white/5 border border-white/10 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-white/10 transition-all text-[10px] uppercase tracking-widest"
+                      >
+                        <Save size={14} /> Apenas Salvar
+                      </button>
+                      <button 
+                        onClick={() => handleSaveAccess(true)}
+                        disabled={accessLoading || selectedLead.status === 'pagou'}
+                        className={`font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all text-[10px] uppercase tracking-widest shadow-lg
+                                   ${selectedLead.status === 'pagou' ? 'bg-green-500/10 text-green-500/50 border border-green-500/10 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-500 shadow-green-600/20'}`}
+                      >
+                        <Check size={14} /> Liberar Acesso
+                      </button>
+                    </div>
+
+                    <button 
+                        onClick={handleToggleBlock}
+                        disabled={accessLoading}
+                        className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border
+                                   ${selectedLead.status === 'banido' 
+                                      ? 'bg-blue-600/10 border-blue-500/20 text-blue-500 hover:bg-blue-600/20' 
+                                      : 'bg-red-600/10 border-red-500/20 text-red-500 hover:bg-red-600/20'}`}
+                    >
+                        {selectedLead.status === 'banido' ? <><ShieldOff size={14} /> Desbloquear Acesso</> : <><ShieldAlert size={14} /> Bloquear Acesso</>}
+                    </button>
+                </div>
+                
+                {selectedLead.status === 'pagou' && (
+                  <p className="text-center text-[9px] text-green-500 font-bold uppercase tracking-widest animate-pulse">Este lead já possui acesso vitalício ativo.</p>
+                )}
+                {selectedLead.status === 'banido' && (
+                  <p className="text-center text-[9px] text-red-500 font-bold uppercase tracking-widest">Este acesso está bloqueado manualmente pelo operador.</p>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showCreditsModal && selectedLead && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#0f0f12] border border-white/10 w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl"
+            >
+              <div className="p-8 flex justify-between items-center bg-[#0f0f12] border-b border-white/5">
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase tracking-tighter">Gerenciar Créditos</h3>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Injetar ou Remover Créditos</p>
+                </div>
+                <button onClick={() => setShowCreditsModal(false)} className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><X size={20} /></button>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl">
+                  <img src={selectedLead.profile_pic || '/perfil.jpg'} className="w-14 h-14 rounded-xl object-cover" />
+                  <div>
+                    <p className="text-white font-black text-sm tracking-tight">@{selectedLead.username_searched}</p>
+                    <p className="text-xs text-gray-500 truncate max-w-[200px]">{selectedLead.email}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 block">Selecione o Pacote de Créditos para Adicionar</label>
+                  
+                  <div className="space-y-3">
+                    <button 
+                      type="button"
+                      onClick={() => setCreditAmount(49.50)}
+                      className={`w-full p-4 rounded-2xl border text-left flex justify-between items-center transition-all ${
+                        creditAmount === 49.50 ? 'border-yellow-500 bg-yellow-500/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/5'
+                      }`}
+                    >
+                      <div>
+                        <p className="text-xs font-black text-white">10 CRÉDITOS</p>
+                        <p className="text-[10px] text-gray-400">Protocolo Lite</p>
+                      </div>
+                      <span className="text-xs font-black text-yellow-500">R$ 49,50</span>
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => setCreditAmount(79.50)}
+                      className={`w-full p-4 rounded-2xl border text-left flex justify-between items-center transition-all ${
+                        creditAmount === 79.50 ? 'border-yellow-500 bg-yellow-500/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/5'
+                      }`}
+                    >
+                      <div>
+                        <p className="text-xs font-black text-white">30 CRÉDITOS</p>
+                        <p className="text-[10px] text-gray-400">Protocolo Elite</p>
+                      </div>
+                      <span className="text-xs font-black text-yellow-500">R$ 79,50</span>
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => setCreditAmount(149.00)}
+                      className={`w-full p-4 rounded-2xl border text-left flex justify-between items-center transition-all ${
+                        creditAmount === 149.00 ? 'border-yellow-500 bg-yellow-500/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/5'
+                      }`}
+                    >
+                      <div>
+                        <p className="text-xs font-black text-white">ILIMITADO</p>
+                        <p className="text-[10px] text-gray-400">Dominação Total</p>
+                      </div>
+                      <span className="text-xs font-black text-yellow-500">R$ 149,00</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <button 
+                    onClick={handleRemoveCredits}
+                    disabled={accessLoading}
+                    className="w-full bg-red-600/10 border border-red-500/20 hover:bg-red-600/20 text-red-500 font-black py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all text-xs uppercase tracking-widest"
+                  >
+                    {accessLoading ? (
+                      <div className="w-5 h-5 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+                    ) : (
+                      <><Trash2 size={14} /> Limpar Saldo</>
+                    )}
+                  </button>
+
+                  <button 
+                    onClick={handleAddCredits}
+                    disabled={accessLoading}
+                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-yellow-500/20 active:scale-95 transition-all text-xs uppercase tracking-widest"
+                  >
+                    {accessLoading ? (
+                      <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                    ) : (
+                      <><Check size={14} /> Injetar Saldo</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showPixModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#0f0f12] border border-white/10 w-full max-w-lg rounded-[3rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 pb-4 flex justify-between items-center bg-[#0f0f12] sticky top-0 z-10">
+                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Gerar Invasão Manual</h3>
+                <button onClick={() => setShowPixModal(false)} className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><X size={20} /></button>
+              </div>
+
+              <div className="p-8 pt-0 overflow-y-auto flex-1 scrollbar-hide">
+                {!generatedPix ? (
+                  <div className="space-y-10">
+                    <div className="p-6 bg-white/5 border border-white/10 rounded-3xl flex items-center gap-6">
+                      <img src={selectedLead?.profile_pic || '/perfil.jpg'} className="w-16 h-16 rounded-2xl object-cover border border-white/10" />
+                      <div>
+                        <p className="text-xl font-black text-white tracking-tight">@{selectedLead?.username_searched}</p>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{selectedLead?.email}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-4 block">Definir Valor do Acesso (R$)</label>
+                      <input 
+                        type="number" 
+                        value={pixAmount}
+                        onChange={(e) => setPixAmount(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl py-6 px-10 text-white text-3xl font-black outline-none focus:border-purple-500 transition-all text-center"
+                      />
+                    </div>
+                    <button 
+                      onClick={handleGeneratePix}
+                      disabled={pixLoading}
+                      className="w-full bg-white text-black font-black py-6 rounded-2xl flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95 shadow-xl"
+                    >
+                      {pixLoading ? <div className="w-6 h-6 border-4 border-black/20 border-t-black rounded-full animate-spin" /> : <><QrCode size={20} /> LIBERAR QR CODE</>}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-8 flex flex-col items-center">
+                    <div ref={pixPdfRef} className="bg-white p-10 rounded-[2.5rem] text-black w-full text-center shadow-2xl">
+                      <div className="flex justify-center mb-8">
+                        <img src="/spygram_transparentebranco.png" alt="SpyGram" className="h-8 brightness-0" />
+                      </div>
+                      <div className="mb-8">
+                        <h4 className="text-2xl font-black uppercase tracking-tighter">Protocolo de Pagamento</h4>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">SISTEMA SPYGRAM INTELLIGENCE</p>
+                      </div>
+                      
+                      <div className="bg-gray-50 p-8 rounded-[2rem] inline-block mb-8 border border-gray-100">
+                        {generatedPix.paymentCodeBase64 && (
+                          <img 
+                            src={generatedPix.paymentCodeBase64.startsWith('data:') ? generatedPix.paymentCodeBase64 : `data:image/png;base64,${generatedPix.paymentCodeBase64}`} 
+                            alt="QR Code"
+                            className="w-48 h-48" 
+                          />
+                        )}
+                      </div>
+                      
+                      <div className="text-left space-y-6 border-t border-gray-100 pt-8">
+                        <div className="flex justify-between items-end">
+                           <div>
+                             <p className="text-[9px] font-black text-gray-400 uppercase mb-1">Beneficiário</p>
+                             <p className="text-sm font-black uppercase">SpyGram Intelligence</p>
+                           </div>
+                           <div className="text-right">
+                             <p className="text-[9px] font-black text-gray-400 uppercase mb-1">Valor Final</p>
+                             <p className="text-3xl font-black">R$ {parseFloat(pixAmount).toFixed(2)}</p>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4 w-full">
+                      <button 
+                        onClick={() => { navigator.clipboard.writeText(generatedPix.paymentCode); toast.success('Copiado!'); }}
+                        className="flex-1 bg-white/5 border border-white/10 text-white font-black py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all text-xs"
+                      >
+                        <FileText size={18} /> COPIAR CÓDIGO
+                      </button>
+                      <button 
+                        onClick={downloadPixPdf}
+                        className="flex-1 bg-purple-600 text-white font-black py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-purple-500 shadow-2xl shadow-purple-600/30 transition-all text-xs"
+                      >
+                        <Download size={18} /> SALVAR PDF
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-// Mantém TabButton e ActionButton
+const TabButton = ({ active, onClick, icon: Icon, label }: any) => (
+  <button 
+    onClick={onClick}
+    className={`flex items-center gap-3 px-6 py-3 rounded-2xl transition-all font-black text-[10px] uppercase tracking-[0.2em] border
+      ${active ? 'bg-white text-black border-white shadow-xl' : 'bg-white/5 text-gray-500 border-white/5 hover:bg-white/10'}`}
+  >
+    <Icon size={14} />
+    {label}
+  </button>
+);
+
+const ActionButton = ({ onClick, icon: Icon, color, title }: any) => (
+  <button 
+    onClick={onClick}
+    title={title}
+    className={`p-3 bg-white/5 border border-white/10 rounded-2xl transition-all hover:bg-white/10 shadow-lg ${color}`}
+  >
+    <Icon size={18} />
+  </button>
+);
+
 export default AdminPage;

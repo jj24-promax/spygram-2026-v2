@@ -37,7 +37,7 @@ serve(async (req) => {
         "telefone": cleanPhone,
         "email": email
       },
-      "callbackUrl": 'https://wdxgxbvrealcalipuzay.supabase.co/functions/v1/payment-webhook'
+      "callbackUrl": 'https://vxlxifktgoazfgtilgyo.supabase.co/functions/v1/payment-webhook'
     }
 
     console.log(`[royal-banking-payment] Solicitando pagamento para lead ${leadId}...`);

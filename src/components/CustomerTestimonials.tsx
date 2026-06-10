@@ -50,14 +50,14 @@ const CustomerTestimonials: React.FC = () => {
                   className="w-full h-auto block object-contain" // Mantém proporção e nitidez
                 />
 
-                {/* Camada inteligente de desfoque posicionada sobre o nome nos chats dos prints */}
+                {/* Camada inteligente de desfoque posicionada perfeitamente sobre o nome no cabeçalho */}
                 <div 
                   className="absolute bg-white/5 backdrop-blur-[6px] rounded-md border border-white/5"
                   style={{
-                    top: '9%',       // Altura exata do cabeçalho do WhatsApp
+                    top: '5.5%',      // Ajustado de 9% para 5.5% para alinhar perfeitamente sobre o nome
                     left: '28%',     // Começa logo após a foto de perfil
                     width: '38%',    // Cobre o primeiro e segundo nome
-                    height: '5.5%'   // Cobre exatamente a linha do nome
+                    height: '5%'     // Cobre exatamente a linha do nome
                   }}
                 />
                 

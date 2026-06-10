@@ -14,25 +14,8 @@ const maskUsername = (username: string) => {
 };
 
 const InteractionProfilesCarousel: React.FC<InteractionProfilesCarouselProps> = ({ profiles }) => {
-  // Se não houver perfis, renderiza o cadeado de segurança com bordas tracejadas e efeito de pulsação
-  if (!profiles || profiles.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-10 bg-black/30 border border-dashed border-red-500/20 rounded-3xl gap-4">
-        <div className="relative">
-          <div className="absolute inset-0 bg-red-500/10 rounded-full blur-md animate-pulse" />
-          <div className="relative p-4 bg-red-500/10 border border-red-500/20 rounded-full text-red-500">
-            <Lock size={28} className="drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-          </div>
-        </div>
-        <div className="text-center space-y-1 px-4">
-          <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Nenhum perfil em comum encontrado</p>
-          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-wider leading-relaxed">
-            A API do Instagram não retornou sugestões de conexões diretas para este alvo.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Se não houver perfis, não renderiza nada
+  if (!profiles || profiles.length === 0) return null;
 
   // Duplicamos os perfis exatamente em 2 blocos para um loop de transição de 50% perfeito
   const duplicatedProfiles = [...profiles, ...profiles];

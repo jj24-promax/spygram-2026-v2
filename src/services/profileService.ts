@@ -49,43 +49,38 @@ const simpleFetch = async (campo: string, username: string): Promise<any> => {
 };
 
 /**
- * Garante 100% de perfis do sexo oposto ao do alvo, convertendo perfis inadequados.
+ * Garante 100% de perfis brasileiros e do sexo oposto ao do alvo.
+ * Higieniza completamente os perfis estrangeiros ("gringos") para nomes/usuários em português.
  */
 function prioritizeOppositeGender(suggestions: SuggestedProfile[], targetGender?: 'male' | 'female' | 'unknown'): SuggestedProfile[] {
-    if (!targetGender || targetGender === 'unknown') return suggestions;
-    
-    const oppositeGender = targetGender === 'male' ? 'female' : 'male';
-    const oppositeNames = targetGender === 'male' ? MOCK_FEMALE_NAMES : MOCK_MALE_NAMES;
+    const oppositeGender = targetGender === 'male' ? 'female' : targetGender === 'female' ? 'male' : (Math.random() > 0.5 ? 'female' : 'male');
+    const oppositeNames = oppositeGender === 'female' ? MOCK_FEMALE_NAMES : MOCK_MALE_NAMES;
 
-    // Filtra somente os que já são naturalmente do gênero oposto
-    const opposites = suggestions.filter(p => p.gender === oppositeGender);
-    const result = [...opposites];
-    
-    // Converte os perfis restantes de mesmo sexo em clones perfeitos do sexo oposto
-    suggestions.forEach(p => {
-      if (p.gender !== oppositeGender && result.length < 12) {
-        const randomName = oppositeNames[Math.floor(Math.random() * oppositeNames.length)];
-        const newUsername = randomName.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100);
+    const shuffledNames = shuffleArray([...oppositeNames]);
+    const result: SuggestedProfile[] = [];
+
+    // Sobrescreve/Gera exatamente 12 sugestões de perfil com nomes e handles brasileiros de alto nível
+    for (let i = 0; i < 12; i++) {
+        const name = shuffledNames[i % shuffledNames.length];
+        
+        // Estrutura de handles comuns no Instagram brasileiro (silva_ana, lucas.m, etc)
+        const separators = ['.', '_', ''];
+        const sep = separators[Math.floor(Math.random() * separators.length)];
+        const suffixes = ['', '_sp', '_rj', '12', '21', '_', '01'];
+        const suf = suffixes[Math.floor(Math.random() * suffixes.length)];
+        
+        const username = `${name.toLowerCase()}${sep}${suf}`.replace(/\s+/g, '').substring(0, 15);
+        
+        // Preserva a imagem real para naturalidade, mas higieniza o nome
+        const avatar = (suggestions[i] && suggestions[i].profile_pic_url) ? suggestions[i].profile_pic_url : '/perfil.jpg';
+
         result.push({
-          ...p,
-          username: newUsername,
-          fullName: randomName,
-          gender: oppositeGender
+            username: username,
+            fullName: name,
+            profile_pic_url: avatar,
+            is_private: Math.random() > 0.3,
+            gender: oppositeGender
         });
-      }
-    });
-
-    // Se ainda faltar perfis para preencher a grade, gera novos mockups femininos/masculinos
-    while (result.length < 12) {
-      const randomName = oppositeNames[Math.floor(Math.random() * oppositeNames.length)];
-      const newUsername = randomName.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100);
-      result.push({
-        username: newUsername,
-        fullName: randomName,
-        profile_pic_url: '/perfil.jpg',
-        is_private: Math.random() > 0.3,
-        gender: oppositeGender
-      });
     }
 
     return result;

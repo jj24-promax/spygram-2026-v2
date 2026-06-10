@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'react-serif';
-import { Car, MapPin, Radio, Search, ShieldAlert, CheckCircle2, ShieldCheck, Lock } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Car, MapPin, Radio, Search, CheckCircle2 } from 'lucide-react';
 import ShineButton from './ui/ShineButton';
 
 interface LicensePlateLocationCardProps {
@@ -14,7 +14,6 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
   const [plate, setPlate] = useState('');
   const [stage, setStage] = useState<TrackStage>('idle');
   const [searchLogs, setSearchLogs] = useState<string[]>([]);
-  const [currentStep, setCurrentStep] = useState(0);
 
   const formattedCity = userCity && userCity.toLowerCase() !== 'sua localização' ? userCity : 'São Paulo';
   
@@ -46,7 +45,6 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
 
     setStage('searching');
     setSearchLogs([]);
-    setCurrentStep(0);
   };
 
   useEffect(() => {
@@ -62,7 +60,6 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
       const interval = setInterval(() => {
         if (step < logs.length) {
           setSearchLogs(prev => [...prev, logs[step]]);
-          setCurrentStep(step);
           step++;
         } else {
           clearInterval(interval);

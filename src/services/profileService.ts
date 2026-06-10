@@ -118,30 +118,38 @@ function isBrazilianProfile(fullName: string, username: string): boolean {
 }
 
 /**
- * Filtra e remove completamente perfis estrangeiros (gringos),
- * mantendo apenas perfis brasileiros do sexo oposto.
- * Se houver menos que 12 perfis legítimos restantes, preenche com novos perfis brasileiros reais.
+ * Filtra perfis estrangeiros (gringos) e reorganiza a lista para priorizar perfis brasileiros 
+ * do sexo oposto ao do alvo no topo das sugestões, mas mantendo perfis brasileiros reais do mesmo sexo logo abaixo.
  */
 function prioritizeOppositeGender(suggestions: SuggestedProfile[], targetGender?: 'male' | 'female' | 'unknown'): SuggestedProfile[] {
     const oppositeGender = targetGender === 'male' ? 'female' : targetGender === 'female' ? 'male' : (Math.random() > 0.5 ? 'female' : 'male');
+    const sameGender = targetGender === 'male' ? 'male' : targetGender === 'female' ? 'female' : 'unknown';
+    
     const oppositeNames = oppositeGender === 'female' ? MOCK_FEMALE_NAMES : MOCK_MALE_NAMES;
+    const sameNames = oppositeGender === 'female' ? MOCK_MALE_NAMES : MOCK_FEMALE_NAMES;
 
-    // 1. Filtra a lista original removendo gringos e garantindo que o gênero seja correto
-    const validBrazilianProfiles = suggestions.filter(p => {
-        const isBraz = isBrazilianProfile(p.fullName || '', p.username);
-        const isCorrectGender = p.gender === oppositeGender;
-        return isBraz && isCorrectGender;
-    });
+    // 1. Filtra a lista original mantendo apenas perfis legitimamente brasileiros
+    const validBrazilianProfiles = suggestions.filter(p => isBrazilianProfile(p.fullName || '', p.username));
 
-    const result: SuggestedProfile[] = [...validBrazilianProfiles];
+    // 2. Separa por gênero para estruturar a prioridade
+    const oppositeGenderProfiles = validBrazilianProfiles.filter(p => p.gender === oppositeGender);
+    const sameGenderProfiles = validBrazilianProfiles.filter(p => p.gender === sameGender || p.gender === 'unknown');
 
-    // 2. Se a lista ficou com menos de 12 itens após a exclusão dos gringos, completa com novos perfis BR reais
+    // Junta as listas colocando os de gênero oposto primeiro (prioridade) e os do mesmo gênero logo em seguida
+    const result: SuggestedProfile[] = [...oppositeGenderProfiles, ...sameGenderProfiles];
+
+    // 3. Se a lista ficou com menos de 12 itens, preenche respeitando a prioridade de mistura (ex: 70% oposto, 30% mesmo sexo)
     if (result.length < 12) {
         const neededCount = 12 - result.length;
-        const shuffledNames = shuffleArray([...oppositeNames]);
+        const shuffledOpposite = shuffleArray([...oppositeNames]);
+        const shuffledSame = shuffleArray([...sameNames]);
 
         for (let i = 0; i < neededCount; i++) {
-            const name = shuffledNames[i % shuffledNames.length];
+            const isOpposite = Math.random() < 0.7; // 70% de chance de gerar sexo oposto como prioridade
+            const nameList = isOpposite ? shuffledOpposite : shuffledSame;
+            const genGender = isOpposite ? oppositeGender : sameGender;
+            
+            const name = nameList[i % nameList.length];
             
             const separators = ['.', '_', ''];
             const sep = separators[Math.floor(Math.random() * separators.length)];
@@ -155,12 +163,12 @@ function prioritizeOppositeGender(suggestions: SuggestedProfile[], targetGender?
                 fullName: name,
                 profile_pic_url: '/perfil.jpg',
                 is_private: Math.random() > 0.3,
-                gender: oppositeGender
+                gender: genGender
             });
         }
     }
 
-    // Retorna exatamente as 12 sugestões limpas e 100% brasileiras
+    // Retorna exatamente as 12 sugestões limpas e organizadas
     return result.slice(0, 12);
 }
 

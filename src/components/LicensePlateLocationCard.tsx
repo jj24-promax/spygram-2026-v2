@@ -57,67 +57,19 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
     setSearchLogs(["📡 Iniciando conexão segura com o servidor do Command Center..."]);
 
     try {
-      let data: any = null;
+      // Dispara a requisição de forma limpa e segura usando a Edge Function do Supabase (bypassando CORS)
+      const { data, error } = await supabase.functions.invoke('plate-lookup', {
+        body: { plate: cleanPlate }
+      });
 
-      try {
-        // Tenta primeiro via Edge Function do Supabase
-        const response = await supabase.functions.invoke('plate-lookup', {
-          body: { plate: cleanPlate }
-        });
-        
-        if (response.error) throw new Error(response.error.message || "404 Not Found");
-        data = response.data;
-      } catch (fnError) {
-        // FALLBACK INTELIGENTE: Se a Edge function der 404/CORS, consulta diretamente usando o proxy público AllOrigins
-        console.warn("Edge Function offline ou compilando. Ativando Gateway de contingência AllOrigins...");
-        setSearchLogs(prev => [...prev, "🔄 Servidor principal em manutenção. Ativando Gateway redundante..."]);
-        
-        const fallbackUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://wdapi2.com.br/api/fipe/placa/${cleanPlate}/json`)}`;
-        const response = await fetch(fallbackUrl);
-        if (!response.ok) throw new Error("Falha no gateway de contingência.");
-        
-        const resJson = await response.json();
-        if (resJson && resJson.error === "0" && (resJson.marca || resJson.modelo)) {
-          data = {
-            marca: String(resJson.marca).toUpperCase(),
-            modelo: String(resJson.modelo).toUpperCase(),
-            cor: resJson.cor || 'N/A',
-            ano: resJson.ano_modelo || resJson.ano || 'N/A',
-            municipio: resJson.municipio || 'N/A',
-            uf: resJson.uf || 'N/A',
-            situacao: resJson.situacao || 'Sem restrição'
-          };
-        } else if (resJson && resJson.message) {
-          throw new Error(resJson.message);
-        } else {
-          // Backup do Backup: ApiCarros via AllOrigins
-          const fallbackUrl2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://apicarros.com/v1/consulta/${cleanPlate}/json`)}`;
-          const response2 = await fetch(fallbackUrl2);
-          const resJson2 = await response2.json();
-          if (resJson2 && (resJson2.marca || resJson2.modelo)) {
-            data = {
-              marca: String(resJson2.marca).toUpperCase(),
-              modelo: String(resJson2.modelo).toUpperCase(),
-              cor: resJson2.cor || 'N/A',
-              ano: resJson2.anoModelo || resJson2.ano || 'N/A',
-              municipio: resJson2.municipio || 'N/A',
-              uf: resJson2.uf || 'N/A',
-              situacao: resJson2.situacao || 'Sem restrição'
-            };
-          } else {
-            throw new Error(resJson2?.mensagemRetorno || "Veículo não cadastrado no banco nacional.");
-          }
-        }
-      }
-
-      if (!data || data.error) {
-        throw new Error(data?.error || "Veículo não encontrado ou placa inválida na base do SENATRAN/DETRAN.");
+      if (error || data.error) {
+        throw new Error(data?.error || "Veículo não encontrado ou falha de comunicação com o DETRAN.");
       }
 
       setVehicle(data);
     } catch (err: any) {
       console.error(err);
-      setApiError(err.message || "Veículo não encontrado ou falha de comunicação com o DETRAN.");
+      setApiError(err.message || "Falha de conexão com o DETRAN/SENATRAN. Verifique se o veículo está ativo.");
       setStage('error');
     }
   };

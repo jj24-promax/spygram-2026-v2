@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 import { cn } from '../../src/lib/utils'; // Importando a função cn
+import { addUtmsToUrl } from '../../src/utils/utm'; // Importando propagação de UTMs
 
 interface SparkleButtonProps {
   children: React.ReactNode;
@@ -27,7 +28,8 @@ const SparkleButton: React.FC<SparkleButtonProps> = ({ children, onClick, disabl
 
   const handleButtonClick = () => {
     if (checkoutUrl) {
-      window.open(checkoutUrl, '_blank'); // Abre o URL em uma nova aba
+      const activeCheckoutUrl = addUtmsToUrl(checkoutUrl);
+      window.open(activeCheckoutUrl, '_blank'); // Abre o URL com as UTMs preservadas
     } else if (onClick) {
       onClick(); // Executa o onClick padrão se não houver checkoutUrl
     }

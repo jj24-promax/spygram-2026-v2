@@ -1,39 +1,74 @@
 "use client";
 
-// Captura e salva todas as UTMs do UTMify na sessão para evitar que se percam nas rotas do React
+const UTM_KEYS = [
+  'utm_source', 
+  'utm_medium', 
+  'utm_campaign', 
+  'utm_content', 
+  'utm_term', 
+  'src', 
+  'sck', 
+  'xcod', 
+  'subid', 
+  'subid2', 
+  'subid3', 
+  'subid4', 
+  'subid5'
+];
+
+// Helper para ler cookies gerados pelo script do UTMify
+const getCookie = (name: string): string | null => {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return decodeURIComponent(parts.pop()?.split(';').shift() || '');
+  }
+  return null;
+};
+
+// Captura e salva todas as UTMs das 4 fontes com máxima prioridade e redundância
 export const captureUtms = (): Record<string, string> => {
   if (typeof window === 'undefined') return {};
   
   const urlParams = new URLSearchParams(window.location.search);
-  const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'src', 'sck', 'xcod'];
   const utms: Record<string, string> = {};
-  let hasUtms = false;
-
-  utmKeys.forEach(key => {
-    const val = urlParams.get(key);
+  
+  UTM_KEYS.forEach(key => {
+    // Prioridade 1: Query Param na URL ativa
+    let val = urlParams.get(key);
+    
+    // Prioridade 2: Cookie nativo persistido pelo UTMify
+    if (!val) {
+      val = getCookie(key);
+    }
+    
+    // Prioridade 3: Session Storage da sessão atual
+    if (!val) {
+      val = sessionStorage.getItem(`utm_${key}`);
+    }
+    
+    // Prioridade 4: Local Storage (Backup)
+    if (!val) {
+      val = localStorage.getItem(`utm_${key}`);
+    }
+    
     if (val) {
-      utms[key] = val;
-      sessionStorage.setItem(`utm_${key}`, val);
-      hasUtms = true;
+      const cleanVal = val.trim();
+      utms[key] = cleanVal;
+      sessionStorage.setItem(`utm_${key}`, cleanVal);
+      localStorage.setItem(`utm_${key}`, cleanVal);
     }
   });
-
-  // Se não encontrou na URL, tenta recuperar as UTMs anteriormente salvas na sessão
-  if (!hasUtms) {
-    utmKeys.forEach(key => {
-      const val = sessionStorage.getItem(`utm_${key}`);
-      if (val) {
-        utms[key] = val;
-      }
-    });
-  }
 
   return utms;
 };
 
-// Adiciona as UTMs salvas a qualquer link de checkout externo
+// Adiciona todas as UTMs identificadas à URL de checkout
 export const addUtmsToUrl = (url: string): string => {
+  if (!url) return url;
   if (typeof window === 'undefined') return url;
+  
   const utms = captureUtms();
   
   try {
@@ -45,7 +80,7 @@ export const addUtmsToUrl = (url: string): string => {
     });
     return urlObj.toString();
   } catch (e) {
-    // Caso seja um link relativo
+    // Fallback para URLs relativas
     const separator = url.includes('?') ? '&' : '?';
     const queryStr = Object.entries(utms)
       .filter(([_, val]) => !!val)

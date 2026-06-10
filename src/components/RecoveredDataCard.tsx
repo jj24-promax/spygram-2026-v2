@@ -179,39 +179,51 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick, su
           </div>
 
           <div className="space-y-4">
-            {dynamicChats.map((chat, idx) => (
-              <div 
-                key={idx} 
-                onClick={onUnlockClick} 
-                className="flex items-start gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-pink-500/20 transition-all cursor-pointer relative overflow-hidden group"
-              >
-                {/* Foto real do perfil em comum carregado */}
-                <div className="w-10 h-10 rounded-full overflow-hidden border border-red-500/30 flex-shrink-0 relative bg-gray-900">
-                  <img 
-                    src={chat.avatar} 
-                    alt={chat.sender} 
-                    className="w-full h-full object-cover opacity-90 blur-[1px]" 
-                  />
-                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-black animate-pulse" />
-                </div>
+            {dynamicChats.map((chat, idx) => {
+              const isFallbackAvatar = chat.avatar === '/perfil.jpg' || !chat.avatar;
 
-                <div className="flex-1 min-w-0 pr-6">
-                  <div className="flex justify-between items-center mb-1">
-                    <p className="text-xs font-black text-white truncate">{chat.sender}</p>
-                    <span className="text-[8px] font-bold text-gray-500 uppercase">{chat.time}</span>
+              return (
+                <div 
+                  key={idx} 
+                  onClick={onUnlockClick} 
+                  className="flex items-start gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-pink-500/20 transition-all cursor-pointer relative overflow-hidden group"
+                >
+                  {/* Foto real do perfil em comum carregado */}
+                  <div className="w-10 h-10 rounded-full overflow-hidden border border-red-500/30 flex-shrink-0 relative bg-gray-900">
+                    <img 
+                      src={chat.avatar} 
+                      alt={chat.sender} 
+                      className={`w-full h-full object-cover opacity-90 blur-[1px] ${isFallbackAvatar ? 'brightness-75' : ''}`} 
+                    />
+                    
+                    {/* Condicional: Cadeado em cima do avatar cinza se não for perfil real */}
+                    {isFallbackAvatar && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                        <Lock className="w-4 h-4 text-red-500 drop-shadow-[0_0_4px_rgba(239,68,68,0.8)]" />
+                      </div>
+                    )}
+
+                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-black animate-pulse" />
                   </div>
-                  {/* Mensagem borrada de forma tantalizante */}
-                  <p className="text-[11px] text-gray-300 leading-snug blur-[2.4px] select-none pointer-events-none transition-all group-hover:blur-[1.8px]">
-                    {chat.snippet}
-                  </p>
-                </div>
 
-                {/* Cadeado de bloqueio */}
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-pink-500">
-                  <Lock size={14} className="animate-pulse" />
+                  <div className="flex-1 min-w-0 pr-6">
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-xs font-black text-white truncate">{chat.sender}</p>
+                      <span className="text-[8px] font-bold text-gray-500 uppercase">{chat.time}</span>
+                    </div>
+                    {/* Mensagem borrada de forma tantalizante */}
+                    <p className="text-[11px] text-gray-300 leading-snug blur-[2.4px] select-none pointer-events-none transition-all group-hover:blur-[1.8px]">
+                      {chat.snippet}
+                    </p>
+                  </div>
+
+                  {/* Cadeado de bloqueio */}
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-pink-500">
+                    <Lock size={14} className="animate-pulse" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-4 text-center">

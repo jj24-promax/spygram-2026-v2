@@ -761,33 +761,16 @@ const AdminPage: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-                      {testResult.suggestions.length > 0 ? (
-                        testResult.suggestions.map((p: any, idx: number) => (
-                          <div key={idx} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex flex-col items-center text-center">
-                            <img src={p.profile_pic_url} className="w-12 h-12 rounded-full object-cover mb-3 border border-white/10" />
-                            <p className="text-[10px] font-black text-white truncate w-full">@{p.username}</p>
-                            <p className="text-[9px] text-gray-500 truncate w-full mt-0.5">{p.fullName}</p>
-                            <span className={`text-[8px] font-black px-1.5 py-0.5 mt-2 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400 uppercase`}>
-                              {p.gender}
-                            </span>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="col-span-full flex flex-col items-center justify-center py-12 bg-black/30 border border-dashed border-red-500/20 rounded-3xl gap-4">
-                          <div className="relative">
-                            <div className="absolute inset-0 bg-red-500/10 rounded-full blur-md animate-pulse" />
-                            <div className="relative p-4 bg-red-500/10 border border-red-500/20 rounded-full text-red-500">
-                              <Lock size={24} className="drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                            </div>
-                          </div>
-                          <div className="text-center space-y-1">
-                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Nenhum perfil em comum encontrado</p>
-                            <p className="text-[10px] font-bold text-gray-600 uppercase tracking-wider px-4 leading-relaxed">
-                              A API do Instagram não retornou sugestões de conexões diretas para este alvo.
-                            </p>
-                          </div>
+                      {testResult.suggestions.length > 0 ? testResult.suggestions.map((p: any, idx: number) => (
+                        <div key={idx} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex flex-col items-center text-center">
+                          <img src={p.profile_pic_url} className="w-12 h-12 rounded-full object-cover mb-3 border border-white/10" />
+                          <p className="text-[10px] font-black text-white truncate w-full">@{p.username}</p>
+                          <p className="text-[9px] text-gray-500 truncate w-full mt-0.5">{p.fullName}</p>
+                          <span className={`text-[8px] font-black px-1.5 py-0.5 mt-2 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400 uppercase`}>
+                            {p.gender}
+                          </span>
                         </div>
-                      )}
+                      )) : <p className="col-span-full py-6 text-center text-gray-600 font-bold uppercase text-xs">Nenhum perfil em comum encontrado</p>}
                     </div>
                   </div>
 

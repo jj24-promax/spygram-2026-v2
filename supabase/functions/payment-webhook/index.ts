@@ -126,7 +126,7 @@ serve(async (req) => {
             
             const utmifyPayload = {
               transacao: String(transactionId || externalRef),
-              status: "pago",
+              status: "paid", // Corrigido de "pago" para "paid"
               valor: Number(leadData.total_amount) || 37.90,
               email: leadData.email || "",
               nome: leadData.full_name || "Cliente SpyGram",

@@ -13,7 +13,6 @@ import WebSuggestions from '../components/WebSuggestions';
 import { getUserLocation, getCitiesByState } from '../services/geolocationService';
 import LockedFeatureModal from '../components/LockedFeatureModal';
 import { useAuth } from '../context/AuthContext';
-import { MOCK_MALE_NAMES, MOCK_FEMALE_NAMES, MOCK_SUGGESTION_NAMES } from '../../constants';
 import { fetchFullInvasionData } from '../services/profileService';
 import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
 import { trackLead } from '../services/trackingService';
@@ -39,26 +38,8 @@ const InvasionSimulationPage: React.FC = () => {
 
   const initialMockups = useMemo(() => {
     if (storedInvasionData?.suggestedProfiles?.length > 0) return storedInvasionData.suggestedProfiles;
-    
-    // Determina qual lista de nomes usar com base no sexo oposto ao do alvo
-    const targetGender = profileData?.gender;
-    let namesToUse = MOCK_SUGGESTION_NAMES;
-    
-    if (targetGender === 'male') {
-      namesToUse = MOCK_FEMALE_NAMES; // Alvo homem -> Sugere mulheres
-    } else if (targetGender === 'female') {
-      namesToUse = MOCK_MALE_NAMES; // Alvo mulher -> Sugere homens
-    }
-
-    const shuffledNames = shuffle([...namesToUse]);
-    return shuffledNames.slice(0, 15).map((name: string) => ({
-      username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
-      fullName: name,
-      profile_pic_url: '/perfil.jpg', 
-      is_private: true,
-      gender: targetGender === 'male' ? 'female' : targetGender === 'female' ? 'male' : 'unknown'
-    }));
-  }, [storedInvasionData, profileData]);
+    return []; // Removemos completamente a criação de perfis falsos de fallback
+  }, [storedInvasionData]);
 
   const [suggestedProfiles, setSuggestedProfiles] = useState<SuggestedProfile[]>(initialMockups);
   const [posts, setPosts] = useState<FeedPost[]>(storedInvasionData?.posts || []);
@@ -117,16 +98,13 @@ const InvasionSimulationPage: React.FC = () => {
           // Busca dados completos incluindo posts de perfis públicos
           const { suggestions: extraSuggestions, posts: fetchedPosts } = await fetchFullInvasionData(targetProfileData);
 
-          const finalSuggestions = extraSuggestions.length > 0 ? extraSuggestions : suggestedProfiles;
-          const finalPosts = fetchedPosts.length > 0 ? shuffle(fetchedPosts) : [];
-
-          setSuggestedProfiles(finalSuggestions);
-          setPosts(finalPosts);
+          setSuggestedProfiles(extraSuggestions);
+          setPosts(fetchedPosts.length > 0 ? shuffle(fetchedPosts) : []);
 
           const fullData = {
             profileData: targetProfileData,
-            suggestedProfiles: finalSuggestions,
-            posts: finalPosts,
+            suggestedProfiles: extraSuggestions,
+            posts: fetchedPosts,
             userCity: userCity,
             locations: cityList,
           };
@@ -160,7 +138,7 @@ const InvasionSimulationPage: React.FC = () => {
     if (stage === 'loading') {
       loadAllDataAndProceed();
     }
-  }, [location.state, navigate, stage, isLoggedIn, suggestedProfiles, storedInvasionData]);
+  }, [location.state, navigate, stage, isLoggedIn, storedInvasionData]);
 
   const handleLoginSuccess = useCallback(() => {
     login();

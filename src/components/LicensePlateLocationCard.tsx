@@ -10,26 +10,10 @@ interface LicensePlateLocationCardProps {
 
 type TrackStage = 'idle' | 'searching' | 'success';
 
-interface VehicleDetails {
-  brand: string;
-  model: string;
-  color: string;
-  year: string;
-}
-
-const MOCK_VEHICLES: VehicleDetails[] = [
-  { brand: 'TOYOTA', model: 'COROLLA XEI 2.0 FLEX', color: 'Prata', year: '2021' },
-  { brand: 'JEEP', model: 'COMPASS LIMITED TD350 4X4', color: 'Cinza Escuro', year: '2022' },
-  { brand: 'HONDA', model: 'CIVIC TOURING 1.5 TURBO', color: 'Preto Pearl', year: '2020' },
-  { brand: 'VOLKSWAGEN', model: 'T-CROSS COMFORTLINE 200 TSI', color: 'Branco Polar', year: '2023' },
-  { brand: 'HYUNDAI', model: 'HB20 SENSE 1.0 FLEX', color: 'Vermelho', year: '2019' }
-];
-
 const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onUnlockClick, userCity }) => {
   const [plate, setPlate] = useState('');
   const [stage, setStage] = useState<TrackStage>('idle');
   const [searchLogs, setSearchLogs] = useState<string[]>([]);
-  const [vehicle, setVehicle] = useState<VehicleDetails | null>(null);
 
   const formattedCity = userCity && userCity.toLowerCase() !== 'sua localização' ? userCity : 'São Paulo';
   
@@ -48,7 +32,7 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
     setPlate(formatPlateInput(e.target.value));
   };
 
-  const handleStartTracking = async (e: React.FormEvent) => {
+  const handleStartTracking = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPlate = plate.replace('-', '').trim();
     if (cleanPlate.length < 7) {
@@ -57,53 +41,17 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
     }
 
     setStage('searching');
-    setSearchLogs(["📡 Estabelecendo conexão segura com o gateway da APIBrasil..."]);
-
-    // Inicia a busca na API em background
-    let fetchedVehicle: VehicleDetails | null = null;
-    try {
-      const response = await fetch('https://placa-fipe.apibrasil.com.br/placa/consulta', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ placa: cleanPlate })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Verifica se a API retornou dados válidos de veículo
-        if (data && (data.marca || data.modelo)) {
-          fetchedVehicle = {
-            brand: data.marca || 'Veículo',
-            model: data.modelo || 'Não Especificado',
-            color: data.cor || 'Não informada',
-            year: data.ano || data.anoModelo || 'N/A'
-          };
-        }
-      }
-    } catch (error) {
-      console.warn("API de Placa indisponível ou bloqueio de CORS. Usando fallback inteligente de simulação.");
-    }
-
-    // Se falhar ou não retornar, escolhe um mockup elegante baseado na placa
-    if (!fetchedVehicle) {
-      const index = cleanPlate.charCodeAt(cleanPlate.length - 1) % MOCK_VEHICLES.length;
-      fetchedVehicle = MOCK_VEHICLES[index];
-    }
-
-    setVehicle(fetchedVehicle);
+    setSearchLogs(["📡 Estabelecendo conexão segura com satélites militares..."]);
   };
 
   useEffect(() => {
-    if (stage === 'searching' && vehicle) {
+    if (stage === 'searching') {
       const logs = [
-        "📡 Conexão com Gateway de Placas APIBrasil estabelecida.",
-        `🔍 Registro Localizado: [${vehicle.brand} ${vehicle.model}]`,
-        `🎨 Cor: ${vehicle.color} | Ano/Modelo: ${vehicle.year}`,
+        "📡 Conexão com Gateway de Triangulação LBS estabelecida.",
+        `🔍 Rastreando sinal de radiofrequência vinculado à placa: [${plate}]...`,
         "🛰️ Estabelecendo ponte de comunicação com Satélite Militar LATAM-403...",
-        `🛸 Cruzando telemetria do veículo com antenas de celular de ${formattedCity}...`,
-        `🎯 Veículo correspondente rastreado com sucesso nos arredores de ${formattedCity}!`
+        `🛸 Cruzando telemetria de posicionamento com antenas de celular de ${formattedCity}...`,
+        `🎯 Sinal correspondente rastreado com sucesso nos arredores de ${formattedCity}!`
       ];
 
       let step = 0;
@@ -121,7 +69,7 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
 
       return () => clearInterval(interval);
     }
-  }, [stage, vehicle, formattedCity]);
+  }, [stage, plate, formattedCity]);
 
   return (
     <motion.div
@@ -188,7 +136,7 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
           </div>
         )}
 
-        {stage === 'success' && vehicle && (
+        {stage === 'success' && (
           <div className="animate-fade-in space-y-6">
             {/* ALERTA DE SUCESSO DE PLACA */}
             <div className="p-4 bg-green-500/10 border-2 border-green-500/30 rounded-2xl inline-flex flex-col items-center gap-1.5 animate-pulse w-full max-w-md text-center">
@@ -197,7 +145,7 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
                 <span>VEÍCULO ENCONTRADO!</span>
               </div>
               <p className="text-white text-xs font-bold leading-tight">
-                Identificamos o veículo de placa <span className="text-yellow-400 font-extrabold">{plate}</span> correspondente a um <span className="text-pink-400 font-extrabold">{vehicle.brand} {vehicle.model} ({vehicle.color} - {vehicle.year})</span> estacionado próximo a estabelecimentos em <span className="uppercase font-extrabold text-green-400">{formattedCity}</span>
+                Identificamos o veículo de placa <span className="text-yellow-400 font-extrabold">{plate}</span> estacionado próximo a estabelecimentos em <span className="uppercase font-extrabold text-green-400">{formattedCity}</span>
               </p>
             </div>
 

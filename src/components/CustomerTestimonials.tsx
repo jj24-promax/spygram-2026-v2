@@ -49,9 +49,20 @@ const CustomerTestimonials: React.FC = () => {
                   alt={`Depoimento de ${item.name}`} 
                   className="w-full h-auto block object-contain" // Mantém proporção e nitidez
                 />
+
+                {/* Camada inteligente de desfoque posicionada sobre o nome nos chats dos prints */}
+                <div 
+                  className="absolute bg-white/5 backdrop-blur-[6px] rounded-md border border-white/5"
+                  style={{
+                    top: '9%',       // Altura exata do cabeçalho do WhatsApp
+                    left: '28%',     // Começa logo após a foto de perfil
+                    width: '38%',    // Cobre o primeiro e segundo nome
+                    height: '5.5%'   // Cobre exatamente a linha do nome
+                  }}
+                />
                 
                 {/* Overlay de Verificado */}
-                <div className="absolute top-3 right-3 bg-green-500 text-white p-1 rounded-full shadow-lg">
+                <div className="absolute top-3 right-3 bg-green-500 text-white p-1 rounded-full shadow-lg z-10">
                   <CheckCircle2 size={12} />
                 </div>
               </div>

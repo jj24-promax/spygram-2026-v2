@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Car, MapPin, Radio, Search, CheckCircle2, ShieldAlert, FileText, Info } from 'lucide-react';
+import { Car, MapPin, Radio, Search, CheckCircle2, FileText, AlertTriangle } from 'lucide-react';
 import ShineButton from './ui/ShineButton';
 
 interface LicensePlateLocationCardProps {
@@ -8,7 +8,7 @@ interface LicensePlateLocationCardProps {
   userCity: string;
 }
 
-type TrackStage = 'idle' | 'searching' | 'success';
+type TrackStage = 'idle' | 'searching' | 'success' | 'error';
 
 interface VehicleData {
   marca: string;
@@ -20,28 +20,14 @@ interface VehicleData {
   situacao: string;
 }
 
-// Banco de dados inteligente para gerar fallbacks ultra realistas e dinâmicos caso a API sofra timeout/CORS
-const FALLBACK_BRANDS = ['TOYOTA', 'JEEP', 'HONDA', 'VOLKSWAGEN', 'HYUNDAI', 'FIAT', 'CHEVROLET'];
-const FALLBACK_MODELS: Record<string, string[]> = {
-  'TOYOTA': ['COROLLA XEI 2.0 FLEX', 'HILUX CD SRV 4X4', 'YARIS SEDAN XLS'],
-  'JEEP': ['COMPASS LIMITED T270', 'RENEGADE SPORT 1.8', 'COMMANDER OVERLAND'],
-  'HONDA': ['CIVIC TOURING 1.5 TURBO', 'HR-V EXL 1.8 FLEX', 'FIT PERSONAL FLEX'],
-  'VOLKSWAGEN': ['T-CROSS COMFORTLINE TSI', 'NIVUS HIGHLINE 200 TSI', 'GOLO 1.0 MPI'],
-  'HYUNDAI': ['HB20 SENSE 1.0 FLEX', 'CRETA ULTIMATE 2.0', 'TUCSON GLS 1.6 TURBO'],
-  'FIAT': ['TORO FREEDOM 1.3 TURBO', 'ARGO DRIVE 1.0 FLEX', 'FASTBACK IMPETUS'],
-  'CHEVROLET': ['ONIX SEDAN PREMIER', 'TRACKER PREMIER 1.2', 'S10 CD LTZ 4X4']
-};
-const FALLBACK_COLORS = ['Prata Metalizado', 'Preto Obsidian', 'Branco Polar', 'Cinza Grafite', 'Vermelho Crimson', 'Azul Marinho'];
-
 const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onUnlockClick, userCity }) => {
   const [plate, setPlate] = useState('');
   const [stage, setStage] = useState<TrackStage>('idle');
   const [searchLogs, setSearchLogs] = useState<string[]>([]);
   const [vehicle, setVehicle] = useState<VehicleData | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const formattedCity = userCity && userCity.toLowerCase() !== 'sua localização' ? userCity : 'São Paulo';
-  
-  // URL de satélite dinâmico utilizando a sintaxe oficial de categoria/localização (Motel,Cidade) para busca precisa e zoom de aproximação 16
   const motelMapUrl = `https://maps.google.com/maps?q=Motel,${encodeURIComponent(formattedCity)}&t=k&z=16&ie=UTF8&iwloc=&output=embed`;
 
   const formatPlateInput = (value: string) => {
@@ -56,26 +42,6 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
     setPlate(formatPlateInput(e.target.value));
   };
 
-  // Função para gerar dados realistas baseados hash-code da placa informada
-  const generateRealisticVehicle = (cleanPlate: string): VehicleData => {
-    const charSum = cleanPlate.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const brand = FALLBACK_BRANDS[charSum % FALLBACK_BRANDS.length];
-    const modelsList = FALLBACK_MODELS[brand] || ['SEDAN COMFORT'];
-    const modelo = modelsList[charSum % modelsList.length];
-    const cor = FALLBACK_COLORS[charSum % FALLBACK_COLORS.length];
-    const ano = String(2015 + (charSum % 9)); // Anos entre 2015 e 2023
-    
-    return {
-      marca: brand,
-      modelo: modelo,
-      cor: cor,
-      ano: ano,
-      municipio: formattedCity.toUpperCase(),
-      uf: 'SP',
-      situacao: 'Sem restrição (Ativo)'
-    };
-  };
-
   const handleStartTracking = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPlate = plate.replace('-', '').trim();
@@ -85,12 +51,11 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
     }
 
     setStage('searching');
-    setSearchLogs(["📡 Iniciando protocolo de rastreamento veicular..."]);
-
-    let fetchedData: VehicleData | null = null;
+    setApiError(null);
+    setVehicle(null);
+    setSearchLogs(["📡 Conectando ao Registro Nacional de Veículos (SENATRAN)..."]);
 
     try {
-      // Chamada real para a API descrita pelo usuário
       const response = await fetch('https://placa-fipe.apibrasil.com.br/placa/consulta', {
         method: 'POST',
         headers: {
@@ -99,42 +64,40 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
         body: JSON.stringify({ placa: cleanPlate })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data && !data.error && (data.marca || data.modelo)) {
-          fetchedData = {
-            marca: String(data.marca || 'VEÍCULO').toUpperCase(),
-            modelo: String(data.modelo || 'IDENTIFICADO').toUpperCase(),
-            cor: data.cor || 'Preto',
-            ano: data.anoModelo || data.ano || '2019',
-            municipio: data.municipio || formattedCity.toUpperCase(),
-            uf: data.uf || 'SP',
-            situacao: data.situacao || 'Sem restrição'
-          };
-        }
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.message || `Erro da API (${response.status}): ${response.statusText}`);
       }
-    } catch (err) {
-      console.warn("API de Placa inacessível devido a restrições de CORS. Utilizando fallback inteligente.");
-    }
 
-    // Se a API falhar (CORS ou erro de rede), o algoritmo gera dados perfeitos e realistas baseados na placa digitada
-    if (!fetchedData) {
-      fetchedData = generateRealisticVehicle(cleanPlate);
+      if (data && (data.marca || data.modelo)) {
+        setVehicle({
+          marca: String(data.marca || 'N/A').toUpperCase(),
+          modelo: String(data.modelo || 'N/A').toUpperCase(),
+          cor: data.cor || 'N/A',
+          ano: data.anoModelo || data.ano || 'N/A',
+          municipio: data.municipio || 'N/A',
+          uf: data.uf || 'N/A',
+          situacao: data.situacao || 'Regular'
+        });
+      } else {
+        throw new Error("Veículo não encontrado no banco de dados nacional.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setApiError(err.message || "Falha de conexão com o DETRAN/SENATRAN. Verifique se o serviço está ativo ou se há restrição de CORS.");
+      setStage('error');
     }
-
-    setVehicle(fetchedData);
   };
 
   useEffect(() => {
     if (stage === 'searching' && vehicle) {
       const logs = [
-        "📡 Estabelecendo ponte segura com banco de dados de registro veicular...",
-        `✅ Placa localizada no Registro Nacional!`,
-        `🚗 Veículo: ${vehicle.marca} - ${vehicle.modelo}`,
-        `🎨 Cor: ${vehicle.cor} | Ano: ${vehicle.ano}`,
-        `📍 Município de Emplacamento: ${vehicle.municipio} - ${vehicle.uf}`,
-        "🛰️ Linkando coordenadas via triangulação LBS do chip integrado...",
-        `🎯 Sinal correspondente travado com sucesso nos arredores de ${formattedCity}!`
+        "📡 Conexão com Gateway Governamental estabelecida.",
+        `🔍 Consultando placa: [${plate}] no Registro Nacional...`,
+        "✅ Dados cadastrais obtidos com sucesso do servidor de trânsito.",
+        "🛰️ Linkando telemetria de posicionamento com antenas locais...",
+        `🎯 Veículo localizado nos arredores de ${formattedCity}!`
       ];
 
       let step = 0;
@@ -148,11 +111,11 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
             setStage('success');
           }, 800);
         }
-      }, 1200);
+      }, 1000);
 
       return () => clearInterval(interval);
     }
-  }, [stage, vehicle, formattedCity]);
+  }, [stage, vehicle, plate, formattedCity]);
 
   return (
     <motion.div
@@ -173,10 +136,10 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
         </div>
 
         <p className="text-gray-200 mb-8 max-w-md mx-auto text-lg font-medium">
-          **NOVIDADE!** Descubra a localização exata do veículo do seu alvo apenas com a placa. Rastreamento em tempo real via satélite militar.
+          Rastreie a localização de qualquer veículo em tempo real diretamente do banco de dados do DETRAN.
         </p>
 
-        {stage === 'idle' && (
+        {(stage === 'idle' || stage === 'error') && (
           <form onSubmit={handleStartTracking} className="w-full max-w-sm mx-auto bg-black/60 border border-white/10 rounded-3xl p-6 shadow-2xl space-y-4 mb-8">
             <div className="text-left space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Digitar Placa do Carro</label>
@@ -184,7 +147,7 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
                 <Car className="absolute left-4 w-5 h-5 text-gray-500" />
                 <input
                   type="text"
-                  placeholder="EX: ABC1D23 OU ABC-1234"
+                  placeholder="EX: ABC1D23"
                   value={plate}
                   onChange={handleInputChange}
                   maxLength={8}
@@ -198,7 +161,7 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
               className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 active:scale-95 transition-all text-xs font-black uppercase tracking-widest text-white flex items-center justify-center gap-2"
             >
               <Search size={14} />
-              Rastrear Placa do Veículo
+              Buscar Veículo Real
             </button>
           </form>
         )}
@@ -208,14 +171,24 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
             <div className="space-y-2 flex-1">
               {searchLogs.map((log, index) => (
                 <div key={index} className="animate-fade-in leading-relaxed">
-                  {log}
+                  [SISTEMA] {log}
                 </div>
               ))}
             </div>
             <div className="flex items-center justify-center gap-2 pt-4 border-t border-white/5">
               <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Buscando Registro Nacional...</span>
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Acessando API oficial...</span>
             </div>
+          </div>
+        )}
+
+        {stage === 'error' && apiError && (
+          <div className="w-full max-w-sm mx-auto p-4 bg-red-900/20 border border-red-500/30 rounded-2xl text-left text-xs text-red-400 flex flex-col gap-2 mb-8">
+            <div className="flex items-center gap-2 font-black text-red-500 uppercase">
+              <AlertTriangle className="w-4 h-4" />
+              <span>Erro de Consulta Real</span>
+            </div>
+            <p className="leading-relaxed">{apiError}</p>
           </div>
         )}
 
@@ -225,10 +198,10 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
             <div className="p-4 bg-green-500/10 border-2 border-green-500/30 rounded-2xl inline-flex flex-col items-center gap-1.5 animate-pulse w-full max-w-md text-center">
               <div className="flex items-center gap-2 text-green-500 font-black text-sm uppercase tracking-wide">
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
-                <span>VEÍCULO RASTREADO COM SUCESSO!</span>
+                <span>VEÍCULO REAL ENCONTRADO</span>
               </div>
               <p className="text-white text-xs font-bold leading-tight">
-                O sinal da placa <span className="text-yellow-400 font-extrabold">{plate}</span> foi travado próximo a estabelecimentos em <span className="uppercase font-extrabold text-green-400">{formattedCity}</span>
+                A placa <span className="text-yellow-400 font-extrabold">{plate}</span> corresponde a um veículo real registrado no município de <span className="uppercase font-extrabold text-green-400">{vehicle.municipio}</span>.
               </p>
             </div>
 
@@ -236,30 +209,30 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
             <div className="w-full max-w-md mx-auto bg-black/60 border border-white/10 rounded-[2rem] p-5 text-left shadow-2xl relative">
               <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
                 <FileText className="w-4 h-4 text-blue-400" />
-                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Informações Cadastrais (SENATRAN)</span>
+                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Informações do Registro SENATRAN</span>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Marca / Fabricante</span>
+                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Marca</span>
                   <span className="font-black text-white">{vehicle.marca}</span>
                 </div>
                 <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Modelo do Veículo</span>
+                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Modelo</span>
                   <span className="font-black text-white truncate block">{vehicle.modelo}</span>
                 </div>
                 <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Cor Cadastrada</span>
+                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Cor</span>
                   <span className="font-black text-white">{vehicle.cor}</span>
                 </div>
                 <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Ano de Fabricação</span>
+                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Ano Modelo</span>
                   <span className="font-black text-white">{vehicle.ano}</span>
                 </div>
                 <div className="bg-white/5 p-3 rounded-xl border border-white/5 col-span-2">
                   <div className="flex justify-between items-center">
                     <div>
-                      <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Município de Emplacamento</span>
+                      <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Município Emplacamento</span>
                       <span className="font-black text-white">{vehicle.municipio} - {vehicle.uf}</span>
                     </div>
                     <div className="text-right">
@@ -271,10 +244,8 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
               </div>
             </div>
 
-            {/* RASTREADOR DE MOTEL VIA SATÉLITE REAL DA CIDADE */}
+            {/* MAPA */}
             <div className="relative w-full max-w-md mx-auto aspect-video bg-[#0a0a0c] rounded-[2rem] overflow-hidden border-2 border-blue-500/40 shadow-[0_0_40px_rgba(59,130,246,0.2)]">
-              
-              {/* Wrapper com zoom e deslocamento negativo para ocultar logos/botoes Google */}
               <div className="absolute inset-0 w-full h-full scale-[1.4] origin-center pointer-events-none">
                 <iframe
                   title="Satellite Motel Tracker"
@@ -287,12 +258,9 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
                 />
               </div>
 
-              {/* Efeitos de Sombreamento Escuro HUD */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/80 pointer-events-none" />
               
-              {/* Mira de Detecção e Target HUD */}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                {/* Círculo do Alvo do Laser */}
                 <div className="w-24 h-24 border-2 border-dashed border-red-500 rounded-full flex items-center justify-center animate-pulse">
                   <div className="w-12 h-12 border border-red-500/50 rounded-full flex items-center justify-center">
                     <div className="w-3 h-3 bg-red-500 rounded-full animate-ping" />
@@ -300,15 +268,9 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
                 </div>
               </div>
 
-              {/* Badges de Status do Satélite no HUD */}
               <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/80 px-3 py-1 rounded-full border border-blue-500/30">
                 <Radio className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
                 <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">SATÉLITE LATAM-403</span>
-              </div>
-
-              <div className="absolute bottom-4 right-4 flex items-center gap-1.5 bg-black/80 px-3 py-1 rounded-full border border-red-500/30 animate-pulse">
-                <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-                <span className="text-[9px] font-black text-red-500 uppercase tracking-widest">VEÍCULO ENCONTRADO</span>
               </div>
             </div>
 
@@ -321,15 +283,9 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
               className="w-full bg-blue-600 focus:ring-blue-500 active:scale-95"
               shineColorClasses="bg-blue-600"
             >
-              RASTREAR PLACA DO VEÍCULO AGORA
+              RASTREAR VEÍCULO AGORA
             </ShineButton>
           </div>
-        )}
-
-        {stage !== 'success' && (
-          <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed mt-4">
-            Insira o registro de qualquer veículo para carregar e decodificar dados de posicionamento via GPS passados pelo nosso bypass.
-          </p>
         )}
       </div>
     </motion.div>

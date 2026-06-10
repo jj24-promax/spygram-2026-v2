@@ -5,7 +5,7 @@ import {
   Users, DollarSign, Search, ShieldCheck, 
   CreditCard, LogOut, RotateCcw,
   Trash2, MessageCircle, Key, BarChart3, 
-  Map as MapIcon, QrCode, Download, X, FileText, Check, Save, ShieldAlert, ShieldOff, Coins, ShoppingBag
+  Map as MapIcon, QrCode, Download, X, FileText, Check, Save, ShieldAlert, ShieldOff, Coins, ShoppingBag, Terminal, Eye, BadgeCheck, Lock, Sparkles, Image as ImageIcon
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, 
@@ -16,6 +16,7 @@ import Loader from '../components/Loader';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { fetchProfileData, fetchFullInvasionData } from '../services/profileService';
 
 interface Lead {
   id: string;
@@ -48,7 +49,7 @@ const AdminPage: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'leads' | 'analytics' | 'sales'>('leads');
+  const [activeTab, setActiveTab] = useState<'leads' | 'analytics' | 'sales' | 'test-profile'>('leads');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   
@@ -70,6 +71,11 @@ const AdminPage: React.FC = () => {
 
   // Estados para Créditos
   const [creditAmount, setCreditAmount] = useState<number>(49.50);
+
+  // Estados para o Laboratório de Testes de Perfil
+  const [testUsername, setTargetUsername] = useState('');
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
 
   const fetchLeadsAndPayments = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -195,17 +201,15 @@ const AdminPage: React.FC = () => {
     let hasBaseReport = lead.status === 'pagou';
     
     leadPayments.forEach(payment => {
-      // 1. Prioriza a lista estruturada salva no payload da compra
       if (payment.payload?.items && Array.isArray(payment.payload.items)) {
         payment.payload.items.forEach((item: string) => {
           if (!items.includes(item)) {
             items.push(item);
           }
         });
-        return; // Pula a estimativa baseada em preços caso já tenhamos os itens explícitos
+        return;
       }
 
-      // 2. Fallback para deduções de preço de compras legadas
       const amount = Number(payment.payload?.amount) || 0;
       
       if (amount === 49.50) {
@@ -216,7 +220,6 @@ const AdminPage: React.FC = () => {
         items.push("Recarga: Créditos Ilimitados 🪙");
       } else {
         hasBaseReport = true;
-        // Se pagou o base, deduz os bumps pela diferença de preço (Base = 37.90)
         let remaining = Math.round((amount - 37.90) * 100) / 100;
         
         if (remaining > 0) {
@@ -408,6 +411,33 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  // Executa o teste interativo de raspagem e análise de perfil
+  const handleRunProfileTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testUsername.trim()) {
+      toast.error("Digite o @ do Instagram para testar.");
+      return;
+    }
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const cleanInput = testUsername.replace(/@/g, '').trim();
+      const profileResponse = await fetchProfileData(cleanInput);
+      const fullResponse = await fetchFullInvasionData(profileResponse.profile);
+
+      setTestResult({
+        profile: profileResponse.profile,
+        suggestions: fullResponse.suggestions || [],
+        posts: fullResponse.posts || []
+      });
+      toast.success("Análise de diagnóstico concluída!");
+    } catch (err: any) {
+      toast.error("Erro de busca: " + err.message);
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-[#0f0f12] flex flex-col items-center justify-center gap-4">
       <Loader />
@@ -435,10 +465,11 @@ const AdminPage: React.FC = () => {
               </div>
             </div>
             
-            <nav className="flex gap-2">
+            <nav className="flex flex-wrap gap-2">
               <TabButton active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} icon={Users} label="Leads" />
               <TabButton active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon={MapIcon} label="Geolocalização" />
               <TabButton active={activeTab === 'sales'} onClick={() => setActiveTab('sales')} icon={BarChart3} label="Vendas" />
+              <TabButton active={activeTab === 'test-profile'} onClick={() => setActiveTab('test-profile')} icon={Terminal} label="Testar Perfil 🧪" />
             </nav>
           </div>
 
@@ -623,6 +654,158 @@ const AdminPage: React.FC = () => {
             </div>
           </section>
         )}
+
+        {/* NOVA ABA: Diagnóstico e Teste de Perfis em tempo real */}
+        {activeTab === 'test-profile' && (
+          <section className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-3xl shadow-2xl">
+            <div className="max-w-3xl mb-8">
+              <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-4 flex items-center gap-3">
+                <Terminal className="text-purple-500 animate-pulse" /> Laboratório de Diagnóstico do Instagram
+              </h2>
+              <p className="text-xs text-gray-400 font-medium leading-relaxed">
+                Digite um username válido do Instagram abaixo para simular exatamente as informações e perfis em comum de sexo oposto higienizados que serão entregues ao usuário na página de conclusões.
+              </p>
+            </div>
+
+            <form onSubmit={handleRunProfileTest} className="flex flex-col sm:flex-row gap-4 mb-10 w-full max-w-xl">
+              <div className="relative flex-1">
+                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-500">@</span>
+                <input 
+                  type="text" 
+                  placeholder="neymarjr" 
+                  value={testUsername}
+                  onChange={(e) => setTargetUsername(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-10 pr-6 text-sm focus:border-purple-500 outline-none transition-all placeholder:text-gray-600 font-bold uppercase tracking-widest"
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={testLoading}
+                className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-black rounded-2xl text-xs uppercase tracking-widest shadow-lg shadow-purple-600/20 active:scale-95 transition-all flex items-center gap-2"
+              >
+                {testLoading ? 'ANALISANDO...' : <><Eye size={14} /> RODAR DIAGNÓSTICO</>}
+              </button>
+            </form>
+
+            <AnimatePresence>
+              {testLoading && (
+                <div className="py-20 flex flex-col items-center justify-center gap-4">
+                  <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest animate-pulse">Raspando dados e filtrando estrangeiros da API...</span>
+                </div>
+              )}
+
+              {testResult && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-10 animate-fade-in"
+                >
+                  {/* Bloco 1: Dados do Alvo */}
+                  <div className="bg-black/40 border border-white/5 rounded-3xl p-6">
+                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2 pb-3 border-b border-white/5">
+                      <BadgeCheck size={14} className="text-purple-500" /> 1. DADOS DE ANALÍTICA DO ALVO
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <div className="flex items-center gap-4 md:col-span-2">
+                        <img src={testResult.profile.profilePicUrl} className="w-20 h-20 rounded-full object-cover border border-white/10" />
+                        <div>
+                          <p className="text-lg font-black text-white">@{testResult.profile.username}</p>
+                          <p className="text-xs text-gray-400">{testResult.profile.fullName}</p>
+                          <span className={`inline-block text-[9px] font-black px-2 py-0.5 mt-2 rounded-full border ${
+                            testResult.profile.gender === 'male' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                            testResult.profile.gender === 'female' ? 'bg-pink-500/10 text-pink-400 border-pink-500/20' :
+                            'bg-gray-800 text-gray-500 border-white/10'
+                          }`}>
+                            Gênero Classificado: {testResult.profile.gender}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1 text-center bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
+                        <p className="text-lg font-black text-white">{testResult.profile.followers.toLocaleString('pt-BR')}</p>
+                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Seguidores</p>
+                      </div>
+
+                      <div className="space-y-1 text-center bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
+                        <p className="text-xs font-black text-purple-400 truncate max-w-[120px]">{testResult.profile.isPrivate ? 'PRIVADO 🔒' : 'PÚBLICO 🔓'}</p>
+                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Privacidade</p>
+                      </div>
+                    </div>
+
+                    {testResult.profile.biography && (
+                      <div className="mt-6 bg-white/[0.01] border border-white/5 p-4 rounded-2xl">
+                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Biografia Extraída</p>
+                        <p className="text-xs text-gray-400 font-medium whitespace-pre-wrap leading-relaxed">{testResult.profile.biography}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bloco 2: Perfis em Comum (Exclusivo brasileiros / sexo oposto) */}
+                  <div className="bg-black/40 border border-white/5 rounded-3xl p-6">
+                    <div className="flex justify-between items-center mb-6 pb-3 border-b border-white/5">
+                      <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        <Users size={14} className="text-pink-500" /> 2. CÍRCULO ÍNTIMO (PERFIS EM COMUM BRASILEIROS)
+                      </h3>
+                      <span className="text-[10px] font-black text-green-400 uppercase bg-green-500/10 border border-green-500/20 px-3 py-1 rounded-full">
+                        Estrangeiros Filtrados ✅
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+                      {testResult.suggestions.length > 0 ? testResult.suggestions.map((p: any, idx: number) => (
+                        <div key={idx} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex flex-col items-center text-center">
+                          <img src={p.profile_pic_url} className="w-12 h-12 rounded-full object-cover mb-3 border border-white/10" />
+                          <p className="text-[10px] font-black text-white truncate w-full">@{p.username}</p>
+                          <p className="text-[9px] text-gray-500 truncate w-full mt-0.5">{p.fullName}</p>
+                          <span className={`text-[8px] font-black px-1.5 py-0.5 mt-2 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400 uppercase`}>
+                            {p.gender}
+                          </span>
+                        </div>
+                      )) : <p className="col-span-full py-6 text-center text-gray-600 font-bold uppercase text-xs">Nenhum perfil em comum encontrado</p>}
+                    </div>
+                  </div>
+
+                  {/* Bloco 3: Posts Reais Extraídos */}
+                  <div className="bg-black/40 border border-white/5 rounded-3xl p-6">
+                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2 pb-3 border-b border-white/5">
+                      <ImageIcon size={14} className="text-purple-400" /> 3. POSTS CAPTURADOS DO TIMELINE
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {testResult.posts.length > 0 ? testResult.posts.map((p: any, idx: number) => (
+                        <div key={idx} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl space-y-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <img src={p.de_usuario.profile_pic_url} className="w-6 h-6 rounded-full object-cover border border-white/10" />
+                            <span className="text-[10px] font-black text-white truncate max-w-[120px]">@{p.de_usuario.username}</span>
+                          </div>
+                          
+                          {p.post.is_video && p.post.video_url ? (
+                            <div className="relative aspect-square rounded-xl overflow-hidden bg-black flex items-center justify-center">
+                              <video src={p.post.video_url} className="w-full h-full object-cover" muted />
+                              <span className="absolute top-2 right-2 bg-black/80 px-2 py-0.5 rounded text-[8px] font-black text-purple-400 uppercase">Vídeo</span>
+                            </div>
+                          ) : (
+                            <img src={p.post.image_url} className="aspect-square rounded-xl object-cover" />
+                          )}
+
+                          <div className="flex justify-between items-center text-[10px] text-gray-500 font-bold uppercase mt-2">
+                            <span>Likes: {p.post.like_count}</span>
+                            <span>Comments: {p.post.comment_count}</span>
+                          </div>
+                        </div>
+                      )) : (
+                        <div className="col-span-full py-10 text-center text-gray-600 bg-white/[0.01] border border-dashed border-white/5 rounded-2xl font-bold uppercase text-xs">
+                          Alvo Privado ou Sem Timeline de Posts Públicos para Mostrar
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </section>
+        )}
       </div>
 
       <AnimatePresence>
@@ -657,7 +840,6 @@ const AdminPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Exibição detalhada de faturas e compras */}
                 <div className="p-5 bg-white/[0.02] border border-white/5 rounded-2xl">
                   <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <ShoppingBag size={14} className="text-purple-500" /> Histórico de Compras do Cliente

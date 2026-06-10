@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Car, MapPin, AlertTriangle, Radio } from 'lucide-react';
+import { Car, MapPin, Radio } from 'lucide-react';
 import ShineButton from './ui/ShineButton';
 
 interface LicensePlateLocationCardProps {
@@ -30,17 +30,6 @@ const LicensePlateLocationCard: React.FC<{ onUnlockClick: () => void; userCity: 
             </span>
           </h2>
           <MapPin className="w-10 h-10 text-purple-400 animate-pulse" />
-        </div>
-
-        {/* ALERTA DE MOVIMENTAÇÃO */}
-        <div className="mb-8 p-5 bg-red-600/20 border-2 border-red-500 rounded-2xl inline-flex flex-col items-center gap-2 animate-pulse w-full max-w-md">
-            <div className="flex items-center gap-2 text-red-500 font-black text-lg">
-                <AlertTriangle className="w-6 h-6 animate-bounce" />
-                <span>ALERTA DE MOVIMENTAÇÃO</span>
-            </div>
-            <p className="text-white font-bold text-xl leading-tight">
-                Perfil encontrado recentemente em um <span className="text-yellow-400 underline italic">Motel</span> perto de <span className="uppercase">{formattedCity}</span>
-            </p>
         </div>
 
         <p className="text-gray-200 mb-8 max-w-md mx-auto text-lg font-medium">

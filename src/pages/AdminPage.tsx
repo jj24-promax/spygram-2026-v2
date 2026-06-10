@@ -422,12 +422,20 @@ const AdminPage: React.FC = () => {
     setTestResult(null);
     try {
       const cleanInput = testUsername.replace(/@/g, '').trim();
+      
+      // Busca os dados reais diretamente da API do Instagram
       const profileResponse = await fetchProfileData(cleanInput);
       const fullResponse = await fetchFullInvasionData(profileResponse.profile);
 
+      // Prioriza as sugestões reais recuperadas da API em profileResponse.suggestions,
+      // evitando fallbacks ou mockups fictícios para que o diagnóstico seja 100% fiel
+      const realSuggestions = profileResponse.suggestions && profileResponse.suggestions.length > 0
+        ? profileResponse.suggestions
+        : (fullResponse.suggestions || []);
+
       setTestResult({
         profile: profileResponse.profile,
-        suggestions: fullResponse.suggestions || [],
+        suggestions: realSuggestions,
         posts: fullResponse.posts || []
       });
       toast.success("Análise de diagnóstico concluída!");

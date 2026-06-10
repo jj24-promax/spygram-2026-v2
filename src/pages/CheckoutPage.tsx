@@ -11,7 +11,7 @@ import { supabase } from '../integrations/supabase/client';
 import toast from 'react-hot-toast';
 import { trackLead } from '../services/trackingService';
 import { trackFacebookEvent } from '../services/facebookService'; 
-import { addUtmsToUrl } from '../utils/utm'; // Importando propagação de UTMs
+import { addUtmsToUrl, captureUtms } from '../utils/utm'; // Importando captureUtms
 
 const CHECKOUT_URL = 'https://go.perfectpay.com.br/PPU38CPUD1S';
 
@@ -113,6 +113,9 @@ const CheckoutPage: React.FC = () => {
         .map(k => bumpDetails[k as keyof typeof bumpDetails].title)
     ];
 
+    // Captura as UTMs ativas do visitante para enviar no payload do pagamento
+    const utmParams = captureUtms();
+
     // Disparar InitiateCheckout enriquecido com email e whatsapp para excelente taxa de correspondência
     trackFacebookEvent('InitiateCheckout', {
       email: formData.email,
@@ -131,7 +134,8 @@ const CheckoutPage: React.FC = () => {
                 phone: formData.whatsapp,
                 amount: total,
                 leadId: currentLeadId,
-                items: purchasedItems
+                items: purchasedItems,
+                utmParams: utmParams // Adicionado envio de UTMs
             },
         });
 

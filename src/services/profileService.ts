@@ -49,15 +49,40 @@ const simpleFetch = async (campo: string, username: string): Promise<any> => {
 };
 
 /**
- * Detecta se um perfil é estrangeiro (gringo) baseado em nomes comuns,
- * termos em inglês no username e caracteres especiais não-latinos.
+ * Detecta se um perfil é estrangeiro (gringo) ou esquisito baseado em nomes comuns,
+ * termos em inglês no username e padrões de caracteres não-latinos ou repetitivos.
  */
 function isBrazilianProfile(fullName: string, username: string): boolean {
     const full = (fullName || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const user = (username || '').toLowerCase();
 
-    // Caracteres não-latinos (árabe, cirílico, chinês, japonês, etc.)
+    // 1. Rejeita nomes absurdamente curtos ou com caracteres repetidos repetitivos (ex: "AAA", "A", "BB")
+    const cleanName = full.replace(/[^a-zA-Z]/g, '');
+    if (cleanName.length > 0) {
+        if (cleanName.length < 3) return false;
+        // Se todos os caracteres forem iguais (ex: "AAA", "aaaa")
+        if (/^(.)\1+$/.test(cleanName)) return false;
+    }
+
+    // 2. Rejeita caracteres não-latinos (árabe, cirílico, chinês, japonês, etc.)
     if (/[^\x00-\x7F\u00C0-\u017F]/.test(fullName || '')) {
+        return false;
+    }
+
+    // 3. Padrões de sobrenomes estrangeiros/gringos claros (russos, eslavos, árabes, turcos, indianos, asiáticos)
+    const foreignSuffixes = [
+        'ov', 'ova', 'ev', 'eva', 'oglu', 'shvili', 'adze', 'ic', 'ich', 
+        'yev', 'yeva', 'yan', 'ian', 'berg', 'stein', 'mann', 'sen', 
+        'sson', 'sdottir', 'almat', 'maxsud', 'haad', 'dil', 'sky', 'ska'
+    ];
+    
+    const nameWords = full.split(/\s+/);
+    for (const word of nameWords) {
+        if (foreignSuffixes.some(suffix => word.endsWith(suffix))) {
+            return false;
+        }
+    }
+    if (foreignSuffixes.some(suffix => user.includes(suffix))) {
         return false;
     }
 
@@ -73,12 +98,20 @@ function isBrazilianProfile(fullName: string, username: string): boolean {
         'emily', 'jessica', 'ashley', 'taylor', 'kevin', 'karen', 'brian', 'steven', 'alex', 'chris', 'mike', 'kim',
         'ali', 'mohamed', 'youssef', 'smith', 'johnson', 'williams', 'brown', 'jones', 'miller', 'davis', 'garcia',
         'rodriguez', 'wilson', 'martinez', 'anderson', 'taylor', 'thomas', 'hernandez', 'moore', 'martin', 'jackson',
-        'lee', 'perez', 'thompson', 'white', 'sanchez', 'harris', 'ramirez', 'clark', 'lewis', 'robinson', 'walker'
+        'lee', 'perez', 'thompson', 'white', 'sanchez', 'harris', 'ramirez', 'clark', 'lewis', 'robinson', 'walker',
+        'dildora', 'maxsudova', 'almatov'
     ];
 
-    const words = full.split(/\s+/);
-    if (words.some(word => gringoNames.includes(word))) {
+    if (nameWords.some(word => gringoNames.includes(word))) {
         return false;
+    }
+
+    // 4. Se o nome completo for vazio, o username não deve conter sequências incompreensíveis
+    if (!fullName || fullName.trim() === '') {
+        // Sequências estranhas de mais de 4 consoantes consecutivas (difíceis de pronunciar em PT-BR)
+        if (/[bcdfghjklmnpqrstvwxyz]{4,}/.test(user)) {
+            return false;
+        }
     }
 
     return true;

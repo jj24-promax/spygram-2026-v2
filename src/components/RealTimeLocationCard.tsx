@@ -19,12 +19,15 @@ const RealTimeLocationCard: React.FC<RealTimeLocationCardProps> = ({ profileData
   // Verifica se a cidade é válida para exibição da frase extra
   const showFoundNearText = userCity.toLowerCase() !== 'são paulo' && userCity.toLowerCase() !== 'sua localização';
 
+  // URL de satélite dinâmico baseado na cidade do visitante (t=k ativa o satélite)
+  const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(userCity)}&t=k&z=14&ie=UTF8&iwloc=&output=embed`;
+
   return (
     <motion.div
       initial={{ y: 50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, delay: 0.5 }}
-      className="mt-16 mb-12 p-0 text-center w-full mx-auto"
+      className="mt-16 mb-12 p-0 text-center w-full mx-auto animate-fade-in"
     >
       <h2 className="text-3xl font-extrabold text-white mb-4">
         <span className="bg-gradient-to-r from-red-500 to-pink-600 text-transparent bg-clip-text">
@@ -45,42 +48,49 @@ const RealTimeLocationCard: React.FC<RealTimeLocationCardProps> = ({ profileData
         </p>
       )}
       
-      {/* Map Mockup with Profile Picture Marker */}
-      <div className="relative w-full max-w-xs mx-auto aspect-square bg-[#1a1a1a] rounded-2xl overflow-hidden mb-6 border border-red-700/50">
-        {/* Simulated Map Grid Background */}
-        <div className="absolute inset-0 opacity-20" style={{
-          backgroundImage: 'linear-gradient(to right, #333 1px, transparent 1px), linear-gradient(to bottom, #333 1px, transparent 1px)',
-          backgroundSize: '20px 20px',
-        }}>
-          {/* Simulated Roads/Features */}
-          <div className="absolute top-1/4 left-0 w-full h-1 bg-gray-700/50 transform rotate-[-5deg]"></div>
-          <div className="absolute top-3/4 left-0 w-full h-1 bg-gray-700/50 transform rotate-[10deg]"></div>
-          <div className="absolute left-1/4 top-0 h-full w-1 bg-gray-700/50 transform rotate-[5deg]"></div>
-        </div>
+      {/* Map Mockup with Real Satellite View of their city */}
+      <div className="relative w-full max-w-xs mx-auto aspect-square bg-[#0a0a0c] rounded-[2rem] overflow-hidden mb-6 border-2 border-red-700/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+        
+        {/* Real Live Satellite Map Iframe */}
+        <iframe
+          title="Satellite Tracker Map"
+          src={mapUrl}
+          className="absolute inset-0 w-full h-full border-0 pointer-events-none"
+          style={{
+            filter: 'grayscale(25%) brightness(65%) contrast(120%) hue-rotate(340deg)',
+          }}
+          loading="lazy"
+        />
+
+        {/* Dark Vignette Overlay to blend the map edges gracefully */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80 pointer-events-none" />
+        <div className="absolute inset-0 bg-radial-vignette pointer-events-none" style={{
+          boxShadow: 'inset 0 0 40px rgba(0,0,0,0.9)'
+        }} />
         
         {/* Animated Radar Effect */}
         <motion.div
-          animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+          animate={{ scale: [1, 1.6, 1], opacity: [0.6, 0, 0.6] }}
           transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-0 flex items-center justify-center"
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
         >
-          <div className="w-3/4 h-3/4 border-4 border-red-500 rounded-full opacity-50"></div>
+          <div className="w-2/3 h-2/3 border-2 border-red-500 rounded-full opacity-40"></div>
         </motion.div>
         
         {/* Profile Map Pin Marker */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[60%] z-10 pointer-events-none drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]">
           <ProfileMapPin 
             profilePicUrl={profileData.profilePicUrl} 
             username={profileData.username} 
-            size={50}
+            size={52}
           />
         </div>
 
         {/* BOTÃO DESCOBRIR LOCALIZAÇÃO (Interno) */}
-        <div className="absolute bottom-1/4 left-1/2 transform -translate-x-1/2 w-[60%]">
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[75%] z-20">
           <button
             onClick={onUnlockClick}
-            className="w-full py-1.5 px-3 text-xs font-bold text-black rounded-lg bg-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95"
+            className="w-full py-2.5 px-4 text-xs font-black text-black rounded-xl bg-white shadow-xl hover:scale-[1.03] transition-all duration-300 focus:outline-none active:scale-95 uppercase tracking-wider"
           >
             DESCOBRIR LOCALIZAÇÃO
           </button>

@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion, Variants } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import { SuggestedProfile } from '../../types';
 
@@ -18,30 +17,27 @@ const InteractionProfilesCarousel: React.FC<InteractionProfilesCarouselProps> = 
   // Se não houver perfis, não renderiza nada
   if (!profiles || profiles.length === 0) return null;
 
-  // Duplicamos os perfis para criar um loop de rolagem infinito e fluido
-  const duplicatedProfiles = [...profiles, ...profiles, ...profiles];
-
-  // Configuração da animação de rolagem linear acelerada
-  const containerVariants: Variants = {
-    animate: {
-      x: ['0%', '-50%'], 
-      transition: {
-        x: {
-          repeat: Infinity,
-          ease: "linear",
-          duration: profiles.length * 1.2, // Reduzido de 3.5 para 1.2 para passar muito mais rápido
-        },
-      },
-    },
-  };
+  // Duplicamos os perfis exatamente em 2 blocos para um loop de transição de 50% perfeito
+  const duplicatedProfiles = [...profiles, ...profiles];
+  
+  // Velocidade ultrarrápida proporcional à quantidade de perfis (menor o número, mais rápido)
+  const duration = Math.max(3, profiles.length * 0.4); 
 
   return (
     <div className="w-full overflow-hidden py-4">
-      <motion.div
-        className="flex space-x-5"
-        variants={containerVariants}
-        animate="animate"
-      >
+      <style>{`
+        @keyframes marquee-scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .marquee-track {
+          display: flex;
+          width: max-content;
+          animation: marquee-scroll ${duration}s linear infinite;
+        }
+      `}</style>
+      
+      <div className="marquee-track">
         {duplicatedProfiles.map((profile, index) => {
           // Identifica se é um perfil fictício/mock (imagem padrão do sistema)
           const isMockProfile = profile.profile_pic_url === '/perfil.jpg';
@@ -49,7 +45,7 @@ const InteractionProfilesCarousel: React.FC<InteractionProfilesCarouselProps> = 
           return (
             <div 
               key={`${profile.username}-${index}`} 
-              className="flex flex-col items-center flex-shrink-0 w-24 text-center group"
+              className="flex flex-col items-center flex-shrink-0 w-24 text-center group mr-5"
             >
               {/* Container da foto de perfil */}
               <div className="relative w-20 h-24 mb-2">
@@ -93,7 +89,7 @@ const InteractionProfilesCarousel: React.FC<InteractionProfilesCarouselProps> = 
             </div>
           );
         })}
-      </motion.div>
+      </div>
     </div>
   );
 };

@@ -16,6 +16,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+    // Token do UTMify configurado nos Secrets da Supabase
+    const utmifyToken = Deno.env.get('UTMIFY_TOKEN')
+
     const payload = await req.json()
     console.log("[payment-webhook] Payload recebido:", JSON.stringify(payload));
 
@@ -101,7 +104,7 @@ serve(async (req) => {
             if (memberError) console.error("[payment-webhook] Erro ao cadastrar membro:", memberError.message);
           }
 
-          // 2. Disparo de pixel de conversão Meta
+          // 2. Disparo de pixel de conversão Meta (CAPI)
           console.log(`[payment-webhook] Disparando CAPI Purchase para email: ${leadData.email}`);
           await supabase.functions.invoke('facebook-capi', {
             body: {
@@ -117,32 +120,39 @@ serve(async (req) => {
             }
           });
 
-          // 3. Disparo de pixel de conversão UTMify
-          console.log(`[payment-webhook] Disparando UTMify Purchase para email: ${leadData.email}`);
-          const utmifyPayload = {
-            pixelId: "6a295a72acc979cfd9f187f3",
-            eventName: "purchase",
-            fullName: leadData.full_name || "",
-            email: leadData.email || "",
-            phone: leadData.phone ? leadData.phone.replace(/\D/g, '') : "",
-            cpf: leadData.document ? leadData.document.replace(/\D/g, '') : "",
-            value: Number(leadData.total_amount) || 37.90,
-            currency: "BRL"
-          };
+          // 3. Disparo de conversão Server-to-Server para UTMify usando a API oficial de transações
+          if (utmifyToken) {
+            console.log(`[payment-webhook] Enviando transação Server-to-Server para UTMify...`);
+            
+            const utmifyPayload = {
+              transacao: String(transactionId || externalRef),
+              status: "pago",
+              valor: Number(leadData.total_amount) || 37.90,
+              email: leadData.email || "",
+              nome: leadData.full_name || "Cliente SpyGram",
+              telefone: leadData.phone ? leadData.phone.replace(/\D/g, '') : "",
+              documento: leadData.document ? leadData.document.replace(/\D/g, '') : "",
+              produto_nome: "Relatório SpyGram Completo",
+              produto_id: "1"
+            };
 
-          const utmifyResponse = await fetch('https://api.utmify.com.br/api/pixel/conversion', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(utmifyPayload)
-          });
+            const utmifyResponse = await fetch('https://api.utmify.com.br/api/v1/transacoes', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${utmifyToken}`
+              },
+              body: JSON.stringify(utmifyPayload)
+            });
 
-          if (utmifyResponse.ok) {
-            console.log("[payment-webhook] Evento de compra enviado com sucesso para UTMify!");
+            if (utmifyResponse.ok) {
+              console.log("[payment-webhook] Transação enviada com sucesso para a API do UTMify!");
+            } else {
+              const utmifyErrorText = await utmifyResponse.text();
+              console.error("[payment-webhook] Erro na API do UTMify:", utmifyErrorText);
+            }
           } else {
-            const utmifyErrorText = await utmifyResponse.text();
-            console.error("[payment-webhook] Erro ao enviar evento para UTMify:", utmifyErrorText);
+            console.warn("[payment-webhook] UTMIFY_TOKEN não configurado nos secrets da Supabase.");
           }
         }
       } catch (postPayErr) {

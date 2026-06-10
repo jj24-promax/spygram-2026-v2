@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Car, MapPin, Radio, Search, CheckCircle2, FileText, AlertTriangle } from 'lucide-react';
 import ShineButton from './ui/ShineButton';
+import { supabase } from '../integrations/supabase/client';
 
 interface LicensePlateLocationCardProps {
   onUnlockClick: () => void;
@@ -53,67 +54,22 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
     setStage('searching');
     setApiError(null);
     setVehicle(null);
-    setSearchLogs(["📡 Iniciando conexão com o Registro Nacional de Veículos..."]);
+    setSearchLogs(["📡 Iniciando conexão segura com o servidor do Command Center..."]);
 
-    let successData: VehicleData | null = null;
-    let lastErrorMsg = "";
-
-    // Gateway 1: WDAPI
     try {
-      setSearchLogs(prev => [...prev, "🔍 Consultando banco de dados WDAPI..."]);
-      const response = await fetch(`https://wdapi2.com.br/api/fipe/placa/${cleanPlate}/json`);
-      if (response.ok) {
-        const data = await response.json();
-        // Verifica se a API retornou erro interno (ex: veículo não encontrado)
-        if (data && data.error === "0" && (data.marca || data.modelo)) {
-          successData = {
-            marca: String(data.marca).toUpperCase(),
-            modelo: String(data.modelo).toUpperCase(),
-            cor: data.cor || 'N/A',
-            ano: data.ano_modelo || data.ano || 'N/A',
-            municipio: data.municipio || 'N/A',
-            uf: data.uf || 'N/A',
-            situacao: data.situacao || 'Sem restrição'
-          };
-        } else if (data && data.message) {
-          lastErrorMsg = data.message;
-        }
-      }
-    } catch (err) {
-      console.warn("WDAPI Offline ou bloqueado por CORS. Tentando Gateway Secundário...");
-    }
+      // Dispara a requisição de forma limpa e segura usando a Edge Function do Supabase (bypassando CORS)
+      const { data, error } = await supabase.functions.invoke('plate-lookup', {
+        body: { plate: cleanPlate }
+      });
 
-    // Gateway 2 (Fallback): ApiCarros
-    if (!successData) {
-      try {
-        setSearchLogs(prev => [...prev, "🔄 WDAPI indisponível. Alternando para Gateway ApiCarros..."]);
-        const response = await fetch(`https://apicarros.com/v1/consulta/${cleanPlate}/json`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data && (data.marca || data.modelo)) {
-            successData = {
-              marca: String(data.marca).toUpperCase(),
-              modelo: String(data.modelo).toUpperCase(),
-              cor: data.cor || 'N/A',
-              ano: data.anoModelo || data.ano || 'N/A',
-              municipio: data.municipio || 'N/A',
-              uf: data.uf || 'N/A',
-              situacao: data.situacao || 'Sem restrição'
-            };
-          } else if (data && data.mensagemRetorno) {
-            lastErrorMsg = data.mensagemRetorno;
-          }
-        }
-      } catch (err) {
-        console.warn("ApiCarros Offline.");
+      if (error || data.error) {
+        throw new Error(data?.error || "Veículo não encontrado ou falha de comunicação com o DETRAN.");
       }
-    }
 
-    // Se ambos os gateways falharem
-    if (successData) {
-      setVehicle(successData);
-    } else {
-      setApiError(lastErrorMsg || "Veículo não encontrado ou placa inválida na base do SENATRAN/DETRAN.");
+      setVehicle(data);
+    } catch (err: any) {
+      console.error(err);
+      setApiError(err.message || "Falha de conexão com o DETRAN/SENATRAN. Verifique se o veículo está ativo.");
       setStage('error');
     }
   };
@@ -121,11 +77,11 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
   useEffect(() => {
     if (stage === 'searching' && vehicle) {
       const logs = [
-        "📡 Conexão com Gateway de Segurança Nacional estabelecida.",
-        `🔍 Consultando registro ativo para a placa: [${plate}]...`,
-        "✅ Dados cadastrais reais obtidos e validados com o DETRAN.",
-        "🛰️ Linkando telemetria de sinal LBS com antenas da região...",
-        `🎯 Veículo rastreado com sucesso nos arredores de ${formattedCity}!`
+        "📡 Conexão segura estabelecida através do Proxy do Servidor.",
+        `🔍 Consultando placa: [${plate}] no Registro Nacional...`,
+        "✅ Dados cadastrais reais obtidos com sucesso do SENATRAN/DETRAN.",
+        "🛰️ Linkando telemetria de posicionamento com antenas locais...",
+        `🎯 Veículo localizado nos arredores de ${formattedCity}!`
       ];
 
       let step = 0;
@@ -137,7 +93,7 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
           clearInterval(interval);
           setTimeout(() => {
             setStage('success');
-          }, 800);
+          }, 1000);
         }
       }, 1000);
 

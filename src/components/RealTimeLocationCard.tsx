@@ -51,19 +51,22 @@ const RealTimeLocationCard: React.FC<RealTimeLocationCardProps> = ({ profileData
       {/* Map Mockup with Real Satellite View of their city */}
       <div className="relative w-full max-w-xs mx-auto aspect-square bg-[#0a0a0c] rounded-[2rem] overflow-hidden mb-6 border-2 border-red-700/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
         
-        {/* Real Live Satellite Map Iframe */}
-        <iframe
-          title="Satellite Tracker Map"
-          src={mapUrl}
-          className="absolute inset-0 w-full h-full border-0 pointer-events-none"
-          style={{
-            filter: 'grayscale(25%) brightness(65%) contrast(120%) hue-rotate(340deg)',
-          }}
-          loading="lazy"
-        />
+        {/* Wrapper do Iframe maior para recortar e ocultar as bordas nativas do Google (Abrir no Maps, Termos e Logos) */}
+        <div className="absolute inset-0 w-full h-full scale-[1.35] origin-center pointer-events-none">
+          {/* Real Live Satellite Map Iframe */}
+          <iframe
+            title="Satellite Tracker Map"
+            src={mapUrl}
+            className="w-full h-full border-0"
+            style={{
+              filter: 'grayscale(25%) brightness(65%) contrast(120%) hue-rotate(340deg)',
+            }}
+            loading="lazy"
+          />
+        </div>
 
         {/* Dark Vignette Overlay to blend the map edges gracefully */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/85 pointer-events-none" />
         <div className="absolute inset-0 bg-radial-vignette pointer-events-none" style={{
           boxShadow: 'inset 0 0 40px rgba(0,0,0,0.9)'
         }} />

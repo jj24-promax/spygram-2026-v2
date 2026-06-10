@@ -1,6 +1,7 @@
 import type { ProfileData, SuggestedProfile, FetchResult, FeedPost, PostUser, Post } from '../../types';
 import { supabase } from '../integrations/supabase/client';
 import { classifyGender } from '../utils/genderClassifier'; // Importando classificador
+import { MOCK_MALE_NAMES, MOCK_FEMALE_NAMES } from '../../constants';
 
 // ===================================
 // UTILITY FUNCTIONS
@@ -48,19 +49,46 @@ const simpleFetch = async (campo: string, username: string): Promise<any> => {
 };
 
 /**
- * Ordena os perfis sugeridos priorizando o sexo oposto ao do alvo
+ * Garante 100% de perfis do sexo oposto ao do alvo, convertendo perfis inadequados.
  */
 function prioritizeOppositeGender(suggestions: SuggestedProfile[], targetGender?: 'male' | 'female' | 'unknown'): SuggestedProfile[] {
     if (!targetGender || targetGender === 'unknown') return suggestions;
     
     const oppositeGender = targetGender === 'male' ? 'female' : 'male';
-    
-    // Separa os de gênero oposto dos demais
+    const oppositeNames = targetGender === 'male' ? MOCK_FEMALE_NAMES : MOCK_MALE_NAMES;
+
+    // Filtra somente os que já são naturalmente do gênero oposto
     const opposites = suggestions.filter(p => p.gender === oppositeGender);
-    const sameOrUnknown = suggestions.filter(p => p.gender !== oppositeGender);
+    const result = [...opposites];
     
-    // Retorna combinando-os, deixando o gênero oposto no topo
-    return [...opposites, ...sameOrUnknown];
+    // Converte os perfis restantes de mesmo sexo em clones perfeitos do sexo oposto
+    suggestions.forEach(p => {
+      if (p.gender !== oppositeGender && result.length < 12) {
+        const randomName = oppositeNames[Math.floor(Math.random() * oppositeNames.length)];
+        const newUsername = randomName.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100);
+        result.push({
+          ...p,
+          username: newUsername,
+          fullName: randomName,
+          gender: oppositeGender
+        });
+      }
+    });
+
+    // Se ainda faltar perfis para preencher a grade, gera novos mockups femininos/masculinos
+    while (result.length < 12) {
+      const randomName = oppositeNames[Math.floor(Math.random() * oppositeNames.length)];
+      const newUsername = randomName.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100);
+      result.push({
+        username: newUsername,
+        fullName: randomName,
+        profile_pic_url: '/perfil.jpg',
+        is_private: Math.random() > 0.3,
+        gender: oppositeGender
+      });
+    }
+
+    return result;
 }
 
 // ===================================
@@ -115,7 +143,7 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
                     gender: classifyGender(p.full_name || '', p.username, ''), // Inteligência de gênero das conexões
                 }));
                 
-                // Embaralha e depois prioriza o gênero oposto
+                // Embaralha e depois prioriza e força o gênero oposto
                 suggestions = shuffleArray(suggestions);
                 suggestions = prioritizeOppositeGender(suggestions, targetGender);
             }
@@ -148,7 +176,7 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
                 gender: classifyGender(p.full_name || '', p.username, ''), // Inteligência de gênero das conexões secundárias
             }));
 
-            // Embaralha e depois prioriza o gênero oposto
+            // Embaralha e depois prioriza e força o gênero oposto
             suggestions = shuffleArray(suggestions);
             suggestions = prioritizeOppositeGender(suggestions, profileData.gender);
         }

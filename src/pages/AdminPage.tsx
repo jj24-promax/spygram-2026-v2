@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { fetchProfileData, fetchFullInvasionData } from '../services/profileService';
+import { MOCK_MALE_NAMES, MOCK_FEMALE_NAMES, MOCK_SUGGESTION_NAMES } from '../constants';
 
 interface Lead {
   id: string;
@@ -423,13 +424,45 @@ const AdminPage: React.FC = () => {
     try {
       const cleanInput = testUsername.replace(/@/g, '').trim();
       const profileResponse = await fetchProfileData(cleanInput);
-      const fullResponse = await fetchFullInvasionData(profileResponse.profile);
+      
+      let suggestions: SuggestedProfile[] = [];
+      let posts: FeedPost[] = [];
+
+      try {
+        const fullResponse = await fetchFullInvasionData(profileResponse.profile);
+        suggestions = fullResponse.suggestions || [];
+        posts = fullResponse.posts || [];
+      } catch (fullError) {
+        console.warn("API de posts/sugestões em comum offline ou erro 500. Iniciando fallback de gênero oposto...");
+      }
+
+      // ESPELHAMENTO DE SEGURANÇA: Se a API falhou ou veio vazia, aplica a mesma IA de gênero oposto do funil real!
+      if (suggestions.length === 0) {
+        const targetGender = profileResponse.profile.gender;
+        let namesToUse = MOCK_SUGGESTION_NAMES;
+        
+        if (targetGender === 'male') {
+          namesToUse = MOCK_FEMALE_NAMES; // Homem -> sugere mulheres fakes de alta qualidade
+        } else if (targetGender === 'female') {
+          namesToUse = MOCK_MALE_NAMES; // Mulher -> sugere homens fakes de alta qualidade
+        }
+
+        const shuffledNames = [...namesToUse].sort(() => Math.random() - 0.5);
+        suggestions = shuffledNames.slice(0, 12).map((name: string) => ({
+          username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
+          fullName: name,
+          profile_pic_url: '/perfil.jpg',
+          is_private: true,
+          gender: targetGender === 'male' ? 'female' : targetGender === 'female' ? 'male' : 'unknown'
+        }));
+      }
 
       setTestResult({
         profile: profileResponse.profile,
-        suggestions: fullResponse.suggestions || [],
-        posts: fullResponse.posts || []
+        suggestions: suggestions,
+        posts: posts
       });
+      
       toast.success("Análise de diagnóstico concluída!");
     } catch (err: any) {
       toast.error("Erro de busca: " + err.message);
@@ -748,7 +781,7 @@ const AdminPage: React.FC = () => {
                         <Users size={14} className="text-pink-500" /> 2. CÍRCULO ÍNTIMO (PERFIS EM COMUM BRASILEIROS)
                       </h3>
                       <span className="text-[10px] font-black text-green-400 uppercase bg-green-500/10 border border-green-500/20 px-3 py-1 rounded-full">
-                        Estrangeiros Filtrados ✅
+                        Estrangeiros Filtrados / Fallback IA Ativa ✅
                       </span>
                     </div>
 

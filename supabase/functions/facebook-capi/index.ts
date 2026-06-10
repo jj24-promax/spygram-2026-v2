@@ -5,7 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const FB_PIXEL_ID = "1960837841237992";
+// Array com os Pixel IDs suportados pelo sistema de conversão
+const FB_PIXEL_IDS = ["1960837841237992", "4532211553667672"];
 const FB_ACCESS_TOKEN = "EAAfZBE4xTtzoBRlHEaUPZBwwrqDNOzCOthex2CEpzu7xlnYU3mJEG1MplZCZBZAKc363NZBy7SMNl1LWAtlLltitkL97ty0vCA8FX3EiIqP1OpaZAwGZCZCrGR6QJRMjnDqvZCkewODaBRnZBbZAU6zt2yGLB37qgTPbFszmXYrxG37lWhU9z1LKZAQRkUG8cKAVAsmrq4gZDZD";
 
 async function sha256(text: string): Promise<string> {
@@ -46,21 +47,30 @@ serve(async (req) => {
       ]
     }
 
-    console.log(`[facebook-capi] Enviando evento ${eventName} para Pixel ${FB_PIXEL_ID}...`);
-
-    const fbResponse = await fetch(`https://graph.facebook.com/v17.0/${FB_PIXEL_ID}/events?access_token=${FB_ACCESS_TOKEN}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(payload)
+    // Executa requisições de conversão para todos os pixels configurados
+    const promises = FB_PIXEL_IDS.map(async (pixelId) => {
+      console.log(`[facebook-capi] Enviando evento ${eventName} para Pixel ${pixelId}...`);
+      try {
+        const response = await fetch(`https://graph.facebook.com/v17.0/${pixelId}/events?access_token=${FB_ACCESS_TOKEN}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        console.log(`[facebook-capi] Resposta do Pixel ${pixelId}:`, JSON.stringify(result));
+        return { pixelId, success: true, result };
+      } catch (err) {
+        console.error(`[facebook-capi] Falha no Pixel ${pixelId}:`, err.message);
+        return { pixelId, success: false, error: err.message };
+      }
     });
 
-    const fbResult = await fbResponse.json();
-    console.log(`[facebook-capi] Resposta do Meta:`, JSON.stringify(fbResult));
+    const results = await Promise.all(promises);
 
-    return new Response(JSON.stringify(fbResult), {
+    return new Response(JSON.stringify({ results }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })

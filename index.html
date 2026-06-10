@@ -29,8 +29,10 @@
         
         // DESATIVA O RASTREAMENTO AUTOMÁTICO DE EVENTOS DO FACEBOOK (Evita falsos cliques em botões)
         fbq('set', 'autoConfig', false, '1960837841237992');
+        fbq('set', 'autoConfig', false, '4532211553667672');
         
         fbq('init', '1960837841237992');
+        fbq('init', '4532211553667672'); // Inicializa o pixel correto do cliente
         fbq('track', 'PageView');
     </script>
     <!-- End Meta Pixel Code -->
@@ -70,6 +72,7 @@
     <!-- Meta Pixel fallback block for browsers without JavaScript -->
     <noscript>
         <img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1960837841237992&ev=PageView&noscript=1" />
+        <img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=4532211553667672&ev=PageView&noscript=1" />
     </noscript>
 
     <div id="root"></div>

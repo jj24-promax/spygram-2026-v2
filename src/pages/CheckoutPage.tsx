@@ -82,9 +82,12 @@ const CheckoutPage: React.FC = () => {
 
   const total = basePrice + adicionais;
 
-  // Disparo de InitiateCheckout Inicial
+  // Disparo de InitiateCheckout Inicial com delay seguro para carregar UTMify / Meta Pixels
   useEffect(() => {
-    trackFacebookEvent('InitiateCheckout', {}, { value: total });
+    const timer = setTimeout(() => {
+      trackFacebookEvent('InitiateCheckout', {}, { value: total });
+    }, 1500);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleFinalize = async () => {

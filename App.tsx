@@ -31,6 +31,7 @@ import { trackLead } from './src/services/trackingService';
 import WhatsAppButton from '@/src/components/WhatsAppButton';
 import AnalyticsTracker from '@/src/components/AnalyticsTracker';
 import { trackFacebookEvent } from './src/services/facebookService';
+import { captureUtms } from './src/utils/utm'; // Importando captura de UTMs
 
 // Componente Guardião para prender o visitante na página de vendas caso o período gratuito expire
 const TrialGuard: React.FC = () => {
@@ -64,6 +65,11 @@ const MainAppContent: React.FC = () => {
   const [confirmedPosts, setConfirmedPosts] = useState<FeedPost[]>([]);
   const { logout } = useAuth();
   const navigate = useNavigate();
+
+  // Executa a varredura inicial de UTMs assim que entra no site
+  useEffect(() => {
+    captureUtms();
+  }, []);
 
   // Redireciona imediatamente se já existir uma invasão ativa salva de forma persistente
   useEffect(() => {

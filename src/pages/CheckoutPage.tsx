@@ -10,7 +10,8 @@ import PaymentSuccessDisplay from '../components/PaymentSuccessDisplay';
 import { supabase } from '../integrations/supabase/client';
 import toast from 'react-hot-toast';
 import { trackLead } from '../services/trackingService';
-import { trackFacebookEvent } from '../services/facebookService'; // Novo Import
+import { trackFacebookEvent } from '../services/facebookService'; 
+import { addUtmsToUrl } from '../utils/utm'; // Importando propagação de UTMs
 
 const CHECKOUT_URL = 'https://go.perfectpay.com.br/PPU38CPUD1S';
 
@@ -150,12 +151,14 @@ const CheckoutPage: React.FC = () => {
             });
             toast.success("PIX Gerado!", { id: toastId });
         } else {
-            window.location.href = CHECKOUT_URL;
+            // Se houver redirecionamento forçado, anexa as UTMs para passar ao PerfectPay
+            window.location.href = addUtmsToUrl(CHECKOUT_URL);
         }
 
     } catch (err) {
         toast.error("Erro ao gerar PIX. Redirecionando...");
-        setTimeout(() => window.location.href = CHECKOUT_URL, 2000);
+        // Se falhar e precisar de redirecionamento de emergência, anexa as UTMs
+        setTimeout(() => window.location.href = addUtmsToUrl(CHECKOUT_URL), 2000);
     } finally {
         setIsProcessing(false);
     }

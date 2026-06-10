@@ -51,10 +51,10 @@ const simpleFetch = async (campo: string, username: string): Promise<any> => {
 // ===================================
 
 export async function fetchProfileData(username: string): Promise<FetchResult> {
-    const cleanUsername = username.replace(/^@+/, '').trim();
-    if (!cleanUsername) throw new Error('Username inválido');
-
     try {
+        const cleanUsername = username.replace(/^@+/, '').trim();
+        if (!cleanUsername) throw new Error('Username inválido');
+
         const { data, error } = await supabase.functions.invoke('rapidapi-profile', {
             body: { username: cleanUsername },
         });
@@ -97,42 +97,8 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
         }
         throw new Error('Perfil não encontrado.');
     } catch (error) {
-        console.warn('⚠️ Falha ao buscar dados da API. Ativando simulador inteligente de contingência...', error);
-        
-        // Gerador de nome legível baseado no username digitado
-        const words = cleanUsername.split(/[\._]/);
-        const fullName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-        // Perfil simulado inteligente de contingência (Sempre privado para aguçar a curiosidade)
-        const profile: ProfileData = {
-            username: cleanUsername.toLowerCase(),
-            fullName: fullName,
-            profilePicUrl: '/perfil.jpg',
-            biography: `🔒 Conta privada.\n✨ @${cleanUsername.toLowerCase()}\n📍 Conectado(a)`,
-            followers: Math.floor(Math.random() * 45000) + 1200,
-            following: Math.floor(Math.random() * 900) + 150,
-            postsCount: Math.floor(Math.random() * 85) + 8,
-            isVerified: false,
-            isPrivate: true,
-        };
-
-        // Gerar sugestões fictícias e realistas
-        const fallbackNames = [
-          'Ana Clara', 'Bruno Ramos', 'Camila Santos', 'Daniel Lima', 
-          'Eduarda M.', 'Felipe Silva', 'Gabriela Costa', 'Lucas Souza'
-        ];
-        
-        const suggestions: SuggestedProfile[] = fallbackNames.map((name) => {
-          const u = name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 90 + 10);
-          return {
-            username: u,
-            fullName: name,
-            profile_pic_url: '/perfil.jpg',
-            is_private: Math.random() > 0.3
-          };
-        });
-
-        return { profile, suggestions, posts: [] };
+        console.error('❌ Erro no fetchProfileData:', error);
+        throw error;
     }
 }
 
@@ -156,6 +122,7 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
         }
 
         // FILTRO: Identifica os perfis que NÃO são privados (Abertos)
+        // Pegamos os 4 primeiros perfis abertos para buscar posts reais
         const openProfiles = suggestions.filter(p => p.is_private === false).slice(0, 4);
 
         const postPromises = openProfiles.map(async (profile) => {
@@ -165,6 +132,7 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
                 const postsData = postsResponse?.results?.[0]?.data;
                 
                 if (Array.isArray(postsData) && postsData.length > 0) {
+                    // Pegamos apenas o post mais recente de cada perfil para compor a timeline
                     const item = postsData[0]; 
                     return {
                         de_usuario: {
@@ -190,6 +158,7 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
         });
 
         const resolvedPosts = await Promise.all(postPromises);
+        // Remove nulos e retorna a lista de posts reais encontrados
         const posts = resolvedPosts.filter((p): p is FeedPost => p !== null);
 
         return { suggestions, posts };

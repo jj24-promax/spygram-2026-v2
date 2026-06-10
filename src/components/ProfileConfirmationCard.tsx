@@ -84,23 +84,33 @@ const ProfileConfirmationCard: React.FC<ProfileConfirmationCardProps> = ({ profi
 
       {/* Action Buttons */}
       <div className="mt-6 space-y-3">
-        {/* Confirm Button */}
-        <button
-          onClick={onConfirm}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 text-base font-bold text-white rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-black active:scale-95"
+        {/* Confirm Button transformed to Div for anti-auto-tracking */}
+        <div
+          role="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onConfirm();
+          }}
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 text-base font-bold text-white rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-black active:scale-95 cursor-pointer select-none"
         >
           <CheckCircle className="w-5 h-5" />
           CONFIRMAR INVASÃO
-        </button>
+        </div>
         
-        {/* Correct Button */}
-        <button
-          onClick={onCorrect}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 text-base font-bold text-red-300 bg-red-900/40 border border-red-700 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-gray-900 active:scale-95"
+        {/* Correct Button transformed to Div for anti-auto-tracking */}
+        <div
+          role="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onCorrect();
+          }}
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 text-base font-bold text-red-300 bg-red-900/40 border border-red-700 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-gray-900 active:scale-95 cursor-pointer select-none"
         >
           <XCircle className="w-5 h-5" />
           Corrigir Nome de Usuário
-        </button>
+        </div>
       </div>
     </motion.div>
   );

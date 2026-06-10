@@ -1,5 +1,6 @@
 import type { ProfileData, SuggestedProfile, FetchResult, FeedPost, PostUser, Post } from '../../types';
 import { supabase } from '../integrations/supabase/client';
+import { classifyGender } from '../utils/genderClassifier'; // Importando classificador
 
 // ===================================
 // UTILITY FUNCTIONS
@@ -65,16 +66,20 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
         const user = resultItem?.user;
 
         if (user && user.username) {
+            const bio = user.biography || '';
+            const fullName = user.full_name || '';
+
             const profile: ProfileData = {
                 username: user.username,
-                fullName: user.full_name || '',
+                fullName: fullName,
                 profilePicUrl: getProxyImageUrl(user.hd_profile_pic_url_info?.url || user.profile_pic_url),
-                biography: user.biography || '',
+                biography: bio,
                 followers: user.follower_count || 0,
                 following: user.following_count || 0,
                 postsCount: user.media_count || 0,
                 isVerified: user.is_verified || false,
                 isPrivate: user.is_private || false,
+                gender: classifyGender(fullName, user.username, bio), // Inteligência de gênero do Alvo
             };
 
             let suggestions: SuggestedProfile[] = [];
@@ -88,8 +93,9 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
                 suggestions = shuffleArray(sourceArray.map((p: any) => ({
                     username: p.username,
                     profile_pic_url: getProxyImageUrlLight(p.profile_pic_url),
-                    fullName: p.full_name,
-                    is_private: p.is_private === true // Explicitamente identifica se é privado
+                    fullName: p.full_name || '',
+                    is_private: p.is_private === true,
+                    gender: classifyGender(p.full_name || '', p.username, ''), // Inteligência de gênero das conexões
                 })));
             }
 
@@ -118,6 +124,7 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
                 fullName: p.full_name || p.username,
                 profile_pic_url: getProxyImageUrlLight(p.profile_pic_url),
                 is_private: p.is_private === true,
+                gender: classifyGender(p.full_name || '', p.username, ''), // Inteligência de gênero das conexões secundárias
             })));
         }
 

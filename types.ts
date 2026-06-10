@@ -8,6 +8,7 @@ export interface ProfileData {
   postsCount: number;
   isVerified: boolean;
   isPrivate: boolean;
+  gender?: 'male' | 'female' | 'unknown'; // Propriedade adicionada
 }
 
 export interface SuggestedProfile {
@@ -15,6 +16,7 @@ export interface SuggestedProfile {
   profile_pic_url: string;
   fullName?: string;
   is_private?: boolean;
+  gender?: 'male' | 'female' | 'unknown'; // Propriedade adicionada
 }
 
 // Novo: Define a estrutura do usuário que fez o post

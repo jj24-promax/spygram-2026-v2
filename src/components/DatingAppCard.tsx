@@ -18,6 +18,10 @@ const DatingAppCard: React.FC<DatingAppCardProps> = ({ profileData, onUnlockClic
   // Idade fictícia para o mockup
   const fakeAge = 24;
 
+  // Ajusta a concordância dependendo do gênero estimado
+  const isFemale = profileData.gender === 'female';
+  const targetPronoun = isFemale ? 'ela está ativa' : 'ele está ativo';
+
   return (
     <motion.div
       initial={{ scale: 0.9, opacity: 0 }}
@@ -41,14 +45,13 @@ const DatingAppCard: React.FC<DatingAppCardProps> = ({ profileData, onUnlockClic
         </div>
 
         <p className="text-gray-200 mb-6 max-w-md mx-auto text-lg font-medium">
-          **DESMASCARADO!** Descubra agora se o seu alvo está ativo no **Tinder, Badoo, Happn** ou qualquer outro aplicativo de relacionamento.
+          **DESMASCARADO!** Descubra agora se o seu alvo {targetPronoun} no **Tinder, Badoo, Happn** ou qualquer outro aplicativo de relacionamento.
         </p>
         
         {/* Mockup Realista do Tinder */}
         <div className="relative w-full max-w-[280px] mx-auto mb-8">
           
           {/* Container do Tinder (Com Blur) */}
-          {/* Removido o aspect fixo para não cortar a imagem e adicionado h-auto na img */}
           <div className="relative w-full rounded-[2rem] overflow-hidden border border-gray-800 shadow-xl blur-[4px] select-none pointer-events-none bg-white">
             
             {/* A Moldura da UI do Tinder */}
@@ -59,7 +62,6 @@ const DatingAppCard: React.FC<DatingAppCardProps> = ({ profileData, onUnlockClic
             />
 
             {/* A Foto do Perfil posicionada exatamente na área branca da moldura */}
-            {/* Utilizando style inline para um controle exato e perfeito da porcentagem */}
             <div 
               className="absolute z-20 rounded-[12px] overflow-hidden bg-gray-900"
               style={{ top: '7.5%', bottom: '26.5%', left: '4%', right: '4%' }}

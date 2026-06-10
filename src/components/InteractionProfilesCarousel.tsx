@@ -21,7 +21,7 @@ const InteractionProfilesCarousel: React.FC<InteractionProfilesCarouselProps> = 
   // Duplicamos os perfis para criar um loop de rolagem infinito e fluido
   const duplicatedProfiles = [...profiles, ...profiles, ...profiles];
 
-  // Configuração da animação de rolagem linear
+  // Configuração da animação de rolagem linear acelerada
   const containerVariants: Variants = {
     animate: {
       x: ['0%', '-50%'], 
@@ -29,7 +29,7 @@ const InteractionProfilesCarousel: React.FC<InteractionProfilesCarouselProps> = 
         x: {
           repeat: Infinity,
           ease: "linear",
-          duration: profiles.length * 3.5, // Velocidade proporcional à quantidade de itens
+          duration: profiles.length * 1.2, // Reduzido de 3.5 para 1.2 para passar muito mais rápido
         },
       },
     },

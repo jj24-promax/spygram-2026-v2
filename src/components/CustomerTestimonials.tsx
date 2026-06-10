@@ -1,13 +1,25 @@
-import React from 'react';
-import { MessageSquareQuote, CheckCircle2, ChevronRight } from 'lucide-react';
+import React, { useRef } from 'react';
+import { MessageSquareQuote, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const CustomerTestimonials: React.FC = () => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   const screenshots = [
     { src: '/testimonials/mariana.png', name: 'Mariana' },
     { src: '/testimonials/rafael.png', name: 'Rafael' },
     { src: '/testimonials/juliana.png', name: 'Juliana' }
   ];
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 296; // Largura do card (280px) + gap (16px)
+      scrollContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   return (
     <div className="mt-16 w-full">
@@ -23,14 +35,32 @@ const CustomerTestimonials: React.FC = () => {
         </div>
       </div>
 
-      {/* Galeria Horizontal */}
-      <div className="relative w-full">
-        {/* Indicador de Scroll */}
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-purple-600/80 p-1.5 rounded-full animate-pulse md:hidden">
-          <ChevronRight size={16} className="text-white" />
-        </div>
+      {/* Galeria Horizontal com Navegação por Setas */}
+      <div className="relative w-full px-4 group">
+        
+        {/* Botão de Navegação Esquerda */}
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/70 hover:bg-purple-600 border border-white/10 text-white p-2.5 rounded-full transition-all active:scale-90 shadow-xl"
+          aria-label="Depoimento Anterior"
+        >
+          <ChevronLeft size={20} className="stroke-[2.5]" />
+        </button>
 
-        <div className="flex overflow-x-auto gap-4 px-4 pb-10 scrollbar-hide snap-x snap-mandatory">
+        {/* Botão de Navegação Direita */}
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/70 hover:bg-purple-600 border border-white/10 text-white p-2.5 rounded-full transition-all active:scale-90 shadow-xl"
+          aria-label="Próximo Depoimento"
+        >
+          <ChevronRight size={20} className="stroke-[2.5]" />
+        </button>
+
+        {/* Container com Scroll Horizontal */}
+        <div 
+          ref={scrollContainerRef}
+          className="flex overflow-x-auto gap-4 pb-10 scrollbar-hide snap-x snap-mandatory scroll-smooth"
+        >
           {screenshots.map((item, index) => (
             <motion.div
               key={index}
@@ -38,26 +68,26 @@ const CustomerTestimonials: React.FC = () => {
               whileInView={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true }}
-              className="flex-shrink-0 w-[280px] snap-center group relative"
+              className="flex-shrink-0 w-[280px] snap-center relative"
             >
               {/* Efeito de brilho ao redor do print */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/30 to-pink-600/30 rounded-[2rem] blur-xl opacity-20 group-hover:opacity-100 transition duration-500"></div>
+              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/30 to-pink-600/30 rounded-[2rem] blur-xl opacity-20 transition duration-500"></div>
               
               <div className="relative rounded-[1.8rem] overflow-hidden border border-white/10 shadow-2xl bg-black/40">
                 <img 
                   src={item.src} 
                   alt={`Depoimento de ${item.name}`} 
-                  className="w-full h-auto block object-contain" // Mantém proporção e nitidez
+                  className="w-full h-auto block object-contain"
                 />
 
                 {/* Camada inteligente de desfoque posicionada perfeitamente sobre o nome no cabeçalho */}
                 <div 
                   className="absolute bg-white/5 backdrop-blur-[6px] rounded-md border border-white/5"
                   style={{
-                    top: '5.5%',      // Ajustado de 9% para 5.5% para alinhar perfeitamente sobre o nome
-                    left: '28%',     // Começa logo após a foto de perfil
-                    width: '38%',    // Cobre o primeiro e segundo nome
-                    height: '5%'     // Cobre exatamente a linha do nome
+                    top: '5.5%',
+                    left: '28%',
+                    width: '38%',
+                    height: '5%'
                   }}
                 />
                 

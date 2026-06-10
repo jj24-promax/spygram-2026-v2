@@ -72,12 +72,13 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick, su
     setSelectedImages(shuffled.slice(0, 3));
   }, []);
 
-  // Mapeia os templates de conversa usando especificamente o 4º, 6º e 7º perfil em comum (índices 3, 5 e 6)
-  const targetIndices = [3, 5, 6];
-
+  // Mapeia os templates de conversa usando especificamente os últimos perfis em comum da lista
   const dynamicChats = CHAT_TEMPLATES.map((template, idx) => {
-    const targetIndex = targetIndices[idx];
-    const profile = suggestedProfiles[targetIndex] || suggestedProfiles[idx] || {
+    const totalProfiles = suggestedProfiles.length;
+    // Pega os índices de trás para frente (ex: total - 1, total - 2, total - 3)
+    const targetIndex = totalProfiles > idx ? totalProfiles - 1 - idx : idx;
+    
+    const profile = suggestedProfiles[targetIndex] || {
       username: `contato_oculto_${idx}`,
       profile_pic_url: '/perfil.jpg',
       fullName: 'Contato Deletado'

@@ -72,13 +72,9 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick, su
     setSelectedImages(shuffled.slice(0, 3));
   }, []);
 
-  // Mapeia os templates de conversa usando especificamente os últimos perfis em comum da lista
+  // Mapeia os templates de conversa usando especificamente os primeiros perfis (gênero oposto)
   const dynamicChats = CHAT_TEMPLATES.map((template, idx) => {
-    const totalProfiles = suggestedProfiles.length;
-    // Pega os índices de trás para frente (ex: total - 1, total - 2, total - 3)
-    const targetIndex = totalProfiles > idx ? totalProfiles - 1 - idx : idx;
-    
-    const profile = suggestedProfiles[targetIndex] || {
+    const profile = suggestedProfiles[idx] || {
       username: `contato_oculto_${idx}`,
       profile_pic_url: '/perfil.jpg',
       fullName: 'Contato Deletado'

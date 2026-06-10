@@ -218,7 +218,7 @@ const InvasionConcludedPage: React.FC = () => {
         <SectionDivider />
 
         <section className="mb-12">
-          <RecoveredDataCard onUnlockClick={handleUnlockClick} />
+          <RecoveredDataCard onUnlockClick={handleUnlockClick} suggestedProfiles={suggestedProfiles} />
         </section>
 
         <SectionDivider />

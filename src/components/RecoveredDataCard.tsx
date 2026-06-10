@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Image as ImageIcon, MessageSquare, Trash2, Lock, ShieldAlert, EyeOff } from 'lucide-react';
+import { Image as ImageIcon, MessageSquare, Trash2, Lock, ShieldAlert } from 'lucide-react';
 import ShineButton from './ui/ShineButton';
+import { SuggestedProfile } from '../../types';
 
 interface RecoveredDataCardProps {
   onUnlockClick: () => void;
+  suggestedProfiles?: SuggestedProfile[];
 }
 
 // Função para gerar um número aleatório dentro de um intervalo
@@ -29,29 +31,30 @@ const ALL_RECOVERED_IMAGES = [
   '/recovered/img_13.jpg'
 ];
 
-// Conversas deletadas forjadas com gatilhos de curiosidade extremamente fortes
-const FORGED_DELETED_CHATS = [
+// Mensagens deletadas forjadas com gatilhos de curiosidade extremamente fortes
+const CHAT_TEMPLATES = [
   {
-    sender: "Contatinho 😈 (Deletado)",
     time: "Ontem, 23:14",
     snippet: "Oi bebê, já chegou em casa? Queria repetir aquilo de ontem...",
-    isSpicy: true
   },
   {
-    sender: "Ex... 🤫 (Deletado)",
     time: "2 dias atrás",
     snippet: "Por favor, apaga essa conversa pra ninguém ver nosso papo.",
-    isSpicy: true
   },
   {
-    sender: "Número Desconhecido (Deletado)",
     time: "3 dias atrás",
     snippet: "Amei o nosso encontro de ontem, você é incrível na cama...",
-    isSpicy: true
   }
 ];
 
-const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) => {
+// Função para ofuscar o nome de usuário (ex: neymarjr -> neym****)
+const maskUsername = (username: string) => {
+  if (!username) return '*****';
+  if (username.length <= 4) return `${username.substring(0, 2)}**`;
+  return `${username.substring(0, 4)}****`;
+};
+
+const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick, suggestedProfiles = [] }) => {
   const [photosCount, setPhotosCount] = useState(0);
   const [chatsCount, setChatsCount] = useState(0);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -68,6 +71,22 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) 
     const shuffled = [...ALL_RECOVERED_IMAGES].sort(() => 0.5 - Math.random());
     setSelectedImages(shuffled.slice(0, 3));
   }, []);
+
+  // Mapeia os templates de conversa usando os perfis em comum reais do alvo
+  const dynamicChats = CHAT_TEMPLATES.map((template, idx) => {
+    const profile = suggestedProfiles[idx] || {
+      username: `contato_oculto_${idx}`,
+      profile_pic_url: '/perfil.jpg',
+      fullName: 'Contato Deletado'
+    };
+
+    return {
+      sender: `@${maskUsername(profile.username)} (Deletado)`,
+      avatar: profile.profile_pic_url,
+      time: template.time,
+      snippet: template.snippet
+    };
+  });
 
   return (
     <motion.div
@@ -152,7 +171,7 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) 
           </div>
         )}
 
-        {/* NOVO: Trechos de Conversas Deletadas Comprometedoras */}
+        {/* Trechos de Conversas Deletadas Comprometedoras (Dinâmico) */}
         <div className="w-full max-w-[360px] mx-auto mb-8 bg-black/60 border border-pink-700/50 rounded-2xl p-4 text-left shadow-2xl relative">
           <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
             <ShieldAlert className="w-4 h-4 text-red-500 animate-pulse" />
@@ -160,15 +179,19 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) 
           </div>
 
           <div className="space-y-4">
-            {FORGED_DELETED_CHATS.map((chat, idx) => (
+            {dynamicChats.map((chat, idx) => (
               <div 
                 key={idx} 
                 onClick={onUnlockClick} 
                 className="flex items-start gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-pink-500/20 transition-all cursor-pointer relative overflow-hidden group"
               >
-                {/* Ícone de Usuário Bloqueado com aviso vermelho */}
-                <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0 relative">
-                  <span className="text-red-500 text-xs font-black">🕵️</span>
+                {/* Foto real do perfil em comum carregado */}
+                <div className="w-10 h-10 rounded-full overflow-hidden border border-red-500/30 flex-shrink-0 relative bg-gray-900">
+                  <img 
+                    src={chat.avatar} 
+                    alt={chat.sender} 
+                    className="w-full h-full object-cover opacity-90 blur-[1px]" 
+                  />
                   <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-black animate-pulse" />
                 </div>
 

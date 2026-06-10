@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProfileData, SuggestedProfile } from '../../types';
 import { ShieldCheck, ChevronDown, Award, Zap, Lock, MapPin, Search, ShieldAlert, Check } from 'lucide-react';
@@ -13,7 +13,8 @@ import PriceDiscountCard from '../components/PriceDiscountCard';
 import LiveChatFAQ from '../components/LiveChatFAQ';
 import GuaranteeBanner from '../components/GuaranteeBanner';
 import StaticFAQSection from '../components/StaticFAQSection';
-import CustomerTestimonials from '../components/CustomerTestimonials'; // Importando novo componente
+import CustomerTestimonials from '../components/CustomerTestimonials';
+import SalesNotification from '../components/SalesNotification'; // Importação já existente
 import { motion, AnimatePresence } from 'framer-motion';
 import ShineButton from '../components/ui/ShineButton'; 
 import { MOCK_SUGGESTION_NAMES } from '../../constants';
@@ -99,7 +100,9 @@ const InvasionConcludedPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-transparent text-gray-200 font-sans selection:bg-purple-500/30 overflow-x-hidden">
-      
+      {/* Alertas de Venda em Tempo Real ativados nesta página */}
+      <SalesNotification />
+
       {/* Modal de Alerta de Fim de Teste */}
       <AnimatePresence>
         {showConcludedWarning && (

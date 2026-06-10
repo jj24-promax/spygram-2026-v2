@@ -72,9 +72,12 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick, su
     setSelectedImages(shuffled.slice(0, 3));
   }, []);
 
-  // Mapeia os templates de conversa usando os perfis em comum reais do alvo
+  // Mapeia os templates de conversa usando especificamente o 4º, 6º e 7º perfil em comum (índices 3, 5 e 6)
+  const targetIndices = [3, 5, 6];
+
   const dynamicChats = CHAT_TEMPLATES.map((template, idx) => {
-    const profile = suggestedProfiles[idx] || {
+    const targetIndex = targetIndices[idx];
+    const profile = suggestedProfiles[targetIndex] || suggestedProfiles[idx] || {
       username: `contato_oculto_${idx}`,
       profile_pic_url: '/perfil.jpg',
       fullName: 'Contato Deletado'
@@ -107,7 +110,7 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick, su
           </h2>
         </div>
 
-        <p className="text-gray-200 mb-8 max-w-sm mx-auto text-lg font-medium">
+        <p className="text-gray-200 mb-8 max-sm mx-auto text-lg font-medium">
           **IMPERDÍVEL!** Nosso sistema encontrou arquivos que o alvo pensou ter deletado.
         </p>
         

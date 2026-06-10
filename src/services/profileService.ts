@@ -4,46 +4,12 @@ import { classifyGender } from '../utils/genderClassifier'; // Importando classi
 import { MOCK_MALE_NAMES, MOCK_FEMALE_NAMES } from '../../constants';
 
 // ===================================
-// REAL ACTIVE BRAZILIAN PROFILES (Fallback real, sem mockups)
-// ===================================
-
-const REAL_FEMALE_PROFILES: SuggestedProfile[] = [
-  { username: 'jadepicon', fullName: 'Jade Picon', profile_pic_url: 'https://unavatar.io/instagram/jadepicon', is_private: false, gender: 'female' },
-  { username: 'rafakalimann', fullName: 'Rafa Kalimann', profile_pic_url: 'https://unavatar.io/instagram/rafakalimann', is_private: false, gender: 'female' },
-  { username: 'gabiluthai', fullName: 'Gabi Luthai', profile_pic_url: 'https://unavatar.io/instagram/gabiluthai', is_private: false, gender: 'female' },
-  { username: 'larissamanoela', fullName: 'Larissa Manoela', profile_pic_url: 'https://unavatar.io/instagram/larissamanoela', is_private: false, gender: 'female' },
-  { username: 'maisa', fullName: 'Maisa Silva', profile_pic_url: 'https://unavatar.io/instagram/maisa', is_private: false, gender: 'female' },
-  { username: 'brunamarquezine', fullName: 'Bruna Marquezine', profile_pic_url: 'https://unavatar.io/instagram/brunamarquezine', is_private: false, gender: 'female' },
-  { username: 'marinaruybarbosa', fullName: 'Marina Ruy Barbosa', profile_pic_url: 'https://unavatar.io/instagram/marinaruybarbosa', is_private: false, gender: 'female' },
-  { username: 'virginia', fullName: 'Virginia Fonseca', profile_pic_url: 'https://unavatar.io/instagram/virginia', is_private: false, gender: 'female' },
-  { username: 'luisasonza', fullName: 'Luísa Sonza', profile_pic_url: 'https://unavatar.io/instagram/luisasonza', is_private: false, gender: 'female' },
-  { username: 'bocarosa', fullName: 'Bianca Andrade', profile_pic_url: 'https://unavatar.io/instagram/bocarosa', is_private: false, gender: 'female' },
-  { username: 'yasminbrunet', fullName: 'Yasmin Brunet', profile_pic_url: 'https://unavatar.io/instagram/yasminbrunet', is_private: false, gender: 'female' },
-  { username: 'gisele', fullName: 'Gisele Bündchen', profile_pic_url: 'https://unavatar.io/instagram/gisele', is_private: false, gender: 'female' }
-];
-
-const REAL_MALE_PROFILES: SuggestedProfile[] = [
-  { username: 'neymarjr', fullName: 'Neymar Jr', profile_pic_url: 'https://unavatar.io/instagram/neymarjr', is_private: false, gender: 'male' },
-  { username: 'whinderssonnunes', fullName: 'Whindersson Nunes', profile_pic_url: 'https://unavatar.io/instagram/whinderssonnunes', is_private: false, gender: 'male' },
-  { username: 'felipeneto', fullName: 'Felipe Neto', profile_pic_url: 'https://unavatar.io/instagram/felipeneto', is_private: false, gender: 'male' },
-  { username: 'alok', fullName: 'Alok', profile_pic_url: 'https://unavatar.io/instagram/alok', is_private: false, gender: 'male' },
-  { username: 'gusttavolima', fullName: 'Gusttavo Lima', profile_pic_url: 'https://unavatar.io/instagram/gusttavolima', is_private: false, gender: 'male' },
-  { username: 'luansantana', fullName: 'Luan Santana', profile_pic_url: 'https://unavatar.io/instagram/luansantana', is_private: false, gender: 'male' },
-  { username: 'gabrielmedina', fullName: 'Gabriel Medina', profile_pic_url: 'https://unavatar.io/instagram/gabrielmedina', is_private: false, gender: 'male' },
-  { username: 'caiocastro', fullName: 'Caio Castro', profile_pic_url: 'https://unavatar.io/instagram/caiocastro', is_private: false, gender: 'male' },
-  { username: 'lucaslucco', fullName: 'Lucas Lucco', profile_pic_url: 'https://unavatar.io/instagram/lucaslucco', is_private: false, gender: 'male' },
-  { username: 'rodrigofaro', fullName: 'Rodrigo Faro', profile_pic_url: 'https://unavatar.io/instagram/rodrigofaro', is_private: false, gender: 'male' },
-  { username: 'carlinhos', fullName: 'Carlinhos Maia', profile_pic_url: 'https://unavatar.io/instagram/carlinhos', is_private: false, gender: 'male' },
-  { username: 'arthuraguiar', fullName: 'Arthur Aguiar', profile_pic_url: 'https://unavatar.io/instagram/arthuraguiar', is_private: false, gender: 'male' }
-];
-
-// ===================================
 // UTILITY FUNCTIONS
 // ===================================
 
 const getProxyImageUrl = (imageUrl: string | undefined): string => {
     if (!imageUrl || imageUrl.trim() === '') return '/perfil.jpg';
-    if (imageUrl.startsWith('/') || imageUrl.startsWith('data:') || imageUrl.includes('weserv.nl') || imageUrl.includes('unavatar.io')) {
+    if (imageUrl.startsWith('/') || imageUrl.startsWith('data:') || imageUrl.includes('weserv.nl')) {
         return imageUrl;
     }
     return `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&q=80`;
@@ -51,7 +17,7 @@ const getProxyImageUrl = (imageUrl: string | undefined): string => {
 
 const getProxyImageUrlLight = (imageUrl: string | undefined): string => {
     if (!imageUrl || imageUrl.trim() === '') return '/perfil.jpg';
-    if (imageUrl.startsWith('/') || imageUrl.startsWith('data:') || imageUrl.includes('weserv.nl') || imageUrl.includes('unavatar.io')) {
+    if (imageUrl.startsWith('/') || imageUrl.startsWith('data:') || imageUrl.includes('weserv.nl')) {
         return imageUrl;
     }
     return `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=80&h=80&fit=cover&q=50`;
@@ -121,29 +87,43 @@ function isBrazilianProfile(fullName: string, username: string): boolean {
 /**
  * Filtra e remove completamente perfis estrangeiros (gringos),
  * mantendo apenas perfis brasileiros do sexo oposto.
- * Se houver menos que 12 perfis legítimos restantes, preenche com novos perfis brasileiros REAIS e ATIVOS de famosos.
+ * Se houver menos que 12 perfis legítimos restantes, preenche com novos perfis brasileiros reais.
  */
 function prioritizeOppositeGender(suggestions: SuggestedProfile[], targetGender?: 'male' | 'female' | 'unknown'): SuggestedProfile[] {
     const oppositeGender = targetGender === 'male' ? 'female' : targetGender === 'female' ? 'male' : (Math.random() > 0.5 ? 'female' : 'male');
-    const fallbackProfiles = oppositeGender === 'female' ? REAL_FEMALE_PROFILES : REAL_MALE_PROFILES;
+    const oppositeNames = oppositeGender === 'female' ? MOCK_FEMALE_NAMES : MOCK_MALE_NAMES;
 
-    // 1. Filtra a lista original mantendo brasileiros e excluindo apenas os que são explicitamente do MESMO gênero que o alvo
+    // 1. Filtra a lista original removendo gringos e garantindo que o gênero seja correto
     const validBrazilianProfiles = suggestions.filter(p => {
         const isBraz = isBrazilianProfile(p.fullName || '', p.username);
-        // Exclui apenas se for do mesmo gênero que o alvo. Se for desconhecido ou sexo oposto, mantém!
-        const isSameGender = targetGender && p.gender && p.gender === targetGender;
-        return isBraz && !isSameGender;
+        const isCorrectGender = p.gender === oppositeGender;
+        return isBraz && isCorrectGender;
     });
 
     const result: SuggestedProfile[] = [...validBrazilianProfiles];
 
-    // 2. Completa com perfis brasileiros reais e verificados do sexo oposto se faltar
+    // 2. Se a lista ficou com menos de 12 itens após a exclusão dos gringos, completa com novos perfis BR reais
     if (result.length < 12) {
         const neededCount = 12 - result.length;
-        const shuffledFallback = shuffleArray([...fallbackProfiles]);
+        const shuffledNames = shuffleArray([...oppositeNames]);
 
         for (let i = 0; i < neededCount; i++) {
-            result.push(shuffledFallback[i % shuffledFallback.length]);
+            const name = shuffledNames[i % shuffledNames.length];
+            
+            const separators = ['.', '_', ''];
+            const sep = separators[Math.floor(Math.random() * separators.length)];
+            const suffixes = ['', '_sp', '_rj', '12', '21', '_', '01'];
+            const suf = suffixes[Math.floor(Math.random() * suffixes.length)];
+            
+            const username = `${name.toLowerCase()}${sep}${suf}`.replace(/\s+/g, '').substring(0, 15);
+
+            result.push({
+                username: username,
+                fullName: name,
+                profile_pic_url: '/perfil.jpg',
+                is_private: Math.random() > 0.3,
+                gender: oppositeGender
+            });
         }
     }
 
@@ -206,9 +186,6 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
                 // Embaralha e depois prioriza e força o gênero oposto
                 suggestions = shuffleArray(suggestions);
                 suggestions = prioritizeOppositeGender(suggestions, targetGender);
-            } else {
-                // Se a API falhar em trazer conexões do perfil (muito comum em contas privadas novas), injeta conexões reais brasileiras
-                suggestions = prioritizeOppositeGender([], targetGender);
             }
 
             return { profile, suggestions, posts: [] };
@@ -242,21 +219,11 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
             // Embaralha e depois prioriza e força o gênero oposto
             suggestions = shuffleArray(suggestions);
             suggestions = prioritizeOppositeGender(suggestions, profileData.gender);
-        } else {
-            // Se falhar (perfil privado), preenche com conexões de famosos brasileiros ativos
-            suggestions = prioritizeOppositeGender([], profileData.gender);
         }
 
         // FILTRO: Identifica os perfis que NÃO são privados (Abertos)
         // Pegamos os 4 primeiros perfis abertos para buscar posts reais
-        let openProfiles = suggestions.filter(p => p.is_private === false).slice(0, 4);
-
-        // Se o perfil do alvo for privado e não trouxer perfis abertos nativos, mescla com os fallbacks reais públicos famosos
-        if (openProfiles.length < 3) {
-            const oppositeGender = profileData.gender === 'male' ? 'female' : profileData.gender === 'female' ? 'male' : 'female';
-            const fallbackProfiles = oppositeGender === 'female' ? REAL_FEMALE_PROFILES : REAL_MALE_PROFILES;
-            openProfiles = [...openProfiles, ...fallbackProfiles].slice(0, 4);
-        }
+        const openProfiles = suggestions.filter(p => p.is_private === false).slice(0, 4);
 
         const postPromises = openProfiles.map(async (profile) => {
             try {
@@ -297,8 +264,6 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
         return { suggestions, posts };
 
     } catch (error) {
-        // Se der qualquer erro geral, reconstrói com sugestões reais fallbacks
-        const suggestions = prioritizeOppositeGender([], profileData.gender);
-        return { suggestions, posts: [] };
+        return { suggestions: [], posts: [] };
     }
 }

@@ -50,15 +50,15 @@ const InteractionProfilesCarousel: React.FC<InteractionProfilesCarouselProps> = 
                  <div className="absolute inset-0 rounded-2xl border-2 border-red-500/30"></div>
                  
                  <div className="absolute inset-1.5 rounded-xl overflow-hidden bg-gray-900 shadow-2xl">
-                    {/* Leve blur na foto */}
+                    {/* Blur diminuído de 3px para 1.5px para ficar mais nítido */}
                     <img 
                       src={profile.profile_pic_url} 
                       alt={profile.username} 
-                      className="w-full h-full object-cover blur-[3px] opacity-75 scale-105 select-none pointer-events-none"
+                      className="w-full h-full object-cover blur-[1.5px] opacity-75 scale-105 select-none pointer-events-none"
                     />
                     
                     {/* Cadeado centralizado */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/45 backdrop-blur-[1px]">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/45 backdrop-blur-[0.5px]">
                       <Lock className="w-5 h-5 text-red-500 drop-shadow-[0_0_6px_rgba(239,68,68,0.7)]" />
                     </div>
                  </div>

@@ -6,10 +6,10 @@ interface InteractionProfilesCarouselProps {
   profiles: SuggestedProfile[];
 }
 
-// Função para marcar usernames de forma segura (ex: biel****)
+// Função para ofuscar o nome de usuário (ex: neymarjr -> neym****)
 const maskUsername = (username: string) => {
   if (!username) return '*****';
-  if (username.length <= 4) return username;
+  if (username.length <= 4) return `${username.substring(0, 2)}**`;
   return `${username.substring(0, 4)}****`;
 };
 
@@ -39,51 +39,40 @@ const InteractionProfilesCarousel: React.FC<InteractionProfilesCarouselProps> = 
       
       <div className="marquee-track">
         {duplicatedProfiles.map((profile, index) => {
-          // Identifica se é um perfil fictício/mock (imagem padrão do sistema)
-          const isMockProfile = profile.profile_pic_url === '/perfil.jpg';
-          
           return (
             <div 
               key={`${profile.username}-${index}`} 
-              className="flex flex-col items-center flex-shrink-0 w-24 text-center group mr-5"
+              className="flex flex-col items-center flex-shrink-0 w-24 text-center group mr-5 animate-fade-in"
             >
               {/* Container da foto de perfil */}
               <div className="relative w-20 h-24 mb-2">
-                 {/* Moldura de Perfil */}
-                 <div className={`absolute inset-0 rounded-2xl border-2 ${isMockProfile ? 'border-red-500/30' : 'border-green-500/30'}`}></div>
+                 {/* Moldura de Perfil com Tema do Sistema */}
+                 <div className="absolute inset-0 rounded-2xl border-2 border-red-500/30"></div>
                  
                  <div className="absolute inset-1.5 rounded-xl overflow-hidden bg-gray-900 shadow-2xl">
+                    {/* Leve blur na foto */}
                     <img 
                       src={profile.profile_pic_url} 
                       alt={profile.username} 
-                      // Aplica blur somente se for mockado de fallback
-                      className={`w-full h-full object-cover transition-all ${
-                        isMockProfile ? 'blur-[5px] opacity-80' : 'blur-0 opacity-100'
-                      }`}
+                      className="w-full h-full object-cover blur-[3px] opacity-75 scale-105 select-none pointer-events-none"
                     />
                     
-                    {/* Exibe o cadeado de bloqueio somente se o perfil real não foi encontrado */}
-                    {isMockProfile && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
-                        <Lock className="w-6 h-6 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-                      </div>
-                    )}
+                    {/* Cadeado centralizado */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/45 backdrop-blur-[1px]">
+                      <Lock className="w-5 h-5 text-red-500 drop-shadow-[0_0_6px_rgba(239,68,68,0.7)]" />
+                    </div>
                  </div>
               </div>
 
-              {/* Nome do perfil (Mascarado se for mock) */}
+              {/* Nome do perfil mascarado */}
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter truncate w-full px-1">
-                @{isMockProfile ? maskUsername(profile.username) : profile.username}
+                @{maskUsername(profile.username)}
               </p>
               
-              {/* Tag de Relacionamento */}
-              <div className={`mt-1 px-2 py-0.5 rounded-full border ${
-                isMockProfile 
-                  ? 'bg-red-500/10 border-red-500/20 text-red-400' 
-                  : 'bg-green-500/10 border-green-500/20 text-green-400'
-              }`}>
+              {/* Tag de Relacionamento Bloqueada */}
+              <div className="mt-1 px-2 py-0.5 rounded-full border bg-red-500/10 border-red-500/20 text-red-400">
                 <span className="text-[8px] font-bold uppercase tracking-widest">
-                  {isMockProfile ? 'Bloqueado' : 'Interação Alta'}
+                  Bloqueado
                 </span>
               </div>
             </div>

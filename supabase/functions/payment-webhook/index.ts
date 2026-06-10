@@ -81,7 +81,7 @@ serve(async (req) => {
       try {
         const { data: leadData } = await supabase
           .from('leads')
-          .select('email, phone, total_amount')
+          .select('email, phone, total_amount, full_name, document')
           .eq('id', leadIdToUnlock)
           .single();
 
@@ -116,11 +116,38 @@ serve(async (req) => {
               }
             }
           });
+
+          // 3. Disparo de pixel de conversão UTMify
+          console.log(`[payment-webhook] Disparando UTMify Purchase para email: ${leadData.email}`);
+          const utmifyPayload = {
+            pixelId: "6a295a72acc979cfd9f187f3",
+            eventName: "purchase",
+            fullName: leadData.full_name || "",
+            email: leadData.email || "",
+            phone: leadData.phone ? leadData.phone.replace(/\D/g, '') : "",
+            cpf: leadData.document ? leadData.document.replace(/\D/g, '') : "",
+            value: Number(leadData.total_amount) || 37.90,
+            currency: "BRL"
+          };
+
+          const utmifyResponse = await fetch('https://api.utmify.com.br/api/pixel/conversion', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(utmifyPayload)
+          });
+
+          if (utmifyResponse.ok) {
+            console.log("[payment-webhook] Evento de compra enviado com sucesso para UTMify!");
+          } else {
+            const utmifyErrorText = await utmifyResponse.text();
+            console.error("[payment-webhook] Erro ao enviar evento para UTMify:", utmifyErrorText);
+          }
         }
       } catch (postPayErr) {
         console.error("[payment-webhook] Falha ao processar ações automáticas pós-venda:", postPayErr.message);
       }
-      // ----------------------------------------------------
     } else {
       console.warn(`[payment-webhook] Não liberado. Lead: ${leadIdToUnlock}, Status: ${rawStatus}`);
     }

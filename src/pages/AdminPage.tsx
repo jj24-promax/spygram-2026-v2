@@ -422,12 +422,28 @@ const AdminPage: React.FC = () => {
     setTestResult(null);
     try {
       const cleanInput = testUsername.replace(/@/g, '').trim();
+      
+      // Chamada sequencial para diagnosticar e unificar as fontes de API
       const profileResponse = await fetchProfileData(cleanInput);
       const fullResponse = await fetchFullInvasionData(profileResponse.profile);
 
+      // Sincroniza e de-duplica as sugestões coletadas de ambas as requisições para evitar listas vazias
+      const mergedSuggestions = [
+        ...(fullResponse.suggestions || []),
+        ...(profileResponse.suggestions || [])
+      ];
+
+      const uniqueSuggestionsMap = new Map();
+      mergedSuggestions.forEach(s => {
+        if (s && s.username) {
+          uniqueSuggestionsMap.set(s.username.toLowerCase(), s);
+        }
+      });
+      const uniqueSuggestions = Array.from(uniqueSuggestionsMap.values()).slice(0, 12);
+
       setTestResult({
         profile: profileResponse.profile,
-        suggestions: fullResponse.suggestions || [],
+        suggestions: uniqueSuggestions,
         posts: fullResponse.posts || []
       });
       toast.success("Análise de diagnóstico concluída!");

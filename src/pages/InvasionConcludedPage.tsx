@@ -17,7 +17,7 @@ import CustomerTestimonials from '../components/CustomerTestimonials';
 import SalesNotification from '../components/SalesNotification'; // Importação já existente
 import { motion, AnimatePresence } from 'framer-motion';
 import ShineButton from '../components/ui/ShineButton'; 
-import { MOCK_SUGGESTION_NAMES } from '../../constants';
+import { MOCK_MALE_NAMES, MOCK_FEMALE_NAMES, MOCK_SUGGESTION_NAMES } from '../../constants';
 
 // Modificado para evitar uso de genéricos que conflitam com JSX no parser do esbuild
 function shuffle(array: any[]): any[] {
@@ -64,10 +64,19 @@ const InvasionConcludedPage: React.FC = () => {
       // Trava permanentemente o acesso à página concluída
       localStorage.setItem('spygram_trial_expired', 'true');
 
+      const targetGender = data.profileData?.gender;
+
       if (data.suggestedProfiles && data.suggestedProfiles.length > 0) {
         setSuggestedProfiles(data.suggestedProfiles);
       } else {
-        const shuffledNames = shuffle([...MOCK_SUGGESTION_NAMES]);
+        let namesToUse = MOCK_SUGGESTION_NAMES;
+        if (targetGender === 'male') {
+          namesToUse = MOCK_FEMALE_NAMES;
+        } else if (targetGender === 'female') {
+          namesToUse = MOCK_MALE_NAMES;
+        }
+
+        const shuffledNames = shuffle([...namesToUse]);
         const mocks = shuffledNames.slice(0, 10).map((name: any) => ({
           username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
           fullName: name,
@@ -248,6 +257,7 @@ const InvasionConcludedPage: React.FC = () => {
         <SectionDivider />
 
         <LiveChatFAQ />
+        <hover className="cursor-pointer" />
         <GuaranteeBanner onUnlockClick={handleUnlockClick} />
         <StaticFAQSection />
 

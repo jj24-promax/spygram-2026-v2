@@ -47,6 +47,22 @@ const simpleFetch = async (campo: string, username: string): Promise<any> => {
     }
 };
 
+/**
+ * Ordena os perfis sugeridos priorizando o sexo oposto ao do alvo
+ */
+function prioritizeOppositeGender(suggestions: SuggestedProfile[], targetGender?: 'male' | 'female' | 'unknown'): SuggestedProfile[] {
+    if (!targetGender || targetGender === 'unknown') return suggestions;
+    
+    const oppositeGender = targetGender === 'male' ? 'female' : 'male';
+    
+    // Separa os de gênero oposto dos demais
+    const opposites = suggestions.filter(p => p.gender === oppositeGender);
+    const sameOrUnknown = suggestions.filter(p => p.gender !== oppositeGender);
+    
+    // Retorna combinando-os, deixando o gênero oposto no topo
+    return [...opposites, ...sameOrUnknown];
+}
+
 // ===================================
 // EXPORTED FUNCTIONS
 // ===================================
@@ -68,6 +84,7 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
         if (user && user.username) {
             const bio = user.biography || '';
             const fullName = user.full_name || '';
+            const targetGender = classifyGender(fullName, user.username, bio);
 
             const profile: ProfileData = {
                 username: user.username,
@@ -79,7 +96,7 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
                 postsCount: user.media_count || 0,
                 isVerified: user.is_verified || false,
                 isPrivate: user.is_private || false,
-                gender: classifyGender(fullName, user.username, bio), // Inteligência de gênero do Alvo
+                gender: targetGender, // Inteligência de gênero do Alvo
             };
 
             let suggestions: SuggestedProfile[] = [];
@@ -90,13 +107,17 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
             const sourceArray = (Array.isArray(facepile) && facepile.length > 0) ? facepile : chaining;
 
             if (Array.isArray(sourceArray)) {
-                suggestions = shuffleArray(sourceArray.map((p: any) => ({
+                suggestions = sourceArray.map((p: any) => ({
                     username: p.username,
                     profile_pic_url: getProxyImageUrlLight(p.profile_pic_url),
                     fullName: p.full_name || '',
                     is_private: p.is_private === true,
                     gender: classifyGender(p.full_name || '', p.username, ''), // Inteligência de gênero das conexões
-                })));
+                }));
+                
+                // Embaralha e depois prioriza o gênero oposto
+                suggestions = shuffleArray(suggestions);
+                suggestions = prioritizeOppositeGender(suggestions, targetGender);
             }
 
             return { profile, suggestions, posts: [] };
@@ -119,13 +140,17 @@ export async function fetchFullInvasionData(profileData: ProfileData): Promise<{
         const suggestionsData = suggestionsResponse?.results?.[0]?.data;
         
         if (Array.isArray(suggestionsData)) {
-            suggestions = shuffleArray(suggestionsData.map((p: any) => ({
+            suggestions = suggestionsData.map((p: any) => ({
                 username: p.username || '',
                 fullName: p.full_name || p.username,
                 profile_pic_url: getProxyImageUrlLight(p.profile_pic_url),
                 is_private: p.is_private === true,
                 gender: classifyGender(p.full_name || '', p.username, ''), // Inteligência de gênero das conexões secundárias
-            })));
+            }));
+
+            // Embaralha e depois prioriza o gênero oposto
+            suggestions = shuffleArray(suggestions);
+            suggestions = prioritizeOppositeGender(suggestions, profileData.gender);
         }
 
         // FILTRO: Identifica os perfis que NÃO são privados (Abertos)

@@ -9,7 +9,7 @@ import LockedFeatureModal from '../components/LockedFeatureModal';
 import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
 import './MessagesPage.css';
 import { ProfileData, SuggestedProfile } from '../../types';
-import { MOCK_SUGGESTION_NAMES } from '../../constants';
+import { MOCK_MALE_NAMES, MOCK_FEMALE_NAMES, MOCK_SUGGESTION_NAMES } from '../../constants';
 
 export interface Story {
   id: string;
@@ -47,6 +47,8 @@ const MessagesPage: React.FC = () => {
       const data = JSON.parse(storedDataRaw);
       setProfileData(data.profileData);
 
+      const targetGender = data.profileData?.gender;
+
       // Se já houver mensagens geradas para este lead, usamos elas
       if (data.generatedStories && data.generatedMessages) {
         setStories(data.generatedStories);
@@ -58,7 +60,15 @@ const MessagesPage: React.FC = () => {
       let suggestedProfiles: SuggestedProfile[] = data.suggestedProfiles || [];
       
       if (suggestedProfiles.length === 0) {
-        const shuffledNames = [...MOCK_SUGGESTION_NAMES].sort(() => 0.5 - Math.random());
+        // Determina os nomes baseados no sexo oposto ao do alvo
+        let namesToUse = MOCK_SUGGESTION_NAMES;
+        if (targetGender === 'male') {
+          namesToUse = MOCK_FEMALE_NAMES;
+        } else if (targetGender === 'female') {
+          namesToUse = MOCK_MALE_NAMES;
+        }
+
+        const shuffledNames = [...namesToUse].sort(() => 0.5 - Math.random());
         suggestedProfiles = shuffledNames.slice(0, 12).map((name) => ({
           username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
           fullName: name,

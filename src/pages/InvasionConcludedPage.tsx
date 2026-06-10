@@ -17,6 +17,7 @@ import CustomerTestimonials from '../components/CustomerTestimonials';
 import SalesNotification from '../components/SalesNotification'; // Importação já existente
 import { motion, AnimatePresence } from 'framer-motion';
 import ShineButton from '../components/ui/ShineButton'; 
+import { MOCK_MALE_NAMES, MOCK_FEMALE_NAMES, MOCK_SUGGESTION_NAMES } from '../../constants';
 
 // Modificado para evitar uso de genéricos que conflitam com JSX no parser do esbuild
 function shuffle(array: any[]): any[] {
@@ -63,10 +64,25 @@ const InvasionConcludedPage: React.FC = () => {
       // Trava permanentemente o acesso à página concluída
       localStorage.setItem('spygram_trial_expired', 'true');
 
+      const targetGender = data.profileData?.gender;
+
       if (data.suggestedProfiles && data.suggestedProfiles.length > 0) {
         setSuggestedProfiles(data.suggestedProfiles);
       } else {
-        setSuggestedProfiles([]);
+        let namesToUse = MOCK_SUGGESTION_NAMES;
+        if (targetGender === 'male') {
+          namesToUse = MOCK_FEMALE_NAMES;
+        } else if (targetGender === 'female') {
+          namesToUse = MOCK_MALE_NAMES;
+        }
+
+        const shuffledNames = shuffle([...namesToUse]);
+        const mocks = shuffledNames.slice(0, 10).map((name: any) => ({
+          username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
+          fullName: name,
+          profile_pic_url: '/perfil.jpg', 
+        }));
+        setSuggestedProfiles(mocks);
       }
     } else {
       navigate('/');
@@ -184,18 +200,16 @@ const InvasionConcludedPage: React.FC = () => {
         <section className="mb-12 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden group">
           <ProfileCardDetailed profileData={profileData} />
           
-          {suggestedProfiles.length > 0 && (
-            <div className="px-8 pb-8">
-              <div className="w-full h-px bg-white/10 mb-8" />
-              <div className="flex items-center gap-3 mb-4">
-                <Award className="w-6 h-6 text-purple-400" />
-                <h2 className="text-xl font-black text-white uppercase tracking-tight">Círculo Íntimo</h2>
-              </div>
-              <p className="text-sm text-gray-400 mb-6 text-left">Identificamos os perfis que possuem as interações mais frequentes com o alvo.</p>
-              
-              <InteractionProfilesCarousel profiles={suggestedProfiles} />
+          <div className="px-8 pb-8">
+            <div className="w-full h-px bg-white/10 mb-8" />
+            <div className="flex items-center gap-3 mb-4">
+              <Award className="w-6 h-6 text-purple-400" />
+              <h2 className="text-xl font-black text-white uppercase tracking-tight">Círculo Íntimo</h2>
             </div>
-          )}
+            <p className="text-sm text-gray-400 mb-6 text-left">Identificamos os perfis que possuem as interações mais frequentes com o alvo.</p>
+            
+            <InteractionProfilesCarousel profiles={suggestedProfiles} />
+          </div>
         </section>
 
         <SectionDivider />

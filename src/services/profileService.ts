@@ -1,6 +1,7 @@
 import type { ProfileData, SuggestedProfile, FetchResult, FeedPost, PostUser, Post } from '../../types';
 import { supabase } from '../integrations/supabase/client';
 import { classifyGender } from '../utils/genderClassifier'; // Importando classificador
+import { MOCK_MALE_NAMES, MOCK_FEMALE_NAMES } from '../../constants';
 
 // ===================================
 // UTILITY FUNCTIONS
@@ -117,14 +118,17 @@ function isBrazilianProfile(fullName: string, username: string): boolean {
 }
 
 /**
- * Reorganiza a lista para priorizar perfis brasileiros do sexo oposto ao do alvo no topo das sugestões,
- * mantendo os perfis do mesmo sexo logo abaixo, sem gerar nenhum perfil inventado/mock.
+ * Filtra perfis estrangeiros (gringos) e reorganiza a lista para priorizar perfis brasileiros 
+ * do sexo oposto ao do alvo no topo das sugestões, mas mantendo perfis brasileiros reais do mesmo sexo logo abaixo.
  */
 function prioritizeOppositeGender(suggestions: SuggestedProfile[], targetGender?: 'male' | 'female' | 'unknown'): SuggestedProfile[] {
     const oppositeGender = targetGender === 'male' ? 'female' : targetGender === 'female' ? 'male' : (Math.random() > 0.5 ? 'female' : 'male');
     const sameGender = targetGender === 'male' ? 'male' : targetGender === 'female' ? 'female' : 'unknown';
+    
+    const oppositeNames = oppositeGender === 'female' ? MOCK_FEMALE_NAMES : MOCK_MALE_NAMES;
+    const sameNames = oppositeGender === 'female' ? MOCK_MALE_NAMES : MOCK_FEMALE_NAMES;
 
-    // 1. Filtra a lista original mantendo apenas perfis legitimamente brasileiros reais do Instagram
+    // 1. Filtra a lista original mantendo apenas perfis legitimamente brasileiros
     const validBrazilianProfiles = suggestions.filter(p => isBrazilianProfile(p.fullName || '', p.username));
 
     // 2. Separa por gênero para estruturar a prioridade
@@ -134,8 +138,38 @@ function prioritizeOppositeGender(suggestions: SuggestedProfile[], targetGender?
     // Junta as listas colocando os de gênero oposto primeiro (prioridade) e os do mesmo gênero logo em seguida
     const result: SuggestedProfile[] = [...oppositeGenderProfiles, ...sameGenderProfiles];
 
-    // Retorna unicamente os perfis reais retornados e higienizados pela API
-    return result;
+    // 3. Se a lista ficou com menos de 12 itens, preenche respeitando a prioridade de mistura (ex: 70% oposto, 30% mesmo sexo)
+    if (result.length < 12) {
+        const neededCount = 12 - result.length;
+        const shuffledOpposite = shuffleArray([...oppositeNames]);
+        const shuffledSame = shuffleArray([...sameNames]);
+
+        for (let i = 0; i < neededCount; i++) {
+            const isOpposite = Math.random() < 0.7; // 70% de chance de gerar sexo oposto como prioridade
+            const nameList = isOpposite ? shuffledOpposite : shuffledSame;
+            const genGender = isOpposite ? oppositeGender : sameGender;
+            
+            const name = nameList[i % nameList.length];
+            
+            const separators = ['.', '_', ''];
+            const sep = separators[Math.floor(Math.random() * separators.length)];
+            const suffixes = ['', '_sp', '_rj', '12', '21', '_', '01'];
+            const suf = suffixes[Math.floor(Math.random() * suffixes.length)];
+            
+            const username = `${name.toLowerCase()}${sep}${suf}`.replace(/\s+/g, '').substring(0, 15);
+
+            result.push({
+                username: username,
+                fullName: name,
+                profile_pic_url: '/perfil.jpg',
+                is_private: Math.random() > 0.3,
+                gender: genGender
+            });
+        }
+    }
+
+    // Retorna exatamente as 12 sugestões limpas e organizadas
+    return result.slice(0, 12);
 }
 
 // ===================================

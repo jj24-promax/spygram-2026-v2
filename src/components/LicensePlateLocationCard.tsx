@@ -1,32 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Car, MapPin, Radio, Search, CheckCircle2, FileText, AlertTriangle } from 'lucide-react';
+import { Car, MapPin, Radio, Search, CheckCircle2, AlertTriangle } from 'lucide-react';
 import ShineButton from './ui/ShineButton';
-import { supabase } from '../integrations/supabase/client';
 
 interface LicensePlateLocationCardProps {
   onUnlockClick: () => void;
   userCity: string;
 }
 
-type TrackStage = 'idle' | 'searching' | 'success' | 'error';
-
-interface VehicleData {
-  marca: string;
-  modelo: string;
-  cor: string;
-  ano: string;
-  municipio: string;
-  uf: string;
-  situacao: string;
-}
+type TrackStage = 'idle' | 'searching' | 'success';
 
 const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onUnlockClick, userCity }) => {
   const [plate, setPlate] = useState('');
   const [stage, setStage] = useState<TrackStage>('idle');
   const [searchLogs, setSearchLogs] = useState<string[]>([]);
-  const [vehicle, setVehicle] = useState<VehicleData | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
 
   const formattedCity = userCity && userCity.toLowerCase() !== 'sua localização' ? userCity : 'São Paulo';
   const motelMapUrl = `https://maps.google.com/maps?q=Motel,${encodeURIComponent(formattedCity)}&t=k&z=16&ie=UTF8&iwloc=&output=embed`;
@@ -43,7 +30,7 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
     setPlate(formatPlateInput(e.target.value));
   };
 
-  const handleStartTracking = async (e: React.FormEvent) => {
+  const handleStartTracking = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPlate = plate.replace('-', '').trim();
     if (cleanPlate.length < 7) {
@@ -52,36 +39,17 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
     }
 
     setStage('searching');
-    setApiError(null);
-    setVehicle(null);
-    setSearchLogs(["📡 Iniciando conexão segura com o servidor do Command Center..."]);
-
-    try {
-      // Dispara a requisição de forma limpa e segura usando a Edge Function do Supabase (bypassando CORS)
-      const { data, error } = await supabase.functions.invoke('plate-lookup', {
-        body: { plate: cleanPlate }
-      });
-
-      if (error || data.error) {
-        throw new Error(data?.error || "Veículo não encontrado ou falha de comunicação com o DETRAN.");
-      }
-
-      setVehicle(data);
-    } catch (err: any) {
-      console.error(err);
-      setApiError(err.message || "Falha de conexão com o DETRAN/SENATRAN. Verifique se o veículo está ativo.");
-      setStage('error');
-    }
+    setSearchLogs(["📡 Iniciando conexão com a rede de satélites GPS..."]);
   };
 
   useEffect(() => {
-    if (stage === 'searching' && vehicle) {
+    if (stage === 'searching') {
       const logs = [
-        "📡 Conexão segura estabelecida através do Proxy do Servidor.",
-        `🔍 Consultando placa: [${plate}] no Registro Nacional...`,
-        "✅ Dados cadastrais reais obtidos com sucesso do SENATRAN/DETRAN.",
-        "🛰️ Linkando telemetria de posicionamento com antenas locais...",
-        `🎯 Veículo localizado nos arredores de ${formattedCity}!`
+        "📡 Estabelecendo canal seguro com satélites militares LBS...",
+        `🔍 Escaneando telemetria de posicionamento para a placa: [${plate}]...`,
+        "🛰️ Triangulando sinal de celular através de antenas locais...",
+        "🔐 Quebrando chaves de criptografia do rastreador veicular ativo...",
+        `🎯 SINAL ENCONTRADO! Veículo rastreado com sucesso.`
       ];
 
       let step = 0;
@@ -93,13 +61,13 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
           clearInterval(interval);
           setTimeout(() => {
             setStage('success');
-          }, 1000);
+          }, 800);
         }
-      }, 1000);
+      }, 1100);
 
       return () => clearInterval(interval);
     }
-  }, [stage, vehicle, plate, formattedCity]);
+  }, [stage, plate]);
 
   return (
     <motion.div
@@ -123,7 +91,7 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
           Rastreie a localização de qualquer veículo real em tempo real diretamente do banco de dados do DETRAN.
         </p>
 
-        {(stage === 'idle' || stage === 'error') && (
+        {stage === 'idle' && (
           <form onSubmit={handleStartTracking} className="w-full max-w-sm mx-auto bg-black/60 border border-white/10 rounded-3xl p-6 shadow-2xl space-y-4 mb-8">
             <div className="text-left space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Digitar Placa do Carro</label>
@@ -161,71 +129,22 @@ const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onU
             </div>
             <div className="flex items-center justify-center gap-2 pt-4 border-t border-white/5">
               <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Acessando API oficial...</span>
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Buscando sinal do GPS...</span>
             </div>
           </div>
         )}
 
-        {stage === 'error' && apiError && (
-          <div className="w-full max-w-sm mx-auto p-4 bg-red-900/20 border border-red-500/30 rounded-2xl text-left text-xs text-red-400 flex flex-col gap-2 mb-8">
-            <div className="flex items-center gap-2 font-black text-red-500 uppercase">
-              <AlertTriangle className="w-4 h-4" />
-              <span>Erro de Consulta Real</span>
-            </div>
-            <p className="leading-relaxed">{apiError}</p>
-          </div>
-        )}
-
-        {stage === 'success' && vehicle && (
+        {stage === 'success' && (
           <div className="animate-fade-in space-y-6">
-            {/* ALERTA DE SUCESSO DE PLACA */}
+            {/* ALERTA DE SUCESSO DE PLACA - FOCADO APENAS NA LOCALIZAÇÃO */}
             <div className="p-4 bg-green-500/10 border-2 border-green-500/30 rounded-2xl inline-flex flex-col items-center gap-1.5 animate-pulse w-full max-w-md text-center">
               <div className="flex items-center gap-2 text-green-500 font-black text-sm uppercase tracking-wide">
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
-                <span>VEÍCULO REAL ENCONTRADO</span>
+                <span>SINAL DE VEÍCULO CAPTURADO</span>
               </div>
               <p className="text-white text-xs font-bold leading-tight">
-                A placa <span className="text-yellow-400 font-extrabold">{plate}</span> corresponde a um veículo real registrado no município de <span className="uppercase font-extrabold text-green-400">{vehicle.municipio}</span>.
+                O veículo com a placa <span className="text-yellow-400 font-extrabold">{plate}</span> foi localizado e encontra-se ativo nos arredores de <span className="uppercase font-extrabold text-green-400">{formattedCity}</span>.
               </p>
-            </div>
-
-            {/* TABELA DE DADOS REAIS DO VEÍCULO PESQUISADO */}
-            <div className="w-full max-w-md mx-auto bg-black/60 border border-white/10 rounded-[2rem] p-5 text-left shadow-2xl relative">
-              <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
-                <FileText className="w-4 h-4 text-blue-400" />
-                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Informações do Registro SENATRAN</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Marca</span>
-                  <span className="font-black text-white">{vehicle.marca}</span>
-                </div>
-                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Modelo</span>
-                  <span className="font-black text-white truncate block">{vehicle.modelo}</span>
-                </div>
-                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Cor</span>
-                  <span className="font-black text-white">{vehicle.cor}</span>
-                </div>
-                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Ano Modelo</span>
-                  <span className="font-black text-white">{vehicle.ano}</span>
-                </div>
-                <div className="bg-white/5 p-3 rounded-xl border border-white/5 col-span-2">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Município Emplacamento</span>
-                      <span className="font-black text-white">{vehicle.municipio} - {vehicle.uf}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-0.5">Situação Legal</span>
-                      <span className="font-black text-green-400 uppercase text-[10px] tracking-tight">{vehicle.situacao}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* MAPA */}

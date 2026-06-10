@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Image as ImageIcon, MessageSquare, Trash2, Lock } from 'lucide-react';
+import { Image as ImageIcon, MessageSquare, Trash2, Lock, ShieldAlert, EyeOff } from 'lucide-react';
 import ShineButton from './ui/ShineButton';
 
 interface RecoveredDataCardProps {
@@ -27,6 +27,28 @@ const ALL_RECOVERED_IMAGES = [
   '/recovered/img_11.jpg',
   '/recovered/img_12.jpg',
   '/recovered/img_13.jpg'
+];
+
+// Conversas deletadas forjadas com gatilhos de curiosidade extremamente fortes
+const FORGED_DELETED_CHATS = [
+  {
+    sender: "Contatinho 😈 (Deletado)",
+    time: "Ontem, 23:14",
+    snippet: "Oi bebê, já chegou em casa? Queria repetir aquilo de ontem...",
+    isSpicy: true
+  },
+  {
+    sender: "Ex... 🤫 (Deletado)",
+    time: "2 dias atrás",
+    snippet: "Por favor, apaga essa conversa pra ninguém ver nosso papo.",
+    isSpicy: true
+  },
+  {
+    sender: "Número Desconhecido (Deletado)",
+    time: "3 dias atrás",
+    snippet: "Amei o nosso encontro de ontem, você é incrível na cama...",
+    isSpicy: true
+  }
 ];
 
 const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) => {
@@ -70,7 +92,7 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) 
           **IMPERDÍVEL!** Nosso sistema encontrou arquivos que o alvo pensou ter deletado.
         </p>
         
-        {/* Contadores de Dados Recuperados (Restaurado tamanho das fontes) */}
+        {/* Contadores de Dados Recuperados */}
         <div className="grid grid-cols-2 gap-4 mb-8 w-full max-w-[360px] mx-auto">
             
             {/* Card de Fotos */}
@@ -90,7 +112,7 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) 
 
         {/* Galeria de Fotos Recuperadas */}
         {selectedImages.length > 0 && (
-          <div className="flex flex-col items-center justify-center gap-4 mb-10 bg-black/60 p-6 rounded-2xl border border-red-700/50 w-full max-w-[320px] mx-auto shadow-2xl shadow-red-500/10">
+          <div className="flex flex-col items-center justify-center gap-4 mb-8 bg-black/60 p-6 rounded-2xl border border-red-700/50 w-full max-w-[360px] mx-auto shadow-2xl shadow-red-500/10">
             {/* Miniaturas com sobreposição */}
             <div className="flex -space-x-6 ml-4">
               {selectedImages.map((src, index) => (
@@ -129,6 +151,52 @@ const RecoveredDataCard: React.FC<RecoveredDataCardProps> = ({ onUnlockClick }) 
             </div>
           </div>
         )}
+
+        {/* NOVO: Trechos de Conversas Deletadas Comprometedoras */}
+        <div className="w-full max-w-[360px] mx-auto mb-8 bg-black/60 border border-pink-700/50 rounded-2xl p-4 text-left shadow-2xl relative">
+          <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
+            <ShieldAlert className="w-4 h-4 text-red-500 animate-pulse" />
+            <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">Histórico de Chats Interceptados</span>
+          </div>
+
+          <div className="space-y-4">
+            {FORGED_DELETED_CHATS.map((chat, idx) => (
+              <div 
+                key={idx} 
+                onClick={onUnlockClick} 
+                className="flex items-start gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-pink-500/20 transition-all cursor-pointer relative overflow-hidden group"
+              >
+                {/* Ícone de Usuário Bloqueado com aviso vermelho */}
+                <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0 relative">
+                  <span className="text-red-500 text-xs font-black">🕵️</span>
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-black animate-pulse" />
+                </div>
+
+                <div className="flex-1 min-w-0 pr-6">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="text-xs font-black text-white truncate">{chat.sender}</p>
+                    <span className="text-[8px] font-bold text-gray-500 uppercase">{chat.time}</span>
+                  </div>
+                  {/* Mensagem borrada de forma tantalizante */}
+                  <p className="text-[11px] text-gray-300 leading-snug blur-[2.4px] select-none pointer-events-none transition-all group-hover:blur-[1.8px]">
+                    {chat.snippet}
+                  </p>
+                </div>
+
+                {/* Cadeado de bloqueio */}
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-pink-500">
+                  <Lock size={14} className="animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 text-center">
+            <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">
+              +{chatsCount - 3} outras conversas deletadas extraídas
+            </span>
+          </div>
+        </div>
 
         <p className="text-xl text-red-400 font-black mb-8 px-2 uppercase italic">
           Desbloqueie agora e veja o que ele(a) estava escondendo!

@@ -26,6 +26,10 @@
         t.src=v;s=b.getElementsByTagName(e)[0];
         s.parentNode.insertBefore(t,s)}(window, document,'script',
         'https://connect.facebook.net/en_US/fbevents.js');
+        
+        // DESATIVA O RASTREAMENTO AUTOMÁTICO DE EVENTOS DO FACEBOOK (Evita falsos cliques em botões)
+        fbq('set', 'autoConfig', false, '1960837841237992');
+        
         fbq('init', '1960837841237992');
         fbq('track', 'PageView');
     </script>

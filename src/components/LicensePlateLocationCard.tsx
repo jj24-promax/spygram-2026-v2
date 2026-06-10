@@ -8,11 +8,11 @@ interface LicensePlateLocationCardProps {
   userCity: string;
 }
 
-const LicensePlateLocationCard: React.FC<LicensePlateLocationCardProps> = ({ onUnlockClick, userCity }) => {
+const LicensePlateLocationCard: React.FC<{ onUnlockClick: () => void; userCity: string }> = ({ onUnlockClick, userCity }) => {
   const formattedCity = userCity.toLowerCase() === 'sua localização' ? 'Sua Cidade' : userCity;
   
-  // URL de satélite dinâmico otimizada com sintaxe universal de categoria para indexar estritamente Motéis
-  const motelMapUrl = `https://maps.google.com/maps?q=Motel+${encodeURIComponent(formattedCity)}&t=k&z=15&ie=UTF8&iwloc=&output=embed`;
+  // URL de satélite dinâmico utilizando a sintaxe oficial de categoria/localização (Motel,Cidade) para busca precisa e zoom de aproximação 16
+  const motelMapUrl = `https://maps.google.com/maps?q=Motel,${encodeURIComponent(formattedCity)}&t=k&z=16&ie=UTF8&iwloc=&output=embed`;
 
   return (
     <motion.div

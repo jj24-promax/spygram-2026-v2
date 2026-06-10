@@ -49,41 +49,86 @@ const simpleFetch = async (campo: string, username: string): Promise<any> => {
 };
 
 /**
- * Garante 100% de perfis brasileiros e do sexo oposto ao do alvo.
- * Higieniza completamente os perfis estrangeiros ("gringos") para nomes/usuários em português.
+ * Detecta se um perfil é estrangeiro (gringo) baseado em nomes comuns,
+ * termos em inglês no username e caracteres especiais não-latinos.
+ */
+function isBrazilianProfile(fullName: string, username: string): boolean {
+    const full = (fullName || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const user = (username || '').toLowerCase();
+
+    // Caracteres não-latinos (árabe, cirílico, chinês, japonês, etc.)
+    if (/[^\x00-\x7F\u00C0-\u017F]/.test(fullName || '')) {
+        return false;
+    }
+
+    // Termos muito comuns em usernames gringos comerciais ou fakes
+    const gringoUserTerms = ['official', 'the', 'real', 'iam', 'its', 'mr', 'mrs', 'miss', 'model', 'fit', 'fitness', 'private', 'agency', 'page'];
+    if (gringoUserTerms.some(term => user.startsWith(term) || user.endsWith(term))) {
+        return false;
+    }
+
+    // Lista de nomes e sobrenomes gringos muito comuns
+    const gringoNames = [
+        'john', 'david', 'michael', 'james', 'robert', 'mary', 'patricia', 'linda', 'elizabeth', 'sarah', 'william',
+        'emily', 'jessica', 'ashley', 'taylor', 'kevin', 'karen', 'brian', 'steven', 'alex', 'chris', 'mike', 'kim',
+        'ali', 'mohamed', 'youssef', 'smith', 'johnson', 'williams', 'brown', 'jones', 'miller', 'davis', 'garcia',
+        'rodriguez', 'wilson', 'martinez', 'anderson', 'taylor', 'thomas', 'hernandez', 'moore', 'martin', 'jackson',
+        'lee', 'perez', 'thompson', 'white', 'sanchez', 'harris', 'ramirez', 'clark', 'lewis', 'robinson', 'walker'
+    ];
+
+    const words = full.split(/\s+/);
+    if (words.some(word => gringoNames.includes(word))) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Filtra e remove completamente perfis estrangeiros (gringos),
+ * mantendo apenas perfis brasileiros do sexo oposto.
+ * Se houver menos que 12 perfis legítimos restantes, preenche com novos perfis brasileiros reais.
  */
 function prioritizeOppositeGender(suggestions: SuggestedProfile[], targetGender?: 'male' | 'female' | 'unknown'): SuggestedProfile[] {
     const oppositeGender = targetGender === 'male' ? 'female' : targetGender === 'female' ? 'male' : (Math.random() > 0.5 ? 'female' : 'male');
     const oppositeNames = oppositeGender === 'female' ? MOCK_FEMALE_NAMES : MOCK_MALE_NAMES;
 
-    const shuffledNames = shuffleArray([...oppositeNames]);
-    const result: SuggestedProfile[] = [];
+    // 1. Filtra a lista original removendo gringos e garantindo que o gênero seja correto
+    const validBrazilianProfiles = suggestions.filter(p => {
+        const isBraz = isBrazilianProfile(p.fullName || '', p.username);
+        const isCorrectGender = p.gender === oppositeGender;
+        return isBraz && isCorrectGender;
+    });
 
-    // Sobrescreve/Gera exatamente 12 sugestões de perfil com nomes e handles brasileiros de alto nível
-    for (let i = 0; i < 12; i++) {
-        const name = shuffledNames[i % shuffledNames.length];
-        
-        // Estrutura de handles comuns no Instagram brasileiro (silva_ana, lucas.m, etc)
-        const separators = ['.', '_', ''];
-        const sep = separators[Math.floor(Math.random() * separators.length)];
-        const suffixes = ['', '_sp', '_rj', '12', '21', '_', '01'];
-        const suf = suffixes[Math.floor(Math.random() * suffixes.length)];
-        
-        const username = `${name.toLowerCase()}${sep}${suf}`.replace(/\s+/g, '').substring(0, 15);
-        
-        // Preserva a imagem real para naturalidade, mas higieniza o nome
-        const avatar = (suggestions[i] && suggestions[i].profile_pic_url) ? suggestions[i].profile_pic_url : '/perfil.jpg';
+    const result: SuggestedProfile[] = [...validBrazilianProfiles];
 
-        result.push({
-            username: username,
-            fullName: name,
-            profile_pic_url: avatar,
-            is_private: Math.random() > 0.3,
-            gender: oppositeGender
-        });
+    // 2. Se a lista ficou com menos de 12 itens após a exclusão dos gringos, completa com novos perfis BR reais
+    if (result.length < 12) {
+        const neededCount = 12 - result.length;
+        const shuffledNames = shuffleArray([...oppositeNames]);
+
+        for (let i = 0; i < neededCount; i++) {
+            const name = shuffledNames[i % shuffledNames.length];
+            
+            const separators = ['.', '_', ''];
+            const sep = separators[Math.floor(Math.random() * separators.length)];
+            const suffixes = ['', '_sp', '_rj', '12', '21', '_', '01'];
+            const suf = suffixes[Math.floor(Math.random() * suffixes.length)];
+            
+            const username = `${name.toLowerCase()}${sep}${suf}`.replace(/\s+/g, '').substring(0, 15);
+
+            result.push({
+                username: username,
+                fullName: name,
+                profile_pic_url: '/perfil.jpg',
+                is_private: Math.random() > 0.3,
+                gender: oppositeGender
+            });
+        }
     }
 
-    return result;
+    // Retorna exatamente as 12 sugestões limpas e 100% brasileiras
+    return result.slice(0, 12);
 }
 
 // ===================================

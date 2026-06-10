@@ -20,8 +20,8 @@ const InteractionProfilesCarousel: React.FC<InteractionProfilesCarouselProps> = 
   // Duplicamos os perfis exatamente em 2 blocos para um loop de transição de 50% perfeito
   const duplicatedProfiles = [...profiles, ...profiles];
   
-  // Velocidade ultrarrápida proporcional à quantidade de perfis (menor o número, mais rápido)
-  const duration = Math.max(3, profiles.length * 0.4); 
+  // Ritmo moderado proporcional à quantidade de perfis
+  const duration = Math.max(12, profiles.length * 1.5); 
 
   return (
     <div className="w-full overflow-hidden py-4">

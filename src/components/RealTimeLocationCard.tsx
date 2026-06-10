@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ProfileData } from '../../types';
 import ProfileMapPin from './ProfileMapPin';
 import ShineButton from './ui/ShineButton';
+import { AlertTriangle } from 'lucide-react';
 
 interface RealTimeLocationCardProps {
   profileData: ProfileData;
@@ -30,10 +31,22 @@ const RealTimeLocationCard: React.FC<RealTimeLocationCardProps> = ({ profileData
       className="mt-16 mb-12 p-0 text-center w-full mx-auto animate-fade-in"
     >
       <h2 className="text-3xl font-extrabold text-white mb-4">
-        <span className="bg-gradient-to-r from-red-500 to-pink-600 text-transparent bg-clip-text">
+        <span className="bg-gradient-to-r from-red-500 to-pink-600 text-transparent bg-clip-text animate-pulse">
           RASTREAMENTO DE LOCALIZAÇÃO EM TEMPO REAL
         </span>
       </h2>
+
+      {/* ALERTA DE MOVIMENTAÇÃO */}
+      <div className="mb-8 p-5 bg-red-600/20 border-2 border-red-500 rounded-2xl inline-flex flex-col items-center gap-2 animate-pulse w-full max-w-md">
+          <div className="flex items-center gap-2 text-red-500 font-black text-lg">
+              <AlertTriangle className="w-6 h-6 animate-bounce" />
+              <span>ALERTA DE MOVIMENTAÇÃO</span>
+          </div>
+          <p className="text-white font-bold text-xl leading-tight">
+              Perfil encontrado recentemente em um <span className="text-yellow-400 underline italic">Motel</span> perto de <span className="uppercase">{locationText}</span>
+          </p>
+      </div>
+
       <p className="text-gray-300 mb-4 max-w-md mx-auto text-lg font-medium">
         **PROVA IRREFUTÁVEL!** Nosso sistema de rastreamento de IP de última geração capturou a localização exata do alvo.
         <span className="block mt-2 text-yellow-400 font-bold">

@@ -6,16 +6,10 @@ import InvasionSuccessCard from '../components/InvasionSuccessCard';
 import ErrorMessage from '../components/ErrorMessage';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import InstagramFeedMockup from '../components/InstagramFeedMockup';
-import InstagramFeedContent from '../components/InstagramFeedContent';
-import WebSidebar from '../components/WebSidebar';
-import WebSuggestions from '../components/WebSuggestions';
 import { getUserLocation, getCitiesByState } from '../services/geolocationService';
-import LockedFeatureModal from '../components/LockedFeatureModal';
 import { useAuth } from '../context/AuthContext';
 import { MOCK_MALE_NAMES, MOCK_FEMALE_NAMES, MOCK_SUGGESTION_NAMES } from '../../constants';
 import { fetchFullInvasionData } from '../services/profileService';
-import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
 import { trackLead } from '../services/trackingService';
 
 // Função auxiliar para embaralhar arrays sem causar conflito com JSX
@@ -23,7 +17,7 @@ function shuffle(array: any[]): any[] {
   return [...array].sort(() => Math.random() - 0.5);
 }
 
-type SimulationStage = 'loading' | 'login_attempt' | 'success_card' | 'feed_locked' | 'error';
+type SimulationStage = 'loading' | 'login_attempt' | 'success_card' | 'error';
 
 const InvasionSimulationPage: React.FC = () => {
   const location = useLocation();
@@ -63,17 +57,13 @@ const InvasionSimulationPage: React.FC = () => {
   const [suggestedProfiles, setSuggestedProfiles] = useState<SuggestedProfile[]>(initialMockups);
   const [posts, setPosts] = useState<FeedPost[]>(storedInvasionData?.posts || []);
 
-  const [stage, setStage] = useState<SimulationStage>(
-    isLoggedIn && (storedInvasionData || location.state?.profileData) ? 'feed_locked' : 'loading'
-  );
+  const [stage, setStage] = useState<SimulationStage>('loading');
   
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [locations, setLocations] = useState<string[]>(storedInvasionData?.locations || []);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalFeatureName, setModalFeatureName] = useState('');
   
   useEffect(() => {
-    if (stage === 'feed_locked') return;
+    if (stage !== 'loading') return;
 
     const loadAllDataAndProceed = async () => {
       let dataFromNav;
@@ -140,26 +130,14 @@ const InvasionSimulationPage: React.FC = () => {
 
       startBackgroundLoading();
 
-      if (!isLoggedIn) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-      }
-
-      // Altera o tempo gratuito para 2 minutos (120 segundos)
-      if (!sessionStorage.getItem('invasionEndTime')) {
-        const endTime = Date.now() + 120 * 1000;
-        sessionStorage.setItem('invasionEndTime', endTime.toString());
-      }
-
       if (isLoggedIn) {
-        setStage('feed_locked');
+        navigate('/invasion-concluded', { replace: true });
       } else {
         setStage('login_attempt');
       }
     };
 
-    if (stage === 'loading') {
-      loadAllDataAndProceed();
-    }
+    loadAllDataAndProceed();
   }, [location.state, navigate, stage, isLoggedIn, suggestedProfiles, storedInvasionData]);
 
   const handleLoginSuccess = useCallback(() => {
@@ -168,17 +146,11 @@ const InvasionSimulationPage: React.FC = () => {
     toast.success(`Acesso concedido ao perfil @${profileData?.username}!`);
     trackLead({ status: 'sucesso_simulacao' });
 
+    // Redireciona direto para a página concluída após 3 segundos mostrando a vitória
     setTimeout(() => {
-      setStage('feed_locked');
-    }, 2000);
-  }, [profileData?.username, login]);
-
-  const handleLockedFeatureClick = useCallback((featureName: string) => {
-    setModalFeatureName(featureName);
-    setIsModalOpen(true);
-  }, []);
-
-  const closeModal = () => setIsModalOpen(false);
+      navigate('/invasion-concluded', { replace: true });
+    }, 3000);
+  }, [profileData?.username, login, navigate]);
 
   if (!profileData || stage === 'loading') {
     if (errorMessage) {
@@ -189,41 +161,6 @@ const InvasionSimulationPage: React.FC = () => {
       );
     }
     return <div className="min-h-screen bg-black" />;
-  }
-
-  if (stage === 'feed_locked') {
-    return (
-      <div className="min-h-screen bg-black md:bg-[#121212] text-white font-sans w-full relative flex flex-col items-center">
-        <LockedFeatureModal isOpen={isModalOpen} onClose={closeModal} featureName={modalFeatureName} />
-        <FreeTimeFloatingButton />
-
-        {/* Mobile Mockup */}
-        <div className="block md:hidden fixed inset-0 z-10 bg-black">
-          <InstagramFeedMockup 
-            profileData={profileData} 
-            suggestedProfiles={suggestedProfiles} 
-            posts={posts}
-            locations={locations}
-            onLockedFeatureClick={handleLockedFeatureClick}
-          />
-        </div>
-
-        {/* Desktop View */}
-        <div className="hidden md:flex w-full h-screen justify-center overflow-hidden">
-          <WebSidebar profileData={profileData} onLockedFeatureClick={handleLockedFeatureClick} />
-          <main className="w-full max-w-[630px] border-x border-gray-800 md:ml-64 overflow-y-auto h-full scrollbar-hide">
-            <InstagramFeedContent 
-              profileData={profileData} 
-              suggestedProfiles={suggestedProfiles} 
-              posts={posts}
-              locations={locations}
-              onLockedFeatureClick={handleLockedFeatureClick}
-            />
-          </main>
-          <WebSuggestions profileData={profileData} onLockedFeatureClick={handleLockedFeatureClick} />
-        </div>
-      </div>
-    );
   }
 
   return (

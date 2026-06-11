@@ -89,7 +89,7 @@ serve(async (req) => {
 
       if (leadUpdateError) console.error("[payment-webhook] Erro ao atualizar lead:", leadUpdateError.message);
 
-      // --- CRIAÇÃO DE ACESSO, CAPI E INTEGRAÇÃO OFICIAL UTMIFY ---
+      // --- CRIAÇÃO DE ACESSO E INTEGRAÇÃO OFICIAL UTMIFY ---
       try {
         const { data: leadData } = await supabase
           .from('leads')
@@ -110,16 +110,7 @@ serve(async (req) => {
             console.log(`[payment-webhook] Membro ${cleanEmail} cadastrado.`);
           }
 
-          // 2. Facebook CAPI Purchase
-          await supabase.functions.invoke('facebook-capi', {
-            body: {
-              eventName: 'Purchase',
-              userData: { email: leadData.email, phone: leadData.phone },
-              customData: { value: Number(leadData.total_amount) || 37.90, currency: 'BRL' }
-            }
-          });
-
-          // 3. API UTMIFY OFICIAL (POST /api-credentials/orders)
+          // 2. API UTMIFY OFICIAL (POST /api-credentials/orders) -> UTMify se encarrega de disparar o CAPI Purchase de forma centralizada!
           if (utmifyToken) {
             console.log(`[payment-webhook] Enviando transação oficial para a API UTMify...`);
 

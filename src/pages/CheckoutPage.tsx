@@ -223,8 +223,8 @@ const CheckoutPage: React.FC = () => {
                 leadData={pixData.leadInfo}
                 onSuccess={() => setPaymentConfirmed(true)}
                 onConfirm={async () => {
-                  const @leadId = sessionStorage.getItem('current_lead_id');
-                  const { data } = await supabase.from('leads').select('status').eq('id', @leadId).single();
+                  const leadId = sessionStorage.getItem('current_lead_id');
+                  const { data } = await supabase.from('leads').select('status').eq('id', leadId).single();
                   if (data?.status === 'pagou') {
                     setPaymentConfirmed(true);
                   } else {

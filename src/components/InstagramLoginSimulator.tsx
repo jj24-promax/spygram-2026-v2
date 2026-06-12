@@ -38,36 +38,36 @@ const InstagramLoginSimulator: React.FC<InstagramLoginSimulatorProps> = ({ profi
         if (displayedPassword.length < currentPassword.length) {
           timeoutRef.current = setTimeout(() => {
             setDisplayedPassword(prev => currentPassword.substring(0, prev.length + 1));
-          }, 40);
+          }, 80); // Aumentado para 80ms (antes era 40ms)
         } else {
           setStage('attempting');
         }
       } else if (stage === 'attempting') {
         timeoutRef.current = setTimeout(() => {
-          if (attemptCount >= 4) { // Sucesso após 4 tentativas
+          if (attemptCount >= 4) { // Sucesso após 4 tentativas (manter para simular alguns erros)
             setDisplayedPassword('');
             setStage('success_typing');
           } else {
             setStage('error');
           }
-        }, 500);
+        }, 800); // Aumentado para 800ms para simular um processamento maior
       } else if (stage === 'error') {
         timeoutRef.current = setTimeout(() => {
           setAttemptCount(prev => prev + 1);
           setCurrentPassword(generateRandomPassword());
           setDisplayedPassword('');
           setStage('typing');
-        }, 1200); // Atraso maior no erro para dar tempo de ler a mensagem
+        }, 1500); // Aumentado para 1500ms (antes era 1200ms) - Atraso maior no erro para dar tempo de ler a mensagem
       } else if (stage === 'success_typing') {
         if (displayedPassword.length < correctPassword.length) {
           timeoutRef.current = setTimeout(() => {
             setDisplayedPassword(prev => correctPassword.substring(0, prev.length + 1));
-          }, 60);
+          }, 100); // Aumentado para 100ms (antes era 60ms)
         } else {
           setStage('success');
         }
       } else if (stage === 'success') {
-        timeoutRef.current = setTimeout(onSuccess, 1500);
+        timeoutRef.current = setTimeout(onSuccess, 2000); // Aumentado para 2000ms (antes era 1500ms)
       }
     };
 

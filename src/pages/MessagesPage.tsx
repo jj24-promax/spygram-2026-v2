@@ -15,6 +15,9 @@ export interface Story {
   note: string;
   avatar: string;
   isOwnStory?: boolean;
+  isMusicNote?: boolean;
+  music?: { title: string; artist: string };
+  isLocked?: boolean;
 }
 
 export interface ChatMessage { // Changed name to ChatMessage to avoid conflict with MessageItemProps
@@ -25,6 +28,7 @@ export interface ChatMessage { // Changed name to ChatMessage to avoid conflict 
   unread: boolean;
   locked: boolean;
   avatar: string;
+  chatIndex?: number;
 }
 
 const maskUsername = (username: string) => {
@@ -207,89 +211,100 @@ const MessagesPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalFeatureName, setModalFeatureName] = useState('');
 
+  // Mock translations (simplified for direct use, ideally from a context/hook)
+  const mockTranslations = {
+    chatMessages: {
+      guessWhatYouForgot: "Oi delícia, adivinha o que vc esqueceu aqui? kkkk",
+      forwardedReel: "Reel encaminhado: 'Pra rir!'",
+      talkLater: "Blz, depois a gente se fala",
+      reactedThumbsUp: "Reagiu com 👍🏻",
+      newMessages: "Novas mensagens", // Used in ChatPage actually
+    },
+    lockedMessages: {
+      sentReelFrom: "Reel de ",
+      sentFriday: "Sextou... 🍹",
+      sentVoiceMessage: "Mensagem de voz",
+      likedYourMessage: "Curtiu sua mensagem",
+      sent: "Enviou uma mensagem",
+      sentMonday: "Segundou com S de Saudade",
+      deliciaMessage: "Delícia... me liga!",
+      sentThursday: "Quinta é quase sexta",
+      understoodMessage: "Entendi perfeitamente",
+    },
+    time: {
+      now: "agora",
+      minutesAgo: "{{count}} min",
+      hoursAgo: "{{count}} h",
+      daysAgo: "{{count}} d",
+      weeksAgo: "{{count}} sem",
+    },
+    yourNote: "Sua nota",
+    storyLabels: {
+      tellNews: "Conte as novidades",
+      lazyToday: "Preguiça Hoje 🥱🥱",
+      swingLabel: "Coração Partido (Ao Vivo)",
+      anyoneBored: "Alguém entediado?",
+      cantTakeIt: "Não aguento mais",
+    }
+  };
+
+
   useEffect(() => {
     const storedDataRaw = sessionStorage.getItem('invasionData');
+
+    let currentProfileData: ProfileData | null = null;
+    let currentSuggestedProfiles: SuggestedProfile[] = [];
+
     if (storedDataRaw) {
       const data = JSON.parse(storedDataRaw);
-      setProfileData(data.profileData);
-
-      const targetGender = data.profileData?.gender;
+      currentProfileData = data.profileData;
+      currentSuggestedProfiles = data.suggestedProfiles || [];
 
       // Se já houver mensagens geradas para este lead, usamos elas
       if (data.generatedStories && data.generatedMessages) {
         setStories(data.generatedStories);
         setMessages(data.generatedMessages);
+        setProfileData(currentProfileData);
         return;
       }
+    }
 
-      // Caso contrário, geramos uma vez e salvamos
-      let suggestedProfiles: SuggestedProfile[] = data.suggestedProfiles || [];
-      
-      if (suggestedProfiles.length === 0) {
-        // Determina os nomes baseados no sexo oposto ao do alvo
-        let namesToUse = MOCK_SUGGESTION_NAMES;
-        if (targetGender === 'male') {
-          namesToUse = MOCK_FEMALE_NAMES;
-        } else if (targetGender === 'female') {
-          namesToUse = MOCK_MALE_NAMES;
-        }
+    // Fallback para profileData se não estiver presente ou inválido
+    if (!currentProfileData) {
+      currentProfileData = {
+        username: 'desconhecido',
+        fullName: 'Usuário Desconhecido',
+        profilePicUrl: '/perfil.jpg',
+        followers: 0,
+        following: 0,
+        postsCount: 0,
+        isVerified: false,
+        isPrivate: false,
+        gender: 'unknown'
+      };
+    }
+    setProfileData(currentProfileData);
 
-        const shuffledNames = [...namesToUse].sort(() => 0.5 - Math.random());
-        suggestedProfiles = shuffledNames.slice(0, 12).map((name) => ({
-          username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
-          fullName: name,
-          profile_pic_url: '/perfil.jpg',
-        }));
+    // Se suggestedProfiles estiver vazio, geramos mockados
+    if (currentSuggestedProfiles.length === 0) {
+      const targetGender = currentProfileData?.gender;
+      let namesToUse = MOCK_SUGGESTION_NAMES;
+      if (targetGender === 'male') {
+        namesToUse = MOCK_FEMALE_NAMES;
+      } else if (targetGender === 'female') {
+        namesToUse = MOCK_MALE_NAMES;
       }
 
-      const generateMessages = (profiles: SuggestedProfile[], translations: any) => {
-        const timeCalculations = {
-            now: translations.time.now,
-            minutesAgo: translations.time.minutesAgo,
-            hoursAgo: translations.time.hoursAgo,
-            daysAgo: translations.time.daysAgo,
-            weeksAgo: translations.time.weeksAgo,
-        };
-        const i = (format: string, count: number) => format.replace("{{count}}", String(count));
-      
-        const chatMessages = [
-          {id: "chat_15", displayName: "Fer*****", profilePic: "/images/screenshots/chat1.png", lastMessage: translations.chatMessages.guessWhatYouForgot.replace("{{name}}", profile?.fullName?.split(" ")[0] || profile?.username || "vc"), time: ` • ${timeCalculations.now}`, isUnread: true, isClickable: true, chatIndex: 1},
-          {id: "chat_17", displayName: maskUsername(profiles[0]?.username || "user"), profilePic: profiles[0]?.profile_pic_url || "/images/avatars/perfil-sem-foto.jpeg", lastMessage: translations.chatMessages.forwardedReel, time: ` • ${i(timeCalculations.minutesAgo, 33)}`, isUnread: true, isClickable: true, chatIndex: 5},
-          {id: "chat_18", displayName: maskUsername(profiles[1]?.username || "user"), profilePic: profiles[1]?.profile_pic_url || "/images/avatars/perfil-sem-foto.jpeg", lastMessage: translations.chatMessages.talkLater, time: ` • ${i(timeCalculations.hoursAgo, 2)}`, isUnread: false, isClickable: true, chatIndex: 4},
-          {id: "chat_16", displayName: "And*****", profilePic: "/images/screenshots/chat2.png", lastMessage: translations.chatMessages.reactedThumbsUp, time: ` • ${i(timeCalculations.hoursAgo, 6)}`, isUnread: false, isClickable: true, chatIndex: 2},
-          {id: "chat_19", displayName: "𝕭𝖗𝖚****", profilePic: "/images/screenshots/chat3.png", lastMessage: translations.chatMessages.newMessages, time: ` • ${i(timeCalculations.hoursAgo, 22)}`, isUnread: true, isClickable: true, chatIndex: 3},
-        ];
-      
-        const x = [translations.lockedMessages.sentReelFrom, translations.lockedMessages.sentFriday, translations.lockedMessages.sentVoiceMessage, "kkkkkkkkkk", translations.lockedMessages.likedYourMessage, "🔥🔥", translations.lockedMessages.sent, translations.lockedMessages.sentMonday, translations.lockedMessages.deliciaMessage, translations.lockedMessages.likedYourMessage, translations.lockedMessages.sentThursday, translations.lockedMessages.understoodMessage, "😈😈"];
-        const u = [i(timeCalculations.daysAgo, 2), i(timeCalculations.daysAgo, 2), i(timeCalculations.daysAgo, 2), i(timeCalculations.daysAgo, 2), i(timeCalculations.daysAgo, 2), i(timeCalculations.daysAgo, 3), i(timeCalculations.daysAgo, 3), i(timeCalculations.daysAgo, 3), i(timeCalculations.daysAgo, 4), i(timeCalculations.daysAgo, 4), i(timeCalculations.daysAgo, 6), i(timeCalculations.weeksAgo, 1), i(timeCalculations.weeksAgo, 2)];
-        const mProfiles = profiles.slice(2);
-        const lockedMessages: ChatMessage[] = [];
-      
-        for (let c = 0; c < x.length; c++) {
-          const C = c < mProfiles.length ? mProfiles[c] : null;
-          lockedMessages.push({
-            id: `locked_${c}`,
-            name: C ? maskUsername(C.username) : "*****",
-            avatar: C?.profile_pic_url || "/perfil.jpg",
-            message: x[c % x.length],
-            time: ` • ${u[c % u.length]}`,
-            unread: false,
-            locked: true,
-          });
-        }
-      
-        return [...chatMessages.map(msg => ({ // Convert to ChatMessage
-          id: msg.id,
-          name: msg.displayName,
-          avatar: msg.profilePic,
-          message: msg.lastMessage,
-          time: msg.time,
-          unread: msg.isUnread,
-          locked: false // Pre-set chats are not locked for now
-        })), ...lockedMessages];
-      };
+      const shuffledNames = [...namesToUse].sort(() => 0.5 - Math.random());
+      currentSuggestedProfiles = shuffledNames.slice(0, 12).map((name) => ({
+        username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
+        fullName: name,
+        profile_pic_url: '/perfil.jpg',
+      }));
+    }
 
-      const generateStories = (profiles: SuggestedProfile[], translations: any) => {
+    // Gerar histórias
+    const generateStories = (profiles: SuggestedProfile[], translations: any) => {
         const today = new Date();
         const r = today.getDate().toString().padStart(2, "0");
         const s = (today.getMonth() + 1).toString().padStart(2, "0");
@@ -307,9 +322,9 @@ const MessagesPage: React.FC = () => {
         const storiesList: Story[] = [];
 
         storiesList.push({
-          id: profile?.username || "user",
+          id: currentProfileData?.username || "user",
           name: translations.yourNote.replace("...", "Sua nota"),
-          avatar: profile?.profilePicUrl || "/perfil.jpg",
+          avatar: currentProfileData?.profilePicUrl || "/perfil.jpg",
           isOwnStory: true,
           note: i[0],
         });
@@ -366,63 +381,81 @@ const MessagesPage: React.FC = () => {
         return storiesList;
       };
 
-
-      // Mock translations for the generator (should be properly passed or globally available in a real app)
-      const mockTranslations = {
-        chatMessages: {
-          guessWhatYouForgot: "Oi delícia, adivinha o que vc esqueceu aqui? kkkk",
-          forwardedReel: "Reel encaminhado: 'Pra rir!'",
-          talkLater: "Blz, depois a gente se fala",
-          reactedThumbsUp: "Reagiu com 👍🏻",
-          newMessages: "Novas mensagens",
-        },
-        lockedMessages: {
-          sentReelFrom: "Reel de ", // Incompleto, demonstra a necessidade de passar o name
-          sentFriday: "Sextou... 🍹",
-          sentVoiceMessage: "Mensagem de voz",
-          likedYourMessage: "Curtiu sua mensagem",
-          sent: "Enviou uma mensagem",
-          sentMonday: "Segundou com S de Saudade",
-          deliciaMessage: "Delícia... me liga!",
-          sentThursday: "Quinta é quase sexta",
-          understoodMessage: "Entendi perfeitamente",
-        },
-        time: {
-          now: "agora",
-          minutesAgo: "{{count}} min",
-          hoursAgo: "{{count}} h",
-          daysAgo: "{{count}} d",
-          weeksAgo: "{{count}} sem",
-        },
-        yourNote: "Sua nota",
-        storyLabels: {
-          tellNews: "Conte as novidades",
-          lazyToday: "Preguiça Hoje 🥱🥱",
-          swingLabel: "Coração Partido (Ao Vivo)",
-          anyoneBored: "Alguém entediado?",
-          cantTakeIt: "Não aguento mais",
-        }
+    // Gerar mensagens
+    const generateMessages = (profiles: SuggestedProfile[], translations: any) => {
+      const timeCalculations = {
+          now: translations.time.now,
+          minutesAgo: translations.time.minutesAgo,
+          hoursAgo: translations.time.hoursAgo,
+          daysAgo: translations.time.daysAgo,
+          weeksAgo: translations.time.weeksAgo,
       };
-
-
-      const generatedStories = generateStories(suggestedProfiles, mockTranslations);
-      const generatedMessages = generateMessages(suggestedProfiles, mockTranslations);
       
-      // Salva no sessionStorage dentro do objeto de invasão atual
+      const formatTime = (format: string, count: number) => format.replace("{{count}}", String(count));
+    
+      const chatMessages = [
+        {id: "chat_15", displayName: "Fer*****", profilePic: "/images/screenshots/chat1.png", lastMessage: translations.chatMessages.guessWhatYouForgot.replace("{{name}}", currentProfileData?.fullName?.split(" ")[0] || currentProfileData?.username || "vc"), time: ` • ${timeCalculations.now}`, unread: true, chatIndex: 1},
+        {id: "chat_17", displayName: maskUsername(profiles[0]?.username || "user"), profilePic: profiles[0]?.profile_pic_url || "/perfil.jpg", lastMessage: translations.chatMessages.forwardedReel, time: ` • ${formatTime(timeCalculations.minutesAgo, 33)}`, unread: true, chatIndex: 5},
+        {id: "chat_18", displayName: maskUsername(profiles[1]?.username || "user"), profilePic: profiles[1]?.profile_pic_url || "/perfil.jpg", lastMessage: translations.chatMessages.talkLater, time: ` • ${formatTime(timeCalculations.hoursAgo, 2)}`, unread: false, chatIndex: 4},
+        {id: "chat_16", displayName: "And*****", profilePic: "/images/screenshots/chat2.png", lastMessage: translations.chatMessages.reactedThumbsUp, time: ` • ${formatTime(timeCalculations.hoursAgo, 6)}`, unread: false, chatIndex: 2},
+        {id: "chat_19", displayName: "𝕭𝖗𝖚****", profilePic: "/images/screenshots/chat3.png", lastMessage: translations.chatMessages.newMessages, time: ` • ${formatTime(timeCalculations.hoursAgo, 22)}`, unread: true, chatIndex: 3},
+      ];
+    
+      const x = [translations.lockedMessages.sentReelFrom, translations.lockedMessages.sentFriday, translations.lockedMessages.sentVoiceMessage, "kkkkkkkkkk", translations.lockedMessages.likedYourMessage, "🔥🔥", translations.lockedMessages.sent, translations.lockedMessages.sentMonday, translations.lockedMessages.deliciaMessage, translations.lockedMessages.likedYourMessage, translations.lockedMessages.sentThursday, translations.lockedMessages.understoodMessage, "😈😈"];
+      const u = [formatTime(timeCalculations.daysAgo, 2), formatTime(timeCalculations.daysAgo, 2), formatTime(timeCalculations.daysAgo, 2), formatTime(timeCalculations.daysAgo, 2), formatTime(timeCalculations.daysAgo, 2), formatTime(timeCalculations.daysAgo, 3), formatTime(timeCalculations.daysAgo, 3), formatTime(timeCalculations.daysAgo, 3), formatTime(timeCalculations.daysAgo, 4), formatTime(timeCalculations.daysAgo, 4), formatTime(timeCalculations.daysAgo, 6), formatTime(timeCalculations.weeksAgo, 1), formatTime(timeCalculations.weeksAgo, 2)];
+      const mProfiles = profiles.slice(2);
+      const lockedMessages: ChatMessage[] = [];
+    
+      for (let c = 0; c < x.length; c++) {
+        const C = c < mProfiles.length ? mProfiles[c] : null;
+        lockedMessages.push({
+          id: `locked_${c}`,
+          name: C ? maskUsername(C.username) : "*****",
+          avatar: C?.profile_pic_url || "/perfil.jpg",
+          message: x[c % x.length],
+          time: ` • ${u[c % u.length]}`,
+          unread: false,
+          locked: true,
+        });
+      }
+    
+      return [...chatMessages.map(msg => ({ 
+        id: msg.id,
+        name: msg.displayName,
+        avatar: msg.profilePic,
+        message: msg.lastMessage,
+        time: msg.time,
+        unread: msg.unread,
+        locked: false, // Pre-set chats are not locked for now
+        chatIndex: msg.chatIndex
+      })), ...lockedMessages];
+    };
+
+    const generatedStories = generateStories(currentSuggestedProfiles, mockTranslations);
+    const generatedMessages = generateMessages(currentSuggestedProfiles, mockTranslations);
+    
+    // Salva no sessionStorage dentro do objeto de invasão atual
+    if (storedDataRaw) {
       const updatedData = {
-        ...data,
+        ...JSON.parse(storedDataRaw),
         generatedStories: generatedStories,
         generatedMessages: generatedMessages
       };
       sessionStorage.setItem('invasionData', JSON.stringify(updatedData));
-
-      setStories(generatedStories);
-      setMessages(generatedMessages);
-
     } else {
-      navigate('/instagram');
+       // Se não havia invasionData, cria um com os dados gerados
+       sessionStorage.setItem('invasionData', JSON.stringify({
+         profileData: currentProfileData,
+         suggestedProfiles: currentSuggestedProfiles,
+         generatedStories: generatedStories,
+         generatedMessages: generatedMessages
+       }));
     }
-  }, [navigate, profileData?.username, profileData?.fullName, profileData?.profilePicUrl, profileData?.gender]);
+
+    setStories(generatedStories);
+    setMessages(generatedMessages);
+
+  }, [navigate]);
 
   const handleLockedClick = (feature: string = 'acessar este conteúdo') => {
     setModalFeatureName(feature);

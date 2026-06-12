@@ -135,6 +135,9 @@ const MainAppContent: React.FC = () => {
         status: 'pesquisou'
       });
 
+      // DISPARAR EVENTO DE LEAD NO FACEBOOK (PIXEL + CAPI)
+      trackFacebookEvent('Lead', {}, { value: 0 });
+
     } catch (err) {
       setError("Sistema sobrecarregado, tente novamente mais tarde");
     } finally {

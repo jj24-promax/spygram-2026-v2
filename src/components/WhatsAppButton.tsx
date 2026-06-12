@@ -27,7 +27,7 @@ const WhatsAppButton: React.FC = () => {
     return null;
   }
 
-  const phoneNumber = "5532991063686"; // Atualizado para o novo número (32) 98702-6150
+  const phoneNumber = "5532987026150"; // Atualizado para o novo número (32) 98702-6150
   const message = isLoggedIn 
     ? "Olá, já comprei o acesso SpyGram e estou com dúvidas"
     : "Olá, vim pelo site do SpyGram, estou com dúvidas!";

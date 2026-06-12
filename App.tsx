@@ -32,7 +32,6 @@ import WhatsAppButton from '@/src/components/WhatsAppButton';
 import AnalyticsTracker from '@/src/components/AnalyticsTracker';
 import { captureUtms } from './src/utils/utm'; // Importando captura de UTMs
 import InstagramFeedMockup from './src/components/InstagramFeedMockup'; // Importar o mockup do Instagram
-import InitialQuiz from './src/components/InitialQuiz'; // Importar o novo componente InitialQuiz
 
 // Componente Guardião para prender o visitante na página de vendas caso o período gratuito expire
 const TrialGuard: React.FC = () => {
@@ -77,7 +76,6 @@ const MainAppContent: React.FC = () => {
   const [confirmedPosts, setConfirmedPosts] = useState<FeedPost[]>([]);
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const [quizCompleted, setQuizCompleted] = useState(false); // Novo estado para controlar o quiz
 
   // Executa a varredura inicial de UTMs assim que entra no site
   useEffect(() => {
@@ -87,18 +85,19 @@ const MainAppContent: React.FC = () => {
   // Redireciona imediatamente se já existir uma invasão ativa salva de forma persistente
   useEffect(() => {
     const activeInvasion = localStorage.getItem('spygram_active_invasion');
-    const invasionDataRaw = sessionStorage.getItem('invasionData');
+    const invasionDataRaw = sessionStorage.getItem('invasionData'); // PODE TER SIDO SALVO PELA TELA DE CONFIRMAÇÃO
 
     if (activeInvasion && !invasionDataRaw) {
+      // Se há activeInvasion, mas não em sessionStorage, carrega para sessionStorage
       sessionStorage.setItem('invasionData', activeInvasion);
     }
     
     // Se há dados de invasão no sessionStorage (seja do localStorage ou da sessão atual)
     if (sessionStorage.getItem('invasionData')) {
       const isTrialExpired = localStorage.getItem('spygram_trial_expired') === 'true';
-      if (!isTrialExpired) {
+      if (!isTrialExpired) { // Se o trial NÃO expirou, vai para o Instagram
         navigate('/instagram', { replace: true });
-      } else {
+      } else { // Se o trial expirou, vai para a página de conclusão/vendas
         navigate('/invasion-concluded', { replace: true });
       }
     }
@@ -196,12 +195,6 @@ const MainAppContent: React.FC = () => {
       </div>
     );
   }
-
-  // Se o quiz ainda não foi completado, exibe o quiz
-  if (!quizCompleted) {
-    return <InitialQuiz onQuizComplete={() => setQuizCompleted(true)} />;
-  }
-
 
   return (
     <div className="min-h-screen bg-transparent">

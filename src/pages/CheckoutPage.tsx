@@ -82,6 +82,14 @@ const CheckoutPage: React.FC = () => {
 
   const total = basePrice + adicionais;
 
+  // Disparo de InitiateCheckout Inicial com delay seguro para carregar UTMify / Meta Pixels
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      trackFacebookEvent('InitiateCheckout', {}, { value: total });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleFinalize = async () => {
     if (!formData.nome || !formData.email || !formData.confirmarEmail || !formData.documento) {
         toast.error("Preencha todos os dados.");
@@ -111,7 +119,7 @@ const CheckoutPage: React.FC = () => {
     // Captura as UTMs ativas do visitante para enviar no payload do pagamento
     const utmParams = captureUtms();
 
-    // Disparar InitiateCheckout SOMENTE AQUI de forma enriquecida e estrita ao clique
+    // Disparar InitiateCheckout enriquecido com email e whatsapp para excelente taxa de correspondência
     trackFacebookEvent('InitiateCheckout', {
       email: formData.email,
       phone: formData.whatsapp
@@ -223,8 +231,8 @@ const CheckoutPage: React.FC = () => {
                 leadData={pixData.leadInfo}
                 onSuccess={() => setPaymentConfirmed(true)}
                 onConfirm={async () => {
-                  const @leadId = sessionStorage.getItem('current_lead_id');
-                  const { data } = await supabase.from('leads').select('status').eq('id', @leadId).single();
+                  const leadId = sessionStorage.getItem('current_lead_id');
+                  const { data } = await supabase.from('leads').select('status').eq('id', leadId).single();
                   if (data?.status === 'pagou') {
                     setPaymentConfirmed(true);
                   } else {

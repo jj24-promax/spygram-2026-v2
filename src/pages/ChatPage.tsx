@@ -8,8 +8,8 @@ import ReelFullscreenView from '../components/ReelFullscreenView'; // Novo compo
 import { supabase } from '../integrations/supabase/client'; // Importado para asset host
 
 // Ícones SVG customizados
-const PhoneIcon = () => <Phone size={24} />;
-const VideoIcon = () => <Video size={24} />;
+const PhoneIcon = () => <Phone size={24} className="text-white" />;
+const VideoIcon = () => <Video size={24} className="text-white" />;
 const CameraInputIcon = () => <Camera size={22} />;
 const MicInputIcon = () => <Mic size={22} />;
 const StickerInputIcon = () => <Smile size={22} />;
@@ -17,7 +17,7 @@ const HeartInputIcon = () => <Heart size={22} />;
 
 const getCleanedImageUrl = (url: string): string => {
   if (!url) return '/perfil.jpg';
-  if (url.startsWith('/') || url.startsWith('data:')) return url;
+  if (url.startsWith('/')) return url;
   // Usar supabase storage para otimização ou weserv.nl
   // Exemplo com supabase storage se o bucket for 'chat-images' e a imagem estiver lá:
   // return supabase.storage.from('chat-images').getPublicUrl(url.split('/').pop() || url).data.publicUrl;
@@ -155,7 +155,6 @@ interface MetaInfo {
     lastMessageTime?: string;
     city?: string;
 }
-
 
 // ===========================================
 // SUBSIDIOS LOCAIS (MESSAGES)
@@ -1390,11 +1389,21 @@ const ChatPage: React.FC = () => {
 
       {/* Messages Area */}
       <main ref={chatMessagesContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col scrollbar-hide">
-        <div ref={blurredHistoryRef} className="blurred-history-section">
+        <div ref={blurredHistoryRef} className="relative py-4"> {/* Container para o histórico borrado */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent z-10 opacity-70"></div> {/* Gradiente de blur */}
           {blurredHistoryDialogues[chatId].map((msg, index) => (
             <BlurredHistoryMessage key={`bh-${index}`} msg={msg} />
           ))}
+            <div className="absolute bottom-4 left-0 right-0 text-center z-20">
+              <button
+                onClick={() => handleBlockedAction(translations.viewFullHistory)}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-4 rounded-full transition-colors"
+              >
+                {translations.viewFullHistory}
+              </button>
+            </div>
         </div>
+        
         {messages.map((message, index) => {
           const isSent = message.direction === 'sent';
           const isInteractable = !['date', 'unread_divider', 'system_call'].includes(message.type);

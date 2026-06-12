@@ -3,8 +3,8 @@ import { Users } from 'lucide-react';
 
 const InvasionCounter: React.FC = () => {
   // Fixamos o valor inicial e final para evitar mudanças durante a digitação
-  const startValue = 62410;
-  const targetValue = useMemo(() => 63200 + Math.floor(Math.random() * 200), []);
+  const startValue = 5892; // Valor inicial ajustado
+  const targetValue = useMemo(() => startValue + Math.floor(Math.random() * 200), []); // Valor alvo ajustado e randomizado
   
   const [count, setCount] = useState(startValue);
 

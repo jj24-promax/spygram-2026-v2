@@ -30,8 +30,8 @@ import { getUserLocation } from './src/services/geolocationService';
 import { trackLead } from './src/services/trackingService';
 import WhatsAppButton from '@/src/components/WhatsAppButton';
 import AnalyticsTracker from '@/src/components/AnalyticsTracker';
-import { trackFacebookEvent } from './src/services/facebookService';
 import { captureUtms } from './src/utils/utm'; // Importando captura de UTMs
+import InstagramFeedMockup from './src/components/InstagramFeedMockup'; // Importar o mockup do Instagram
 
 // Componente Guardião para prender o visitante na página de vendas caso o período gratuito expire
 const TrialGuard: React.FC = () => {
@@ -41,12 +41,23 @@ const TrialGuard: React.FC = () => {
 
   useEffect(() => {
     const isTrialExpired = localStorage.getItem('spygram_trial_expired') === 'true';
-    if (isTrialExpired && !isLoggedIn) {
+    const invasionData = sessionStorage.getItem('invasionData');
+
+    if (isTrialExpired && !isLoggedIn && invasionData) {
       // Rotas que o usuário de teste bloqueado tem permissão para acessar (Checkout e Login)
       const allowedPaths = ['/invasion-concluded', '/checkout', '/login', '/admin-login', '/admin'];
       const isAllowed = allowedPaths.some(path => location.pathname.startsWith(path));
       if (!isAllowed) {
         navigate('/invasion-concluded', { replace: true });
+      }
+    } else if (isLoggedIn && location.pathname === '/invasion-concluded') {
+      // Se estiver logado e na página de vendas, mas sem uma invasão ativa, redireciona para servers
+      if (!invasionData) {
+         navigate('/servers', { replace: true });
+      } else {
+        // Se estiver logado e na página de vendas COM UMA INVASÃO ATIVA, leva direto para o Instagram
+        // Este é o cenário de um usuário pago ou que reiniciou a invasão
+        navigate('/instagram', { replace: true });
       }
     }
   }, [location.pathname, isLoggedIn, navigate]);
@@ -74,9 +85,21 @@ const MainAppContent: React.FC = () => {
   // Redireciona imediatamente se já existir uma invasão ativa salva de forma persistente
   useEffect(() => {
     const activeInvasion = localStorage.getItem('spygram_active_invasion');
-    if (activeInvasion) {
+    const invasionDataRaw = sessionStorage.getItem('invasionData'); // PODE TER SIDO SALVO PELA TELA DE CONFIRMAÇÃO
+
+    if (activeInvasion && !invasionDataRaw) {
+      // Se há activeInvasion, mas não em sessionStorage, carrega para sessionStorage
       sessionStorage.setItem('invasionData', activeInvasion);
-      navigate('/invasion-concluded', { replace: true });
+    }
+    
+    // Se há dados de invasão no sessionStorage (seja do localStorage ou da sessão atual)
+    if (sessionStorage.getItem('invasionData')) {
+      const isTrialExpired = localStorage.getItem('spygram_trial_expired') === 'true';
+      if (!isTrialExpired) { // Se o trial NÃO expirou, vai para o Instagram
+        navigate('/instagram', { replace: true });
+      } else { // Se o trial expirou, vai para a página de conclusão/vendas
+        navigate('/invasion-concluded', { replace: true });
+      }
     }
   }, [navigate]);
 
@@ -151,12 +174,12 @@ const MainAppContent: React.FC = () => {
       };
       
       sessionStorage.setItem('invasionData', JSON.stringify(invasionData));
-      // Salva de forma persistente para bloquear novas pesquisas deste mesmo navegador
       localStorage.setItem('spygram_active_invasion', JSON.stringify(invasionData));
       
       // Atendimento do lead
       trackLead({ status: 'confirmou_alvo' });
       
+      // Redireciona para a página de simulação de login
       navigate('/instagram', { state: invasionData });
     }
   }, [confirmedProfileData, confirmedSuggestions, confirmedPosts, navigate]);
@@ -196,6 +219,83 @@ const MainAppContent: React.FC = () => {
   );
 };
 
+// Componente para exibir o Feed do Instagram após a invasão
+const InstagramFeedPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [suggestedProfiles, setSuggestedProfiles] = useState<SuggestedProfile[]>([]);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [locations, setLocations] = useState<string[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalFeatureName, setModalFeatureName] = useState('');
+
+  useEffect(() => {
+    const invasionDataRaw = sessionStorage.getItem('invasionData');
+    if (invasionDataRaw) {
+      const data = JSON.parse(invasionDataRaw);
+      setProfileData(data.profileData);
+      setSuggestedProfiles(data.suggestedProfiles);
+      setPosts(data.posts);
+      setLocations(data.locations || []);
+
+      const trialExpired = localStorage.getItem('spygram_trial_expired');
+
+      if (!isLoggedIn && !trialExpired) {
+        let invasionEndTime = sessionStorage.getItem('invasionEndTime');
+        if (!invasionEndTime) {
+          // Define 5 minutos de teste grátis
+          const endTime = Date.now() + (5 * 60 * 1000); 
+          sessionStorage.setItem('invasionEndTime', endTime.toString());
+          invasionEndTime = endTime.toString();
+        }
+
+        const remainingTime = parseInt(invasionEndTime, 10) - Date.now();
+        if (remainingTime <= 0) {
+          localStorage.setItem('spygram_trial_expired', 'true');
+          navigate('/invasion-concluded', { replace: true });
+        }
+      } else if (isLoggedIn) {
+        // Usuário pago, remove tempos e travas
+        sessionStorage.removeItem('invasionEndTime');
+        localStorage.removeItem('spygram_trial_expired');
+      }
+
+    } else {
+      navigate('/', { replace: true }); // Redireciona para a home se não houver dados de invasão
+    }
+  }, [navigate, isLoggedIn]);
+
+
+  const handleLockedFeatureClick = (featureName: string) => {
+    setModalFeatureName(featureName);
+    setIsModalOpen(true);
+  };
+  
+  if (!profileData) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <p className="text-white">Carregando dados da invasão...</p>
+      </div>
+    );
+  }
+
+  return (
+    <BackgroundLayout>
+      <div className="flex bg-black min-h-screen">
+        <InstagramFeedMockup
+          profileData={profileData}
+          suggestedProfiles={suggestedProfiles}
+          posts={posts}
+          locations={locations}
+          onLockedFeatureClick={handleLockedFeatureClick}
+        />
+      </div>
+    </BackgroundLayout>
+  );
+};
+
+
 const App: React.FC = () => {
   return (
     <Router>
@@ -208,7 +308,7 @@ const App: React.FC = () => {
           <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/admin" element={<AdminProtectedRoute><AdminPage /></AdminProtectedRoute>} />
-          <Route path="/instagram" element={<InvasionSimulationPage />} />
+          <Route path="/instagram" element={<InstagramFeedPage />} /> {/* Rota para o Feed do Instagram simulado */}
           <Route path="/invasion-concluded" element={<BackgroundLayout><InvasionConcludedPage /></BackgroundLayout>} />
           <Route path="/servers" element={<ProtectedRoute><BackgroundLayout><ServersPage /></BackgroundLayout></ProtectedRoute>} />
           <Route path="/credits" element={<ProtectedRoute><BackgroundLayout><CreditsPage /></BackgroundLayout></ProtectedRoute>} />

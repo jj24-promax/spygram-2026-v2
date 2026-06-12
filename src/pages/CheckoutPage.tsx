@@ -82,13 +82,7 @@ const CheckoutPage: React.FC = () => {
 
   const total = basePrice + adicionais;
 
-  // Disparo de InitiateCheckout Inicial com delay seguro para carregar UTMify / Meta Pixels
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      trackFacebookEvent('InitiateCheckout', {}, { value: total });
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
+  // Removido o disparo inicial do InitiateCheckout aqui
 
   const handleFinalize = async () => {
     if (!formData.nome || !formData.email || !formData.confirmarEmail || !formData.documento) {
@@ -119,7 +113,7 @@ const CheckoutPage: React.FC = () => {
     // Captura as UTMs ativas do visitante para enviar no payload do pagamento
     const utmParams = captureUtms();
 
-    // Disparar InitiateCheckout enriquecido com email e whatsapp para excelente taxa de correspondência
+    // Disparar o InitiateCheckout aqui, ao clicar em finalizar compra
     trackFacebookEvent('InitiateCheckout', {
       email: formData.email,
       phone: formData.whatsapp

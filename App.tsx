@@ -17,7 +17,8 @@ import ProgressBar from '@/src/components/ProgressBar';
 import InvasionSimulationPage from '@/src/pages/InvasionSimulationPage';
 import InvasionConcludedPage from '@/src/pages/InvasionConcludedPage';
 import ProfileConfirmationCard from '@/src/components/ProfileConfirmationCard';
-import TestWarningModal from '@/src/components/TestWarningModal'; // Novo Import
+import TestWarningModal from '@/src/components/TestWarningModal';
+import MiniQuiz from '@/src/components/MiniQuiz'; // Importar o MiniQuiz
 import { MIN_LOADING_DURATION } from './constants';
 import { fetchProfileData } from './src/services/profileService';
 import { AuthProvider, useAuth } from './src/context/AuthContext'; 
@@ -31,9 +32,8 @@ import { trackLead } from './src/services/trackingService';
 import WhatsAppButton from '@/src/components/WhatsAppButton';
 import AnalyticsTracker from '@/src/components/AnalyticsTracker';
 import { trackFacebookEvent } from './src/services/facebookService';
-import { captureUtms } from './src/utils/utm'; // Importando captura de UTMs
+import { captureUtms } from './src/utils/utm';
 
-// Componente Guardião para prender o visitante na página de vendas caso o período gratuito expire
 const TrialGuard: React.FC = () => {
   const { isLoggedIn } = useAuth();
   const navigate = useNavigate();
@@ -42,7 +42,6 @@ const TrialGuard: React.FC = () => {
   useEffect(() => {
     const isTrialExpired = localStorage.getItem('spygram_trial_expired') === 'true';
     if (isTrialExpired && !isLoggedIn) {
-      // Rotas que o usuário de teste bloqueado tem permissão para acessar (Checkout e Login)
       const allowedPaths = ['/invasion-concluded', '/checkout', '/login', '/admin-login', '/admin'];
       const isAllowed = allowedPaths.some(path => location.pathname.startsWith(path));
       if (!isAllowed) {
@@ -63,15 +62,14 @@ const MainAppContent: React.FC = () => {
   const [confirmedProfileData, setConfirmedProfileData] = useState<ProfileData | null>(null);
   const [confirmedSuggestions, setConfirmedSuggestions] = useState<SuggestedProfile[]>([]);
   const [confirmedPosts, setConfirmedPosts] = useState<FeedPost[]>([]);
+  const [quizCompleted, setQuizCompleted] = useState<boolean>(false); // Novo estado para controlar o quiz
   const { logout } = useAuth();
   const navigate = useNavigate();
 
-  // Executa a varredura inicial de UTMs assim que entra no site
   useEffect(() => {
     captureUtms();
   }, []);
 
-  // Redireciona imediatamente se já existir uma invasão ativa salva de forma persistente
   useEffect(() => {
     const activeInvasion = localStorage.getItem('spygram_active_invasion');
     if (activeInvasion) {
@@ -93,6 +91,13 @@ const MainAppContent: React.FC = () => {
     return () => { if (interval) clearInterval(interval); };
   }, [isLoading]);
 
+  const handleQuizComplete = useCallback((answers: Record<string, string>) => {
+    setQuizCompleted(true);
+    // Opcional: Você pode salvar as respostas ou usá-las para alguma lógica aqui
+    console.log('Quiz Answers:', answers);
+    trackFacebookEvent('PageView'); // Dispara PageView após o quiz para simular a chegada na página principal
+  }, []);
+
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
       setError('Por favor, insira um nome de usuário.');
@@ -107,13 +112,12 @@ const MainAppContent: React.FC = () => {
     setError(null);
     
     try {
-      // RESET TOTAL PARA NOVA PESQUISA
       logout(); 
       sessionStorage.removeItem('invasionEndTime');
       sessionStorage.removeItem('invasionData');
       sessionStorage.removeItem('current_lead_id');
       localStorage.removeItem('spygram_banned_session');
-      localStorage.removeItem('spygram_trial_expired'); // Limpa trava anterior
+      localStorage.removeItem('spygram_trial_expired');
 
       const [fetchResult, locationData] = await Promise.all([
         fetchProfileData(searchQuery.trim()),
@@ -125,7 +129,6 @@ const MainAppContent: React.FC = () => {
       setConfirmedSuggestions(fetchResult.suggestions);
       setConfirmedPosts(fetchResult.posts);
 
-      // Salva o lead inicial no banco
       trackLead({
         username_searched: fetchResult.profile.username,
         profile_pic: fetchResult.profile.profilePicUrl,
@@ -134,9 +137,6 @@ const MainAppContent: React.FC = () => {
         ip_address: locationData.ip,
         status: 'pesquisou'
       });
-
-      // DISPARAR EVENTO DE LEAD NO FACEBOOK (PIXEL + CAPI)
-      // trackFacebookEvent('Lead', {}, { value: 0 }); // REMOVIDO AQUI
 
     } catch (err) {
       setError("Sistema sobrecarregado, tente novamente mais tarde");
@@ -154,10 +154,8 @@ const MainAppContent: React.FC = () => {
       };
       
       sessionStorage.setItem('invasionData', JSON.stringify(invasionData));
-      // Salva de forma persistente para bloquear novas pesquisas deste mesmo navegador
       localStorage.setItem('spygram_active_invasion', JSON.stringify(invasionData));
       
-      // Atendimento do lead
       trackLead({ status: 'confirmou_alvo' });
       
       navigate('/instagram', { state: invasionData });
@@ -179,22 +177,27 @@ const MainAppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-transparent">
       <ProgressBar progress={progressBarProgress} isVisible={isLoading} />
-      <TestWarningModal /> {/* Popup de Aviso de Invasão Teste */}
-      <div className="relative z-20 text-white flex flex-col items-center px-4 pt-12 pb-8 w-full"> 
-        <header className="text-center mb-8 w-full max-xl">
-          <img src="/spygram_transparentebranco.png" alt="Logo" className="h-24 mx-auto mb-6" />
-          <h1 className="text-5xl font-extrabold mb-4 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-transparent bg-clip-text uppercase">SpyGram</h1>
-          <p className="text-xl font-bold">ACESSE O <span className="text-pink-500">INSTAGRAM</span> DE QUALQUER PESSOA <span className="text-yellow-500">SEM SENHA</span></p>
-        </header>
-        <main className="w-full flex flex-col items-center">
-          <CustomSearchBar query={searchQuery} setQuery={setSearchQuery} isLoading={isLoading} />
-          <InvasionCounter />
-          <div className="mt-6"><ConsentCheckbox checked={hasConsented} onChange={setHasConsented} /></div>
-          <div className="mt-6"><SparkleButton onClick={handleSearch} disabled={isLoading || !hasConsented}>{isLoading ? 'Buscando...' : 'Invadir Conta'}</SparkleButton></div>
-          <div className="w-full mt-4">{error && <ErrorMessage message={error} />}</div>
-        </main>
-        <footer className="mt-16 flex items-center gap-1 text-gray-500 text-sm"><Lock className="w-4 h-4 text-green-500" /> SSL Verificado</footer>
-      </div>
+      <TestWarningModal />
+
+      {!quizCompleted && <MiniQuiz onComplete={handleQuizComplete} />} {/* Exibe o quiz se não estiver completo */}
+
+      {quizCompleted && (
+        <div className="relative z-20 text-white flex flex-col items-center px-4 pt-12 pb-8 w-full"> 
+          <header className="text-center mb-8 w-full max-xl">
+            <img src="/spygram_transparentebranco.png" alt="Logo" className="h-24 mx-auto mb-6" />
+            <h1 className="text-5xl font-extrabold mb-4 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-transparent bg-clip-text uppercase">SpyGram</h1>
+            <p className="text-xl font-bold">ACESSE O <span className="text-pink-500">INSTAGRAM</span> DE QUALQUER PESSOA <span className="text-yellow-500">SEM SENHA</span></p>
+          </header>
+          <main className="w-full flex flex-col items-center">
+            <CustomSearchBar query={searchQuery} setQuery={setSearchQuery} isLoading={isLoading} />
+            <InvasionCounter />
+            <div className="mt-6"><ConsentCheckbox checked={hasConsented} onChange={setHasConsented} /></div>
+            <div className="mt-6"><SparkleButton onClick={handleSearch} disabled={isLoading || !hasConsented}>{isLoading ? 'Buscando...' : 'Invadir Conta'}</SparkleButton></div>
+            <div className="w-full mt-4">{error && <ErrorMessage message={error} />}</div>
+          </main>
+          <footer className="mt-16 flex items-center gap-1 text-gray-500 text-sm"><Lock className="w-4 h-4 text-green-500" /> SSL Verificado</footer>
+        </div>
+      )}
     </div>
   );
 };
@@ -203,8 +206,8 @@ const App: React.FC = () => {
   return (
     <Router>
       <AuthProvider>
-        <AnalyticsTracker /> {/* Rastreador de Analytics Ativo */}
-        <TrialGuard /> {/* Bloqueador permanente de teste grátis expirado */}
+        <AnalyticsTracker />
+        <TrialGuard />
         <Routes>
           <Route path="/" element={<BackgroundLayout><MainAppContent /></BackgroundLayout>} />
           <Route path="/login" element={<LoginPage />} />

@@ -60,13 +60,14 @@ interface InitialQuizProps {
 const InitialQuiz: React.FC<InitialQuizProps> = ({ onQuizComplete }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
+  const [lastQuestionAnswered, setLastQuestionAnswered] = useState(false); // Novo estado
 
   const handleAnswer = (answer: string) => {
     setAnswers((prev) => [...prev, answer]);
     if (currentQuestionIndex < quizQuestions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     } else {
-      onQuizComplete(); // Finaliza o quiz
+      setLastQuestionAnswered(true); // Marca que a última pergunta foi respondida
     }
   };
 
@@ -110,11 +111,12 @@ const InitialQuiz: React.FC<InitialQuizProps> = ({ onQuizComplete }) => {
             ))}
           </div>
 
-          {currentQuestion.id === quizQuestions.length && (
+          {/* O botão 'INICIAR ANÁLISE DO PERFIL' só aparece se a última pergunta foi respondida */}
+          {currentQuestion.id === quizQuestions.length && lastQuestionAnswered && (
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.3 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
               onClick={onQuizComplete}
               className="w-full py-5 mt-8 rounded-2xl font-black text-lg text-white
                          bg-gradient-to-r from-purple-600 via-pink-500 to-yellow-500

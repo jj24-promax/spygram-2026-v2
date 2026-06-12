@@ -91,8 +91,8 @@ const chatTranslations = {
     playAudio: "Reproduzir",
     pauseAudio: "Pausar",
     transcribing: "Transcrevendo...",
-    transcriptionFailed: "Não foi possível transcrever a mensagem.",
-    requiresVIP: "Requer acesso VIP",
+    transcriptionFailed: "Não foi possível transcrever o áudio VIP. Requer acesso VIP.",
+    requiresVIP: "",
     viewPhoto: "Ver foto",
     sensitiveContent: "Conteúdo confidencial",
     sensitiveContentDescription: "Esta mídia pode conter material sensível. Para visualizá-la, você precisa de acesso VIP.",
@@ -347,7 +347,7 @@ const DIALOGUES: { [key: number]: ChatConfig } = {
       { id: "6", type: "text", direction: "sent", content: "Esse achei triste" },
       { id: "7", type: "date", direction: "system", content: "29 DE NOV, 14:08" },
       { id: "8", type: "forwarded_story", direction: "sent", storyAvatar: "/Chat5.5a.png", storyUsername: "signodaputaria", imageSrc: "/Chat5.5.png", hasPlayButton: true },
-      { id: "9", type: "forwarded_story", direction: "received", storyAvatar: "/Chat5.a.png", storyUsername: "tettrem", imageSrc: "/Chat5.4.png", hasPlayButton: true },
+      { id: "9", type: "forwarded_story", direction: "received", storyAvatar: "/Chat5.a.png", storyUsername: "/Chat5.4.png", imageSrc: "/Chat5.4.png", hasPlayButton: true },
       { id: "10", type: "date", direction: "system", content: "ONTEM, 18:45" },
       { id: "11", type: "forwarded_story", direction: "sent", storyAvatar: "/Chat5.6a.png", storyUsername: "safadodesejo", imageSrc: "/chat5.6.png", hasPlayButton: true, reaction: "😂" },
       { id: "12", type: "text", direction: "sent", content: "kkkkkkkkkkkk" },
@@ -877,7 +877,6 @@ interface GeneralMessageProps {
   chatTranslations: typeof chatTranslations["pt-BR"];
   onTouchStart: ((event: React.TouchEvent<HTMLDivElement>) => void) | undefined;
   onTouchEnd: ((event: React.TouchEvent<HTMLDivElement>) => void) | undefined;
-  onTouchMove: ((event: React.TouchEvent<HTMLDivElement>) => void) | undefined;
   onContextMenu: ((event: React.MouseEvent<HTMLDivElement>) => void) | undefined;
 }
 
@@ -896,7 +895,6 @@ const GeneralMessage: React.FC<GeneralMessageProps> = ({
   chatTranslations,
   onTouchStart,
   onTouchEnd,
-  onTouchMove,
   onContextMenu
 }) => {
   if (message.type === "date") {
@@ -962,7 +960,7 @@ const GeneralMessage: React.FC<GeneralMessageProps> = ({
       className={`flex mb-2 ${isSent ? 'justify-end' : 'justify-start'}`}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
-      onTouchMove={onTouchMove}
+      // onTouchMove={onTouchMove} // Removed from props or you handle it
       onContextMenu={onContextMenu}
     >
       {!isSent && (
@@ -1014,14 +1012,14 @@ const BlurredHistoryMessage: React.FC<BlurredHistoryMessageProps> = ({ msg }) =>
   if (msg.type === "heart")
     return (
       <div className={`flex mb-2 ${msg.direction === 'sent' ? 'justify-end' : 'justify-start'}`}>
-        {msg.direction === "received" && <div className="w-7 h-7 rounded-full bg-gray-700 mr-2" />}
+        {msg.direction === "received" && <div className="w-7 h-7 rounded-full bg-gray-700 mr-2 bg-gray-700" />}
         <div className="text-4xl">❤️</div>
       </div>
     );
   if (msg.type === "audio")
     return (
       <div className={`flex mb-2 ${msg.direction === 'sent' ? 'justify-end' : 'justify-start'}`}>
-        {msg.direction === "received" && <div className="w-7 h-7 rounded-full bg-gray-700 mr-2" />}
+        {msg.direction === "received" && <div className="w-7 h-7 rounded-full bg-gray-700 mr-2 bg-gray-700" />}
         <div className="flex items-center gap-2 bg-gray-700 rounded-full px-3 py-1">
           <Play size={16} fill="white" className="text-gray-400" />
           <div className="flex items-center gap-0.5 w-[80px]">
@@ -1037,7 +1035,7 @@ const BlurredHistoryMessage: React.FC<BlurredHistoryMessageProps> = ({ msg }) =>
   const content = (msg.content || "") + (msg.blurredContent ? msg.blurredContent : "");
   return (
     <div className={`flex mb-2 ${msg.direction === 'sent' ? 'justify-end' : 'justify-start'}`}>
-      {msg.direction === "received" && <div className="w-7 h-7 rounded-full bg-gray-700 mr-2" />}
+      {msg.direction === "received" && <div className="w-7 h-7 rounded-full bg-gray-700 mr-2 bg-gray-700" />}
       <div className={`px-4 py-2 rounded-2xl ${msg.direction === 'sent' ? 'bg-purple-600/50' : 'bg-gray-800/50'} text-gray-300 text-sm blur-sm select-none pointer-events-none`}>
         {content}
         {msg.reaction && <div className="absolute -bottom-2 -right-2 bg-gray-700 text-xs px-2 py-0.5 rounded-full border border-gray-800">{msg.reaction}</div>}
@@ -1138,9 +1136,9 @@ const ChatPage: React.FC = () => {
         date2WeeksAhead: `Dia ${date2WeeksAheadFormatted}`,
         lastMessageTime: lastMessageTime,
         date27DaysAgo: `${date27DaysAgoFormatted}, ${formatCallTime(date27DaysAgo)}`,
-        callTime1: formatCallTime(callTime1Date), // Changed from `formatCallTime(callTime1Date)`
-        callTime2: formatCallTime(callTime2Date), // Changed from `formatCallTime(callTime2Date)`
-        callTime3: formatCallTime(callTime3Date) // Changed from `formatCallTime(callTime3Date)`
+        callTime1: formatCallTime(callTime1Date),
+        callTime2: formatCallTime(callTime2Date),
+        callTime3: formatCallTime(callTime3Date)
       });
       // Atualizar o 'HOJE' das mensagens
       const updatedMessages = chatConfig.messages.map(msg => {
@@ -1393,7 +1391,7 @@ const ChatPage: React.FC = () => {
       {/* Messages Area */}
       <main ref={chatMessagesContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col scrollbar-hide">
         <div ref={blurredHistoryRef} className="blurred-history-section">
-          {blurredHistoryMessages.map((msg, index) => (
+          {blurredHistoryDialogues[chatId].map((msg, index) => (
             <BlurredHistoryMessage key={`bh-${index}`} msg={msg} />
           ))}
         </div>
@@ -1418,7 +1416,6 @@ const ChatPage: React.FC = () => {
               chatTranslations={translations}
               onTouchStart={isInteractable ? (e) => handleMessageLongPress(e, `${message.content || ''}${message.blurredContent || ''}`, isSent) : undefined}
               onTouchEnd={undefined}
-              onTouchMove={undefined}
               onContextMenu={isInteractable ? (e) => handleMessageLongPress(e, `${message.content || ''}${message.blurredContent || ''}`, isSent) : undefined}
             />
           );

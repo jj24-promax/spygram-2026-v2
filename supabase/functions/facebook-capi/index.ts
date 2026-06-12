@@ -5,8 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Configuração única para o pixel correto do cliente
-const FB_PIXEL_IDS = ["4532211553667672"];
+// Configuração para o pixel correto do cliente
+const FB_PIXEL_IDS = ["1600460322087004"];
 const FB_ACCESS_TOKEN = "EAAfZBE4xTtzoBRlHEaUPZBwwrqDNOzCOthex2CEpzu7xlnYU3mJEG1MplZCZBZAKc363NZBy7SMNl1LWAtlLltitkL97ty0vCA8FX3EiIqP1OpaZAwGZCZCrGR6QJRMjnDqvZCkewODaBRnZBbZAU6zt2yGLB37qgTPbFszmXYrxG37lWhU9z1LKZAQRkUG8cKAVAsmrq4gZDZD";
 
 async function sha256(text: string): Promise<string> {

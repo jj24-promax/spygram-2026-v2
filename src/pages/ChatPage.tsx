@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Phone, Video, Mic, Camera, Smile, Heart, VolumeX, EyeOff, Lock, Play } from 'lucide-react';
+import { ChevronLeft, Phone, Video, Mic, Camera, Smile, Heart, VolumeX, EyeOff, Lock, Play, Flag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LockedFeatureModal from '../components/LockedFeatureModal';
 import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
 import ReelFullscreenView from '../components/ReelFullscreenView'; // Novo componente
+import { supabase } from '../integrations/supabase/client'; // Importado para asset host
 
 // Ícones SVG customizados
 const PhoneIcon = () => <Phone size={24} />;
@@ -13,22 +14,60 @@ const CameraInputIcon = () => <Camera size={22} />;
 const MicInputIcon = () => <Mic size={22} />;
 const StickerInputIcon = () => <Smile size={22} />;
 const HeartInputIcon = () => <Heart size={22} />;
-const SearchIcon = () => (
-  <svg width="29" height="29" viewBox="0 0 24 24" fill="none">
-    <path d="M15.6 18.6L8.4 12L15.6 5.4" stroke="#F9F9F9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-const InstagramLogo = () => (
-    <svg width="30" height="30" viewBox="0 0 83 83" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M35.8701 20.2324C36.9037 20.1103 40.2042 20.1112 43.2041 20.2353C48.5793 20.4576 48.6938 20.5 51.0635 23.1396C52.8362 25.1135 54.0022 25.8192 55.4961 25.8212C58.2213 25.8249 61.6439 28.0118 62.9863 30.6074C63.9033 32.3815 64.0484 34.7832 63.8711 45.2441C63.6631 57.5071 63.6245 57.7946 61.9541 59.6035C58.8194 62.9971 57.0546 63.3183 41.5352 63.3183C24.8984 63.3183 22.8723 62.8636 20.4717 58.5927C19.1271 56.2009 19 54.9883 19 44.624C19 31.7827 19.5716 29.4239 23.2207 27.1992C24.4616 26.4425 26.4228 25.8227 27.5791 25.8212C29.2039 25.8192 30.1703 25.2094 31.8359 23.1367C33.2186 21.4158 34.664 20.3756 35.8701 20.2324ZM41.5 33.0625C35.6751 33.0625 30.9532 37.7845 30.9531 43.6093C30.9531 49.4342 35.6751 54.1562 41.5 54.1562C47.3249 54.1562 52.0469 49.4342 52.0469 43.6093C52.0468 37.7845 47.3249 33.0625 41.5 33.0625ZM41.5 36.5781C45.3832 36.5781 48.5312 39.7261 48.5312 43.6093C48.5312 47.4926 45.3833 50.6406 41.5 50.6406C37.6167 50.6406 34.4688 47.4926 34.4688 43.6093C34.4688 39.7261 37.6168 36.5781 41.5 36.5781Z" fill="white"/>
-    </svg>
-);
-const SearchCameraIcon = () => (
-    <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="17.5" cy="17.5" r="6.5" stroke="#F9F9F9" strokeWidth="3" fill="none"/>
-        <line x1="23.5" y1="23.5" x2="26.25" y2="26.25" stroke="#F9F9F9" strokeWidth="3" strokeLinecap="round"/>
-    </svg>
-);
+
+const getCleanedImageUrl = (url: string): string => {
+  if (!url) return '/perfil.jpg';
+  if (url.startsWith('/') || url.startsWith('data:')) return url;
+  // Usar supabase storage para otimização ou weserv.nl
+  // Exemplo com supabase storage se o bucket for 'chat-images' e a imagem estiver lá:
+  // return supabase.storage.from('chat-images').getPublicUrl(url.split('/').pop() || url).data.publicUrl;
+  return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&q=80&output=webp`;
+};
+
+function getMaskedUsername(username: string): string {
+    if (!username || username.length === 0) return "xxx*****";
+    if (username.includes("*")) return username;
+    return (username.length >= 3 ? username.substring(0, 3) : username) + "*****";
+}
+
+const generateWaveformData = () => {
+  const data = [];
+  for (let i = 0; i < 30; i++) {
+    data.push(Math.floor(Math.random() * 21) + 12);
+  }
+  return data;
+};
+
+const viewedChatImagesKey = "viewedChatImages";
+
+function hasViewedImage(imageId: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return JSON.parse(localStorage.getItem(viewedChatImagesKey) || "[]").includes(imageId);
+  } catch {
+    return false;
+  }
+}
+
+function markImageViewed(imageId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const viewed = JSON.parse(localStorage.getItem(viewedChatImagesKey) || "[]");
+    if (!viewed.includes(imageId)) {
+      viewed.push(imageId);
+      localStorage.setItem(viewedChatImagesKey, JSON.stringify(viewed));
+    }
+  } catch {
+    console.warn("Error saving viewed image");
+  }
+}
+
+function getImageId(chatId: number, messageId: string, imageUrl: string, index: number = 0): string {
+    const cleanedUrl = imageUrl.split('/').pop()?.split('?')[0] || '';
+    const uniquePart = `${chatId}_${messageId}_${index}_${cleanedUrl}`;
+    return btoa(uniquePart).substring(0, 80);
+}
+
 
 // Mapeamento de traduções (mantido simples para exemplo, idealmente viria de um hook de i18n)
 const chatTranslations = {
@@ -91,6 +130,9 @@ interface MessageItemProps {
   hasPlayButton?: boolean;
   isPackImages?: boolean;
   packImages?: string[];
+  showError?: boolean;
+  showTime?: boolean;
+  showExpanded?: boolean;
 }
 
 interface ChatConfig {
@@ -114,64 +156,6 @@ interface MetaInfo {
     city?: string;
 }
 
-const generateWaveformData = () => {
-  const data = [];
-  for (let i = 0; i < 30; i++) {
-    data.push(Math.floor(Math.random() * 21) + 12);
-  }
-  return data;
-};
-
-// Funções utilitárias
-function getCleanedImageUrl(url: string): string {
-  // Simula o comportamento de ce (asset host)
-  if (!url) return '/perfil.jpg';
-  if (url.startsWith('/')) return url;
-  // if (url.startsWith('http')) return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&q=80&output=webp`;
-  return url;
-}
-
-function getMaskedUsername(username: string): string {
-    if (!username || username.length === 0) return "xxx*****";
-    if (username.includes("*")) return username;
-    return (username.length >= 3 ? username.substring(0, 3) : username) + "*****";
-}
-
-function getFormattedTime(time: number): string {
-    const minutes = Math.floor(time / 60000);
-    const seconds = Math.floor((time % 60000) / 1000);
-    return `${minutes}:${String(seconds).padStart(2, '0')}`;
-}
-
-const viewedChatImagesKey = "viewedChatImages";
-
-function hasViewedImage(imageId: string): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return JSON.parse(localStorage.getItem(viewedChatImagesKey) || "[]").includes(imageId);
-  } catch {
-    return false;
-  }
-}
-
-function markImageViewed(imageId: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    const viewed = JSON.parse(localStorage.getItem(viewedChatImagesKey) || "[]");
-    if (!viewed.includes(imageId)) {
-      viewed.push(imageId);
-      localStorage.setItem(viewedChatImagesKey, JSON.stringify(viewed));
-    }
-  } catch {
-    console.warn("Error saving viewed image");
-  }
-}
-
-function getImageId(chatId: number, messageId: string, imageUrl: string, index: number = 0): string {
-    const cleanedUrl = imageUrl.split('/').pop()?.split('?')[0] || '';
-    const uniquePart = `${chatId}_${messageId}_${index}_${cleanedUrl}`;
-    return btoa(uniquePart).substring(0, 80);
-}
 
 // ===========================================
 // SUBSIDIOS LOCAIS (MESSAGES)
@@ -480,21 +464,21 @@ interface AudioMessageProps {
 
 const AudioMessage: React.FC<AudioMessageProps> = ({
   message: t,
-  isSent: a,
-  onShowVIPPopup: o,
-  onDismissVIPPopup: s,
-  onBlockedAction: r,
-  audioIndex: v,
-  chatId: x,
-  chatTranslations: c
+  isSent,
+  onShowVIPPopup,
+  onDismissVIPPopup,
+  onBlockedAction,
+  audioIndex,
+  chatId,
+  chatTranslations
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playedProgress, setPlayedProgress] = useState(0);
   const [isWaveformAnimating, setIsWaveformAnimating] = useState(false);
-  const [transcriptionStatus, setTranscriptionStatus] = useState("idle"); // idle, transcribing, failed
+  const [transcriptionStatus, setTranscriptionStatus] = useState<"idle" | "transcribing" | "failed">("idle");
   const animationFrameRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
-  const playedTimeRef = useRef<number>(0); // Tempo já reproduzido ao pausar
+  const playedTimeRef = useRef<number>(0);
   const waveformData = useRef(generateWaveformData());
   
   const totalDurationMs = (() => {
@@ -516,7 +500,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
     ? formatRemainingTime(remainingTime)
     : t.audioDuration;
 
-  const audioStorageKey = `chat-${x}_audio-${v}-${t.audioDuration}`;
+  const audioStorageKey = `chat-${chatId}_audio-${audioIndex}-${t.audioDuration}`;
   const isListened = typeof window !== "undefined" && localStorage.getItem(audioStorageKey) === "listened";
 
   useEffect(() => {
@@ -534,7 +518,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      s(); // Dismiss VIP popup
+      onDismissVIPPopup(); // Dismiss VIP popup
     } else {
       setIsPlaying(true);
       setIsWaveformAnimating(true);
@@ -542,7 +526,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
       
       if (transcriptionStatus === "idle" && playedProgress === 0) {
         setTranscriptionStatus("failed"); // Entra em VIP automaticamente
-        o(); // Show VIP popup
+        onShowVIPPopup(); // Show VIP popup
       }
       
       if (typeof window !== "undefined") {
@@ -559,7 +543,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
           setPlayedProgress(0);
           setIsWaveformAnimating(false);
           playedTimeRef.current = 0;
-          s(); // Dismiss VIP popup
+          onDismissVIPPopup(); // Dismiss VIP popup
         } else {
           animationFrameRef.current = requestAnimationFrame(animate);
         }
@@ -573,7 +557,7 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
       setTranscriptionStatus("transcribing");
       setTimeout(() => {
         setTranscriptionStatus("failed");
-        setTimeout(() => r(c.transcribeAudio), 300);
+        setTimeout(() => onBlockedAction(chatTranslations.transcribeAudio), 300);
       }, 1500);
     }
   };
@@ -586,12 +570,12 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
         <button
           type="button"
           className={`w-8 h-8 flex items-center justify-center rounded-full ${isListened ? 'bg-gray-700' : 'bg-blue-600'} text-white text-xs`}
-          aria-label={isPlaying ? c.pauseAudio : c.playAudio}
+          aria-label={isPlaying ? chatTranslations.pauseAudio : chatTranslations.playAudio}
           onClick={togglePlay}
         >
           {isPlaying ? <Play size={16} fill="white" className="rotate-90" /> : <Play size={16} fill="white" />}
         </button>
-        <div className="flex items-center gap-0.5" style={{ width: '130px' }}>
+        <div className="flex items-center gap-0.5 w-[130px]">
           {waveformData.current.map((height, idx) => (
             <div
               key={idx}
@@ -606,13 +590,13 @@ const AudioMessage: React.FC<AudioMessageProps> = ({
         className="text-xs text-gray-500 hover:underline cursor-pointer ml-10 p-1"
         onClick={handleTranscriptionClick}
       >
-        {transcriptionStatus === "idle" && (c.viewFullHistory || "Ver transcrição")}
-        {transcriptionStatus === "transcribing" && (c.transcribing || "Transcrevendo...")}
+        {transcriptionStatus === "idle" && (chatTranslations.viewFullHistory || "Ver transcrição")}
+        {transcriptionStatus === "transcribing" && (chatTranslations.transcribing || "Transcrevendo...")}
         {transcriptionStatus === "failed" && (
           <span className="text-red-400">
-            {c.transcriptionFailed || "Não foi possível transcrever."}
+            {chatTranslations.transcriptionFailed || "Não foi possível transcrever."}
             <br />
-            {c.requiresVIP || "Requer acesso VIP"}
+            {chatTranslations.requiresVIP || "Requer acesso VIP"}
           </span>
         )}
       </div>
@@ -628,35 +612,35 @@ interface SystemCallMessageProps {
 }
 
 const SystemCallMessage: React.FC<SystemCallMessageProps> = ({
-  message: t,
-  metaInfo: a,
-  onBlockedAction: o,
-  chatTranslations: s
+  message,
+  metaInfo,
+  onBlockedAction,
+  chatTranslations
 }) => {
   const statusClasses = {
     normal: "text-blue-400",
     missed: "text-red-400",
     ended: "text-gray-500"
   };
-  const icon = t.callType === "video" ? <Video size={16} className="text-white" /> : <Phone size={16} className="text-white" />;
+  const icon = message.callType === "video" ? <Video size={16} className="text-white" /> : <Phone size={16} className="text-white" />;
   const contentMap = {
-    "Chamada de vídeo": s.videoCallLabel,
-    "Ligação de vídeo perdida": s.videoCallMissed,
-    "Ligação de vídeo encerrada": s.videoCallEnded
+    "Chamada de vídeo": chatTranslations.videoCallLabel,
+    "Ligação de vídeo perdida": chatTranslations.videoCallMissed,
+    "Ligação de vídeo encerrada": chatTranslations.videoCallEnded
   };
-  const contentText = (t.content && contentMap[t.content as keyof typeof contentMap]) || t.content;
+  const contentText = (message.content && contentMap[message.content as keyof typeof contentMap]) || message.content;
 
   return (
-    <div className={`text-center py-2 text-xs text-gray-500 flex items-center justify-center gap-2 ${statusClasses[t.callStatus || 'normal']}`}>
-      {t.callStatus === 'missed' && <Lock size={14} />}
+    <div className={`text-center py-2 text-xs text-gray-500 flex items-center justify-center gap-2 ${statusClasses[message.callStatus || 'normal']}`}>
+      {message.callStatus === 'missed' && <Lock size={14} />}
       {icon}
       <span>{contentText}</span>
-      {t.timeId && a[t.timeId as keyof MetaInfo] && (
-        <span className="text-gray-600"> &bull; {a[t.timeId as keyof MetaInfo]}</span>
+      {message.timeId && metaInfo[message.timeId as keyof MetaInfo] && (
+        <span className="text-gray-600"> &bull; {metaInfo[message.timeId as keyof MetaInfo]}</span>
       )}
-      {t.callStatus === 'missed' && (
-        <button onClick={() => o(s.callBack)} className="text-blue-400 hover:underline ml-2">
-          {s.callBack}
+      {message.callStatus === 'missed' && (
+        <button onClick={() => onBlockedAction(chatTranslations.callBack)} className="text-blue-400 hover:underline ml-2">
+          {chatTranslations.callBack}
         </button>
       )}
     </div>
@@ -669,23 +653,23 @@ interface ForwardedStoryMessageProps {
   onReelClick: (path: string) => void;
 }
 
-const ForwardedStoryMessage: React.FC<ForwardedStoryMessageProps> = ({ message: t, onBlockedAction: o, onReelClick: r }) => {
-  const isSensitive = !t.hasPlayButton; // Se não tem play button, é sensível (thumbnail)
-  const imageUrl = getCleanedImageUrl(t.imageSrc || "");
+const ForwardedStoryMessage: React.FC<ForwardedStoryMessageProps> = ({ message, onBlockedAction, onReelClick }) => {
+  const isSensitive = !message.hasPlayButton; // Se não tem play button, é sensível (thumbnail)
+  const imageUrl = getCleanedImageUrl(message.imageSrc || "");
 
   const handleClick = () => {
-    if (t.hasPlayButton && t.imageSrc) {
-      r(imageUrl);
+    if (message.hasPlayButton && message.imageSrc) {
+      onReelClick(imageUrl);
     } else {
-      o("ver stories encaminhados");
+      onBlockedAction("ver stories encaminhados");
     }
   };
 
   return (
     <div className="relative w-48 h-64 rounded-lg overflow-hidden border border-gray-700 bg-gray-900 shadow-lg cursor-pointer" onClick={handleClick}>
       <div className="absolute top-2 left-2 flex items-center gap-2 bg-black/50 px-2 py-1 rounded-full z-10">
-        <img src={getCleanedImageUrl(t.storyAvatar || "")} alt={t.storyUsername} className="w-5 h-5 rounded-full object-cover" />
-        <span className="text-white text-xs font-semibold">{t.storyUsername}</span>
+        <img src={getCleanedImageUrl(message.storyAvatar || "")} alt={message.storyUsername} className="w-5 h-5 rounded-full object-cover" />
+        <span className="text-white text-xs font-semibold">{message.storyUsername}</span>
       </div>
       <img src={imageUrl} alt="Story" className={`w-full h-full object-cover ${isSensitive ? 'blur-lg opacity-70' : ''}`} />
       {isSensitive && (
@@ -693,12 +677,12 @@ const ForwardedStoryMessage: React.FC<ForwardedStoryMessageProps> = ({ message: 
           <Lock size={32} className="text-red-500" />
         </div>
       )}
-      {t.hasPlayButton && (
+      {message.hasPlayButton && (
         <div className="absolute inset-0 flex items-center justify-center">
           <Play size={48} fill="white" className="text-white/80" />
         </div>
       )}
-      {t.reaction && <div className="absolute bottom-2 right-2 bg-gray-800 rounded-full px-2 py-1 text-sm">{t.reaction}</div>}
+      {message.reaction && <div className="absolute bottom-2 right-2 bg-gray-800 rounded-full px-2 py-1 text-sm">{message.reaction}</div>}
     </div>
   );
 };
@@ -710,14 +694,14 @@ interface ImageMessageProps {
   chatId: number;
 }
 
-const ImageMessage: React.FC<ImageMessageProps> = ({ message: t, onOpenFullscreen: o, chatId: x }) => {
-  if (t.isPackImages && t.packImages) {
+const ImageMessage: React.FC<ImageMessageProps> = ({ message, onOpenFullscreen, chatId }) => {
+  if (message.isPackImages && message.packImages) {
     return (
       <div className="flex flex-wrap -space-x-4">
-        {t.packImages.map((imgSrc, idx) => {
-          const imgId = getImageId(x, t.id, imgSrc, idx);
+        {message.packImages.map((imgSrc, idx) => {
+          const imgId = getImageId(chatId, message.id, imgSrc, idx);
           return (
-            <div key={idx} className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-gray-700 bg-gray-800 shadow-xl cursor-pointer" onClick={() => o(imgSrc, imgId)}>
+            <div key={idx} className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-gray-700 bg-gray-800 shadow-xl cursor-pointer" onClick={() => onOpenFullscreen(imgSrc, imgId)}>
               <img src={getCleanedImageUrl(imgSrc)} alt="Sensitive content" className="w-full h-full object-cover blur-lg opacity-70" />
               <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                 <EyeOff size={24} className="text-white" />
@@ -725,19 +709,19 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ message: t, onOpenFullscree
             </div>
           );
         })}
-        {t.reaction && <div className="absolute bottom-1 right-1 bg-gray-800 rounded-full px-2 py-0.5 text-xs">{t.reaction}</div>}
+        {message.reaction && <div className="absolute bottom-1 right-1 bg-gray-800 rounded-full px-2 py-0.5 text-xs">{message.reaction}</div>}
       </div>
     );
   }
 
-  const imgId = getImageId(x, t.id, t.imageSrc || "");
+  const imgId = getImageId(chatId, message.id, message.imageSrc || "");
   return (
-    <div className="relative w-48 h-auto rounded-lg overflow-hidden border-2 border-gray-700 bg-gray-800 shadow-xl cursor-pointer" onClick={() => o(t.imageSrc || "", imgId)}>
-      <img src={getCleanedImageUrl(t.imageSrc || "")} alt="Sensitive content" className="w-full h-full object-cover blur-lg opacity-70" />
+    <div className="relative w-48 h-auto rounded-lg overflow-hidden border-2 border-gray-700 bg-gray-800 shadow-xl cursor-pointer" onClick={() => onOpenFullscreen(message.imageSrc || "", imgId)}>
+      <img src={getCleanedImageUrl(message.imageSrc || "")} alt="Sensitive content" className="w-full h-full object-cover blur-lg opacity-70" />
       <div className="absolute inset-0 flex items-center justify-center bg-black/50">
         <EyeOff size={24} className="text-white" />
       </div>
-      {t.reaction && <div className="absolute bottom-1 right-1 bg-gray-800 rounded-full px-2 py-0.5 text-xs">{t.reaction}</div>}
+      {message.reaction && <div className="absolute bottom-1 right-1 bg-gray-800 rounded-full px-2 py-0.5 text-xs">{message.reaction}</div>}
     </div>
   );
 };
@@ -753,12 +737,12 @@ interface FullscreenImageModalProps {
 }
 
 const FullscreenImageModal: React.FC<FullscreenImageModalProps> = ({
-  isOpen: t,
-  imageSrc: a,
-  imageId: o,
-  onClose: s,
-  onGoToCTA: r,
-  onShowBlockedPopup: v
+  isOpen,
+  imageSrc,
+  imageId,
+  onClose,
+  onGoToCTA,
+  onShowBlockedPopup
 }) => {
   const [stage, setStage] = useState<"initial" | "revealing" | "blocked">("initial");
   const [isShaking, setIsShaking] = useState(false);
@@ -771,16 +755,16 @@ const FullscreenImageModal: React.FC<FullscreenImageModalProps> = ({
   }, []);
 
   useEffect(() => {
-    if (t) {
-      if (hasViewedImage(o)) {
-        s();
-        setTimeout(() => v("Seja um membro VIP para poder rever as imagens do chat"), 100);
+    if (isOpen) {
+      if (hasViewedImage(imageId)) {
+        onClose();
+        setTimeout(() => onShowBlockedPopup("Seja um membro VIP para poder rever as imagens do chat"), 100);
       } else {
         setStage("initial");
         setIsShaking(false);
       }
     }
-  }, [t, o, s, v]);
+  }, [isOpen, imageId, onClose, onShowBlockedPopup]);
 
   const handleAction = useCallback(() => {
     if (stage === "initial") {
@@ -791,25 +775,25 @@ const FullscreenImageModal: React.FC<FullscreenImageModalProps> = ({
       }, 600);
       setTimeout(() => {
         if (mounted.current) {
-          markImageViewed(o);
+          markImageViewed(imageId);
           setStage("blocked");
         }
       }, 3000);
     } else if (stage === "blocked") {
-      s();
-      r();
+      onClose();
+      onGoToCTA();
     }
-  }, [stage, o, s, r]);
+  }, [stage, imageId, onClose, onGoToCTA]);
 
   const handleClose = useCallback(() => {
-    s();
+    onClose();
     setTimeout(() => {
       if (mounted.current) {
         setStage("initial");
         setIsShaking(false);
       }
     }, 300);
-  }, [s]);
+  }, [onClose]);
 
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
     if (e.target === modalRef.current) {
@@ -817,7 +801,7 @@ const FullscreenImageModal: React.FC<FullscreenImageModalProps> = ({
     }
   }, [handleClose]);
 
-  if (!t) return null;
+  if (!isOpen) return null;
 
   const isRevealing = stage === "revealing";
   const isBlocked = stage === "blocked";
@@ -833,7 +817,7 @@ const FullscreenImageModal: React.FC<FullscreenImageModalProps> = ({
     >
       <div className={`relative bg-gray-900 rounded-lg shadow-xl overflow-hidden max-w-lg w-full max-h-[90vh] flex flex-col transition-all duration-300 ${isShaking ? 'animate-shake' : ''}`}>
         <img
-          src={getCleanedImageUrl(a)}
+          src={getCleanedImageUrl(imageSrc)}
           alt="Conteúdo sensível"
           className={`w-full h-auto object-contain ${isRevealing ? '' : 'blur-lg opacity-70'} transition-all duration-500`}
         />
@@ -898,69 +882,68 @@ interface GeneralMessageProps {
 }
 
 const GeneralMessage: React.FC<GeneralMessageProps> = ({
-  message: t,
-  userPhoto: a,
-  onBlockedAction: o,
-  onShowVIPPopup: s,
-  onDismissVIPPopup: r,
-  onOpenFullscreen: v,
-  onReelClick: x,
-  metaInfo: c,
-  dynamicContent: u,
-  audioIndex: b,
-  chatId: m,
-  chatTranslations: f,
-  onTouchStart: q,
-  onTouchEnd: B,
-  onTouchMove: I,
-  onContextMenu: V
+  message,
+  userPhoto,
+  onBlockedAction,
+  onShowVIPPopup,
+  onDismissVIPPopup,
+  onOpenFullscreen,
+  onReelClick,
+  metaInfo,
+  dynamicContent,
+  audioIndex,
+  chatId,
+  chatTranslations,
+  onTouchStart,
+  onTouchEnd,
+  onTouchMove,
+  onContextMenu
 }) => {
-  if (t.type === "date") {
-    let content = t.content;
+  if (message.type === "date") {
+    let content = message.content;
     const today = new Date();
     if (content === "HOJE") {
       content = today.toLocaleDateString("pt-BR", { day: 'numeric', month: 'short' }).toUpperCase();
     }
-    if (t.timeId && u[t.timeId as keyof typeof u]) {
-      content = u[t.timeId as keyof typeof u];
+    if (message.timeId && metaInfo[message.timeId as keyof MetaInfo]) {
+      content = metaInfo[message.timeId as keyof MetaInfo];
     }
     return <div className="text-center py-2 text-xs text-gray-500">{content}</div>;
   }
-  if (t.type === "unread_divider")
+  if (message.type === "unread_divider")
     return (
       <div className="flex items-center gap-2 my-4">
         <div className="flex-grow border-t border-gray-700" />
-        <span className="text-xs text-blue-400 font-semibold">{f.newMessages}</span>
+        <span className="text-xs text-blue-400 font-semibold">{chatTranslations.newMessages}</span>
         <div className="flex-grow border-t border-gray-700" />
       </div>
     );
-  if (t.type === "system_call")
-    return <SystemCallMessage message={t} metaInfo={c} onBlockedAction={o} chatTranslations={f} />;
+  if (message.type === "system_call")
+    return <SystemCallMessage message={message} metaInfo={metaInfo} onBlockedAction={onBlockedAction} chatTranslations={chatTranslations} />;
 
-  const isSent = t.direction === "sent";
-  const isHeart = t.type === "heart";
+  const isSent = message.direction === "sent";
+  const isHeart = message.type === "heart";
   
-  let displayedContent = t.content || "";
-  let blurredPart = t.blurredContent || "";
+  let displayedContent = message.content || "";
 
-  if (t.dynamicType && u && typeof u === 'object') {
-      const dynamicValue = u[t.dynamicType];
+  if (message.dynamicType && dynamicContent && typeof dynamicContent === 'object') {
+      const dynamicValue = dynamicContent[message.dynamicType];
       if (dynamicValue) {
-          if (t.dynamicType === 'firstName') {
+          if (message.dynamicType === 'firstName') {
               displayedContent = `${dynamicValue} ${displayedContent}`;
-          } else if (t.dynamicType === 'userSpiedName') {
-              if (t.content === "Por favor ") {
+          } else if (message.dynamicType === 'userSpiedName') {
+              if (message.content === "Por favor ") {
                   displayedContent = `Por favor ${dynamicValue}`;
-              } else if (t.content === "") {
+              } else if (message.content === "") {
                   displayedContent = `${dynamicValue}???`;
-              } else if (t.content === "Bom dia ") {
+              } else if (message.content === "Bom dia ") {
                   displayedContent = `Bom dia ${dynamicValue || "bb"}`;
               } else {
                   displayedContent = `${displayedContent} ${dynamicValue}`;
               }
-          } else if (t.dynamicType === 'date2WeeksAhead') {
+          } else if (message.dynamicType === 'date2WeeksAhead') {
               displayedContent = `${displayedContent} ${dynamicValue}`;
-          } else if (t.dynamicType === 'city') {
+          } else if (message.dynamicType === 'city') {
               const city = dynamicValue || "casa";
               displayedContent = displayedContent.replace("**", city)
               .replace("em aqui", `em ${city} aqui`)
@@ -972,50 +955,50 @@ const GeneralMessage: React.FC<GeneralMessageProps> = ({
   }
 
 
-  const isEmoji = isHeart || (!t.imageSrc && !t.audioDuration && !t.blurredContent && displayedContent.match(/^(?:[\u2700-\u27bf]|\ud83c[\udde6-\uddff]{2}|[\ud800-\udbff][\udc00-\udfff]|[\u0023-\u0039]\ufe0f?\u20e3|\u3299|\u3297|\u303d|\u3030|\u24c2|\ud83c[\udf00-\uffff]|\ud83d[\udc00-\uffff]|\ud83e[\udc00-\uffff])[\s\ufe0f]*$/) && displayedContent.length < 10);
+  const isEmoji = isHeart || (!message.imageSrc && !message.audioDuration && !message.blurredContent && displayedContent.match(/^(?:[\u2700-\u27bf]|\ud83c[\udde6-\uddff]{2}|[\ud800-\udbff][\udc00-\udfff]|[\u0023-\u0039]\ufe0f?\u20e3|\u3299|\u3297|\u303d|\u3030|\u24c2|\ud83c[\udf00-\uffff]|\ud83d[\udc00-\uffff]|\ud83e[\udc00-\uffff])[\s\ufe0f]*$/) && displayedContent.length < 10);
 
   return (
     <div
       className={`flex mb-2 ${isSent ? 'justify-end' : 'justify-start'}`}
-      onTouchStart={q}
-      onTouchEnd={B}
-      onTouchMove={I}
-      onContextMenu={V}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      onTouchMove={onTouchMove}
+      onContextMenu={onContextMenu}
     >
       {!isSent && (
         <img
-          src={getCleanedImageUrl(a)}
+          src={getCleanedImageUrl(userPhoto)}
           alt="Avatar"
           className="w-7 h-7 rounded-full object-cover mr-2 flex-shrink-0"
         />
       )}
       <div className={`flex flex-col max-w-[75%] ${isSent ? 'items-end' : 'items-start'}`}>
-        {t.replyTo && (t.type === 'reply' || isSent) && ( // Só mostra reply se for o tipo reply ou se for mensagem enviada que está respondendo
+        {message.replyTo && (message.type === 'reply' || isSent) && ( // Só mostra reply se for o tipo reply ou se for mensagem enviada que está respondendo
           <div className={`px-3 py-1 text-xs rounded-t-lg ${isSent ? 'bg-purple-900/50 text-white rounded-bl-lg' : 'bg-gray-800/50 text-gray-300 rounded-br-lg'} mb-1`}>
-            <div className="text-gray-400">{t.replyLabel}</div>
+            <div className="text-gray-400">{message.replyLabel}</div>
             <div className="flex items-center gap-1">
               <div className={`w-0.5 h-4 ${isSent ? 'bg-purple-500' : 'bg-blue-500'}`} />
-              <span className="truncate">{t.replyTo}</span>
+              <span className="truncate">{message.replyTo}</span>
             </div>
           </div>
         )}
         <div
           className={`relative px-4 py-2 rounded-2xl ${isSent ? 'bg-purple-600 text-white rounded-br-none' : 'bg-gray-800 text-white rounded-bl-none'} ${isEmoji ? 'text-4xl px-2 py-0' : 'text-sm'}`}
         >
-          {t.type === "image" && t.isSensitive ? (
-            <ImageMessage message={t} onOpenFullscreen={v} chatId={m} />
-          ) : t.type === "audio" ? (
-            <AudioMessage {...{ message: t, isSent, onShowVIPPopup: s, onDismissVIPPopup: r, onBlockedAction: o, audioIndex: b, chatId: m, chatTranslations: f }} />
-          ) : t.type === "forwarded_story" ? (
-            <ForwardedStoryMessage message={t} onBlockedAction={o} onReelClick={x} />
+          {message.type === "image" && message.isSensitive ? (
+            <ImageMessage message={message} onOpenFullscreen={onOpenFullscreen} chatId={chatId} />
+          ) : message.type === "audio" ? (
+            <AudioMessage {...{ message, isSent, onShowVIPPopup, onDismissVIPPopup, onBlockedAction, audioIndex, chatId, chatTranslations }} />
+          ) : message.type === "forwarded_story" ? (
+            <ForwardedStoryMessage message={message} onBlockedAction={onBlockedAction} onReelClick={onReelClick} />
           ) : (
-            <span className={`${t.blurredContent ? 'blur-sm select-none pointer-events-none' : ''}`}>
-              {displayedContent}{t.blurredContent}
+            <span className={`${message.blurredContent ? 'blur-sm select-none pointer-events-none' : ''}`}>
+              {displayedContent}{message.blurredContent}
             </span>
           )}
-          {t.reaction && (t.type !== 'forwarded_story' && t.type !== 'image') && (
-            <div className="absolute -bottom-2 -right-2 bg-gray-700 text-xs px-2 py-0.5 rounded-full border border-gray-800" onClick={(e) => { e.stopPropagation(); o(f.reactToMessage); }}>
-              {t.reaction}
+          {message.reaction && (message.type !== 'forwarded_story' && message.type !== 'image') && (
+            <div className="absolute -bottom-2 -right-2 bg-gray-700 text-xs px-2 py-0.5 rounded-full border border-gray-800" onClick={(e) => { e.stopPropagation(); onBlockedAction(chatTranslations.reactToMessage); }}>
+              {message.reaction}
             </div>
           )}
         </div>
@@ -1024,43 +1007,40 @@ const GeneralMessage: React.FC<GeneralMessageProps> = ({
   );
 };
 
-interface BlurredHistoryMessageProps {
-  msg: MessageItemProps;
-}
 
-const BlurredHistoryMessage: React.FC<BlurredHistoryMessageProps> = ({ msg: t }) => {
+const BlurredHistoryMessage: React.FC<BlurredHistoryMessageProps> = ({ msg }) => {
   const waveformData = useRef(generateWaveformData());
 
-  if (t.type === "heart")
+  if (msg.type === "heart")
     return (
-      <div className={`flex mb-2 ${t.direction === 'sent' ? 'justify-end' : 'justify-start'}`}>
-        {t.direction === "received" && <div className="w-7 h-7 rounded-full bg-gray-700 mr-2" />}
+      <div className={`flex mb-2 ${msg.direction === 'sent' ? 'justify-end' : 'justify-start'}`}>
+        {msg.direction === "received" && <div className="w-7 h-7 rounded-full bg-gray-700 mr-2" />}
         <div className="text-4xl">❤️</div>
       </div>
     );
-  if (t.type === "audio")
+  if (msg.type === "audio")
     return (
-      <div className={`flex mb-2 ${t.direction === 'sent' ? 'justify-end' : 'justify-start'}`}>
-        {t.direction === "received" && <div className="w-7 h-7 rounded-full bg-gray-700 mr-2" />}
+      <div className={`flex mb-2 ${msg.direction === 'sent' ? 'justify-end' : 'justify-start'}`}>
+        {msg.direction === "received" && <div className="w-7 h-7 rounded-full bg-gray-700 mr-2" />}
         <div className="flex items-center gap-2 bg-gray-700 rounded-full px-3 py-1">
           <Play size={16} fill="white" className="text-gray-400" />
-          <div className="flex items-center gap-0.5" style={{ width: '80px' }}>
+          <div className="flex items-center gap-0.5 w-[80px]">
             {waveformData.current.map((height, idx) => (
               <div key={idx} className="w-0.5 bg-gray-500 rounded-full" style={{ height: `${Math.floor(height / 2)}px` }} />
             ))}
           </div>
-          <span className="text-xs text-gray-500">{t.audioDuration || "0:12"}</span>
+          <span className="text-xs text-gray-500">{msg.audioDuration || "0:12"}</span>
         </div>
       </div>
     );
 
-  const content = (t.content || "") + (t.blurredContent || "");
+  const content = (msg.content || "") + (msg.blurredContent ? msg.blurredContent : "");
   return (
-    <div className={`flex mb-2 ${t.direction === 'sent' ? 'justify-end' : 'justify-start'}`}>
-      {t.direction === "received" && <div className="w-7 h-7 rounded-full bg-gray-700 mr-2" />}
-      <div className={`px-4 py-2 rounded-2xl ${t.direction === 'sent' ? 'bg-purple-600/50' : 'bg-gray-800/50'} text-gray-300 text-sm blur-sm select-none pointer-events-none`}>
+    <div className={`flex mb-2 ${msg.direction === 'sent' ? 'justify-end' : 'justify-start'}`}>
+      {msg.direction === "received" && <div className="w-7 h-7 rounded-full bg-gray-700 mr-2" />}
+      <div className={`px-4 py-2 rounded-2xl ${msg.direction === 'sent' ? 'bg-purple-600/50' : 'bg-gray-800/50'} text-gray-300 text-sm blur-sm select-none pointer-events-none`}>
         {content}
-        {t.reaction && <div className="absolute -bottom-2 -right-2 bg-gray-700 text-xs px-2 py-0.5 rounded-full border border-gray-800">{t.reaction}</div>}
+        {msg.reaction && <div className="absolute -bottom-2 -right-2 bg-gray-700 text-xs px-2 py-0.5 rounded-full border border-gray-800">{msg.reaction}</div>}
       </div>
     </div>
   );
@@ -1074,12 +1054,11 @@ const BlurredHistoryMessage: React.FC<BlurredHistoryMessageProps> = ({ msg: t })
 const ChatPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const location = useLocation(); // Keep for debugging if needed
+  const location = useLocation();
 
   const chatId = parseInt(id || '1', 10);
   const chatConfig = DIALOGUES[chatId] || DIALOGUES[1];
-  const translations = chatTranslations["pt-BR"]; // Forçando pt-BR
-
+  const translations = chatTranslations["pt-BR"];
 
   const [chatUser, setChatUser] = useState<{ name: string; avatar: string } | null>(null);
   const [messages, setMessages] = useState<MessageItemProps[]>([]);
@@ -1088,7 +1067,7 @@ const ChatPage: React.FC = () => {
   const [showVIPPopup, setShowVIPPopup] = useState(false);
   const [inputText, setInputText] = useState("");
   const [metaInfo, setMetaInfo] = useState<MetaInfo>({});
-  const [dynamicContent, setDynamicContent] = useState<Record<string, string>>({});
+  const [dynamicContent, setDynamicContent] = useState<Record<string, string>>({}); // Changed from any to proper type
   const [showImageFullscreen, setShowImageFullscreen] = useState({ isOpen: false, imageSrc: "", imageId: "" });
   const [showReelFullscreen, setShowReelFullscreen] = useState({ isOpen: false, videoSrc: "" });
   
@@ -1106,7 +1085,6 @@ const ChatPage: React.FC = () => {
   const [selectedMessageIsSent, setSelectedMessageIsSent] = useState(false);
 
 
-  // Initial data loading from session storage
   useEffect(() => {
     const invasionDataRaw = sessionStorage.getItem('invasionData');
     if (invasionDataRaw) {
@@ -1117,11 +1095,10 @@ const ChatPage: React.FC = () => {
         if (currentUserData) {
           setChatUser({ name: getMaskedUsername(currentUserData.name), avatar: currentUserData.avatar });
         }
-      } else { // Fallback if generatedMessages not found
+      } else {
         setChatUser({ name: getMaskedUsername(invasionData.profileData?.username || ''), avatar: invasionData.profileData?.profilePicUrl || '' });
       }
 
-      // Populate metaInfo for dynamic content
       const profile = invasionData.profileData;
       let firstName = profile?.fullName ? profile.fullName.split(" ")[0] : profile?.username;
       if (firstName) firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
@@ -1161,9 +1138,9 @@ const ChatPage: React.FC = () => {
         date2WeeksAhead: `Dia ${date2WeeksAheadFormatted}`,
         lastMessageTime: lastMessageTime,
         date27DaysAgo: `${date27DaysAgoFormatted}, ${formatCallTime(date27DaysAgo)}`,
-        callTime1: formatCallTime(callTime1Date),
-        callTime2: formatCallTime(callTime2Date),
-        callTime3: formatCallTime(callTime3Date)
+        callTime1: formatCallTime(callTime1Date), // Changed from `formatCallTime(callTime1Date)`
+        callTime2: formatCallTime(callTime2Date), // Changed from `formatCallTime(callTime2Date)`
+        callTime3: formatCallTime(callTime3Date) // Changed from `formatCallTime(callTime3Date)`
       });
       // Atualizar o 'HOJE' das mensagens
       const updatedMessages = chatConfig.messages.map(msg => {

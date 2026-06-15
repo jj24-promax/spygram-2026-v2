@@ -52,6 +52,8 @@ const LOCAL_INVASION_KEYS = [
   'spygram_active_invasion',
   'spygram_trial_expired',
   'spygram_banned_session',
+  'spygram_free_consultation_used',
+  'spygram_free_consultation_username',
 ] as const;
 
 const SESSION_INVASION_KEYS = [
@@ -95,6 +97,47 @@ export function setDevPreviewTimeLocked(locked: boolean, seconds?: number) {
 
   sessionStorage.removeItem(DEV_PREVIEW_LOCK_KEY);
   sessionStorage.removeItem(DEV_PREVIEW_LOCK_VALUE_KEY);
+}
+
+const FREE_CONSULTATION_USED_KEY = 'spygram_free_consultation_used';
+const FREE_CONSULTATION_USERNAME_KEY = 'spygram_free_consultation_username';
+
+/** Consulta gratuita já consumida neste navegador (persiste após F5). */
+export function hasUsedFreeConsultation(): boolean {
+  return localStorage.getItem(FREE_CONSULTATION_USED_KEY) === 'true';
+}
+
+export function getFreeConsultationUsername(): string | null {
+  return localStorage.getItem(FREE_CONSULTATION_USERNAME_KEY);
+}
+
+/** Marca a única consulta teste como usada — sobrevive a reload e nova aba no mesmo browser. */
+export function markFreeConsultationUsed(username: string) {
+  localStorage.setItem(FREE_CONSULTATION_USED_KEY, 'true');
+  localStorage.setItem(FREE_CONSULTATION_USERNAME_KEY, username.replace(/^@/, '').trim().toLowerCase());
+}
+
+/**
+ * Fluxo de invasão ainda em andamento (VSL ou prévia ativa).
+ * Não conta invasão expirada — nesse caso bloqueia nova consulta.
+ */
+export function hasOngoingInvasionFlow(): boolean {
+  if (!localStorage.getItem('spygram_active_invasion')) return false;
+  if (sessionStorage.getItem('spygram_vsl_active') === 'true') return true;
+  if (hasActiveInvasionTrial()) return true;
+  return false;
+}
+
+/** Pode iniciar nova busca de @ na landing. Membros logados ignoram o limite. */
+export function canStartFreeConsultation(isLoggedIn = false): boolean {
+  if (isLoggedIn) return true;
+  return !hasUsedFreeConsultation();
+}
+
+export function getFreeConsultationBlockedMessage(): string {
+  const username = getFreeConsultationUsername();
+  const targetHint = username ? ` (@${username})` : '';
+  return `Você já utilizou sua única consulta gratuita neste navegador${targetHint}. Desbloqueie o acesso completo para continuar.`;
 }
 
 /** Limpa estado de invasão/trial para nova consulta (uso em dev). */

@@ -1,12 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, MoreHorizontal, ChevronDown, Plus } from 'lucide-react';
 import { ProfileData, SuggestedProfile, FeedPost } from '../../types';
-import { getFeedStockImage, getFeedStockImageForUser } from '../utils/feedStockImages';
+import { assignUniqueFeedStockImages } from '../utils/feedStockImages';
 import { resolveTargetGender } from '../utils/genderClassifier';
-import type { AppGender } from '../utils/interactionGender';
 
-// Lista de legendas variadas para posts bloqueados
 const MOCK_CAPTIONS = [
   "Finalmente um tempo para mim... ✨",
   "Que dia incrível! 📸",
@@ -104,26 +102,15 @@ const InstagramFooter: React.FC<{ profileData: ProfileData } & ClickableProps> =
 const RealPost: React.FC<{
   postData: FeedPost;
   location?: string;
-  index: number;
-  suggestedProfiles: SuggestedProfile[];
-  targetGender?: AppGender;
+  feedImage: string;
 } & ClickableProps> = ({
   postData,
   location,
-  index,
-  suggestedProfiles,
-  targetGender,
+  feedImage,
   onLockedFeatureClick,
 }) => {
   const { de_usuario, post } = postData;
   const maskedUsername = maskUsername(de_usuario.username);
-  const feedImage = getFeedStockImageForUser(
-    `${de_usuario.username}-feed-${post.id ?? index}`,
-    de_usuario.username,
-    de_usuario.full_name,
-    suggestedProfiles,
-    targetGender
-  );
   const authorAvatar = de_usuario.profile_pic_url || '/perfil.jpg';
 
   return (
@@ -177,30 +164,20 @@ const LockedPost: React.FC<{
   profilePicUrl?: string;
   location?: string;
   index: number;
-  suggestedProfiles: SuggestedProfile[];
-  targetGender?: AppGender;
+  feedImage: string;
   onLockedFeatureClick: (featureName: string) => void;
 }> = ({
   username,
-  fullName,
   profilePicUrl,
   location,
   index,
-  suggestedProfiles,
-  targetGender,
+  feedImage,
   onLockedFeatureClick,
 }) => {
   const maskedUsername = maskUsername(username);
   const caption = MOCK_CAPTIONS[index % MOCK_CAPTIONS.length];
   const likes = Math.floor(Math.random() * 2000) + 120;
   const comments = Math.floor(Math.random() * 60) + 5;
-  const blurredImage = getFeedStockImageForUser(
-    `${username}-feed-${index}`,
-    username,
-    fullName,
-    suggestedProfiles,
-    targetGender
-  );
   const headerAvatar = profilePicUrl || '/perfil.jpg';
 
   return (
@@ -216,7 +193,7 @@ const LockedPost: React.FC<{
         <button onClick={() => onLockedFeatureClick('ver as opções da publicação')}><MoreHorizontal className="w-5 h-5 text-white" /></button>
       </div>
       <BlurredFeedMedia
-        imageUrl={blurredImage}
+        imageUrl={feedImage}
         onClick={() => onLockedFeatureClick('ver esta publicação')}
       />
       <div className="flex justify-between items-center p-3">
@@ -255,6 +232,30 @@ interface InstagramFeedContentProps {
 const InstagramFeedContent: React.FC<InstagramFeedContentProps> = ({ profileData, suggestedProfiles, posts, locations, onLockedFeatureClick }) => {
   const hasRealPosts = posts && posts.length > 0;
   const targetGender = resolveTargetGender(profileData);
+
+  const feedImages = useMemo(() => {
+    if (hasRealPosts) {
+      return assignUniqueFeedStockImages(
+        posts.map((post, index) => ({
+          seed: `${post.de_usuario.username}-feed-${post.post.id ?? index}`,
+          username: post.de_usuario.username,
+          fullName: post.de_usuario.full_name,
+        })),
+        suggestedProfiles,
+        targetGender
+      );
+    }
+
+    return assignUniqueFeedStockImages(
+      suggestedProfiles.slice(0, 5).map((profile, index) => ({
+        seed: `${profile.username}-feed-${index}`,
+        username: profile.username,
+        fullName: profile.fullName,
+      })),
+      suggestedProfiles,
+      targetGender
+    );
+  }, [hasRealPosts, posts, suggestedProfiles, targetGender]);
 
   return (
     <>
@@ -298,10 +299,8 @@ const InstagramFeedContent: React.FC<InstagramFeedContentProps> = ({ profileData
         {hasRealPosts ? posts.map((post, index) => (
           <RealPost
             key={post.post.id || index}
-            index={index}
             postData={post}
-            suggestedProfiles={suggestedProfiles}
-            targetGender={targetGender}
+            feedImage={feedImages[index] ?? feedImages[0]}
             location={locations.length > 0 ? locations[index % locations.length] : undefined}
             onLockedFeatureClick={onLockedFeatureClick}
           />
@@ -312,8 +311,7 @@ const InstagramFeedContent: React.FC<InstagramFeedContentProps> = ({ profileData
             username={profile.username}
             fullName={profile.fullName}
             profilePicUrl={profile.profile_pic_url}
-            suggestedProfiles={suggestedProfiles}
-            targetGender={targetGender}
+            feedImage={feedImages[index] ?? feedImages[0]}
             location={locations.length > 0 ? locations[index % locations.length] : undefined}
             onLockedFeatureClick={onLockedFeatureClick}
           />

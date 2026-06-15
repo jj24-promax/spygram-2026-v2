@@ -7,8 +7,11 @@ import { trackFacebookEvent } from '../services/facebookService';
 import { captureUtms } from '../utils/utm';
 import { useAuth } from '../context/AuthContext';
 import {
-  clearInvasionTrialState,
+  canStartFreeConsultation,
+  getFreeConsultationBlockedMessage,
   hasActiveInvasionTrial,
+  hasOngoingInvasionFlow,
+  markFreeConsultationUsed,
 } from '../utils/invasionSession';
 import { resolveTargetGender } from '../utils/genderClassifier';
 import { enrichSuggestedProfilesWithPeoplePhotos } from '../utils/feedStockImages';
@@ -29,7 +32,7 @@ const AnalysisFlowInner: React.FC = () => {
   const [quizDone, setQuizDone] = useState(
     () => sessionStorage.getItem(QUIZ_DONE_KEY) === 'true'
   );
-  const { logout } = useAuth();
+  const { logout, isLoggedIn } = useAuth();
   const navigate = useNavigate();
 
   const {
@@ -72,10 +75,15 @@ const AnalysisFlowInner: React.FC = () => {
     const vslActive = sessionStorage.getItem('spygram_vsl_active') === 'true';
     if (vslActive) return;
 
-    if (hasActiveInvasionTrial()) {
+    if (hasActiveInvasionTrial() || hasOngoingInvasionFlow()) {
       navigate('/instagram', { replace: true });
     }
   }, [navigate]);
+
+  useEffect(() => {
+    if (isLoggedIn || canStartFreeConsultation(isLoggedIn)) return;
+    setError(getFreeConsultationBlockedMessage());
+  }, [isLoggedIn]);
 
   const handleSubmit = useCallback(async () => {
     const clean = username.replace(/^@/, '').trim();
@@ -86,14 +94,20 @@ const AnalysisFlowInner: React.FC = () => {
 
     setIsLoading(true);
     setError(null);
+
+    if (!canStartFreeConsultation(isLoggedIn)) {
+      setError(getFreeConsultationBlockedMessage());
+      setStage('landing');
+      setIsLoading(false);
+      return;
+    }
+
     setStage('fetching');
 
     try {
       logout();
       sessionStorage.removeItem('invasionData');
       sessionStorage.removeItem('current_lead_id');
-      localStorage.removeItem('spygram_banned_session');
-      clearInvasionTrialState();
 
       const [fetchResult, locationData] = await Promise.all([
         fetchProfileData(clean),
@@ -107,6 +121,10 @@ const AnalysisFlowInner: React.FC = () => {
         fetchResult.posts,
         locationData.city
       );
+
+      if (!isLoggedIn) {
+        markFreeConsultationUsed(fetchResult.profile.username);
+      }
 
       trackLead({
         username_searched: fetchResult.profile.username,
@@ -126,7 +144,7 @@ const AnalysisFlowInner: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [username, logout, setStage, setProfileResult, waitForFetchingOverlay]);
+  }, [username, logout, isLoggedIn, setStage, setProfileResult, waitForFetchingOverlay]);
 
   const handleConfirm = useCallback(() => {
     if (!profileData) return;

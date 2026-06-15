@@ -107,6 +107,58 @@ function resolveGenderPool(
   return hashToIndex(seed, 2) === 0 ? FEED_STOCK_MALE : FEED_STOCK_FEMALE;
 }
 
+function pickUniqueFromPool(
+  pool: readonly string[],
+  seed: string | number,
+  used: Set<string>
+): string {
+  if (pool.length === 0) return FEED_STOCK_POOL[0];
+
+  const start = hashToIndex(seed, pool.length);
+  for (let i = 0; i < pool.length; i++) {
+    const candidate = pool[(start + i) % pool.length];
+    if (!used.has(candidate)) {
+      used.add(candidate);
+      return candidate;
+    }
+  }
+
+  // Pool esgotado para este gênero — tenta qualquer foto ainda não usada no feed
+  for (const candidate of FEED_STOCK_POOL) {
+    if (!used.has(candidate)) {
+      used.add(candidate);
+      return candidate;
+    }
+  }
+
+  // Mais posts do que fotos disponíveis: reutiliza com menor colisão possível
+  return pool[start];
+}
+
+/**
+ * Atribui uma foto diferente para cada slot do feed (sem repetir dentro da lista).
+ */
+export function assignUniqueFeedStockImages(
+  slots: ReadonlyArray<{
+    seed: string;
+    username: string;
+    fullName?: string;
+  }>,
+  suggestedProfiles: SuggestedProfile[] = [],
+  targetGender?: AppGender
+): string[] {
+  const used = new Set<string>();
+
+  return slots.map((slot, index) => {
+    const contactGender = resolveFeedGender(slot.username, slot.fullName, suggestedProfiles);
+    const gender = targetGender
+      ? getInteractionGender(targetGender, contactGender)
+      : contactGender;
+    const pool = resolveGenderPool(`${slot.seed}-${index}`, gender);
+    return pickUniqueFromPool(pool, slot.seed, used);
+  });
+}
+
 /**
  * Retrato real conforme gênero do nome.
  * Feminino → mulher; masculino → homem; desconhecido → sorteio estável entre os dois.

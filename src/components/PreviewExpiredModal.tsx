@@ -30,21 +30,21 @@ const PreviewExpiredModal: React.FC<PreviewExpiredModalProps> = ({ onCheckout })
       </div>
 
       <h2 id="preview-expired-title" className="preview-expired-modal__title">
-        Sua prévia encerrou
+        O que você viu foi só o começo
       </h2>
 
       <p className="preview-expired-modal__text">
-        O tempo gratuito de acesso acabou. Siga para o checkout e desbloqueie o relatório
-        completo com <strong>mensagens, fotos, localizações</strong> e muito mais.
+        A prévia gratuita acabou, mas o relatório completo está pronto. Libere agora{' '}
+        <strong>mensagens, fotos, localizações</strong> e tudo que ficou oculto neste perfil.
       </p>
 
       <button type="button" onClick={onCheckout} className="preview-expired-modal__cta">
         <Lock className="w-4 h-4 shrink-0" />
-        Ir para o checkout
+        Desbloquear acesso completo agora
       </button>
 
       <p className="preview-expired-modal__note">
-        Acesso imediato após a confirmação do pagamento.
+        Acesso liberado na hora · Pagamento 100% seguro
       </p>
     </motion.div>
   </div>

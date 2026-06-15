@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import './analysis-flow.css';
+
+export const FETCHING_STEP_MS = 1600;
+export const FETCHING_OVERLAY_MS = FETCHING_STEP_MS * 4;
 
 const STEPS = [
   'Conectando ao Instagram',
@@ -12,26 +15,48 @@ const STEPS = [
 
 interface FetchingOverlayProps {
   username: string;
+  onComplete: () => void;
 }
 
-const FetchingOverlay: React.FC<FetchingOverlayProps> = ({ username }) => {
+const FetchingOverlay: React.FC<FetchingOverlayProps> = ({ username, onComplete }) => {
+  const [progresses, setProgresses] = useState<number[]>(() => STEPS.map(() => 0));
   const [activeIndex, setActiveIndex] = useState(0);
-  const [progress, setProgress] = useState(12);
 
   useEffect(() => {
-    const stepTimer = window.setInterval(() => {
-      setActiveIndex((prev) => (prev < STEPS.length - 1 ? prev + 1 : prev));
-    }, 1400);
+    const startedAt = Date.now();
 
-    const progressTimer = window.setInterval(() => {
-      setProgress((prev) => (prev < 92 ? prev + Math.random() * 8 : prev));
-    }, 500);
+    const tick = () => {
+      const elapsed = Date.now() - startedAt;
+      const stepIndex = Math.min(STEPS.length - 1, Math.floor(elapsed / FETCHING_STEP_MS));
+      const stepElapsed = elapsed - stepIndex * FETCHING_STEP_MS;
+      const stepPct = Math.min(100, Math.round((stepElapsed / FETCHING_STEP_MS) * 100));
 
-    return () => {
-      window.clearInterval(stepTimer);
-      window.clearInterval(progressTimer);
+      setActiveIndex(stepIndex);
+      setProgresses(
+        STEPS.map((_, index) => {
+          if (index < stepIndex) return 100;
+          if (index === stepIndex) return stepPct;
+          return 0;
+        })
+      );
+
+      if (elapsed >= FETCHING_OVERLAY_MS) {
+        setProgresses(STEPS.map(() => 100));
+        setActiveIndex(STEPS.length - 1);
+        onComplete();
+        return true;
+      }
+      return false;
     };
-  }, []);
+
+    if (tick()) return;
+
+    const intervalId = window.setInterval(() => {
+      if (tick()) window.clearInterval(intervalId);
+    }, 40);
+
+    return () => window.clearInterval(intervalId);
+  }, [onComplete]);
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/30 backdrop-blur-md">
@@ -47,12 +72,11 @@ const FetchingOverlay: React.FC<FetchingOverlayProps> = ({ username }) => {
 
         <div className="space-y-5">
           {STEPS.map((step, index) => {
-            const isActive = index === activeIndex;
-            const isDone = index < activeIndex;
+            const pct = progresses[index] ?? 0;
+            const isActive = index === activeIndex && pct < 100;
+            const isDone = pct >= 100;
             const label =
               index === 1 ? step.replace('perfil', `@${username}`) : step;
-            const pct =
-              index < activeIndex ? 100 : index === activeIndex ? Math.round(progress) : 0;
 
             return (
               <div key={step}>
@@ -60,12 +84,12 @@ const FetchingOverlay: React.FC<FetchingOverlayProps> = ({ username }) => {
                   <div className="flex items-center gap-3 min-w-0">
                     {isActive ? (
                       <Loader2 className="w-5 h-5 text-pink-500 animate-spin shrink-0" />
+                    ) : isDone ? (
+                      <span className="w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center shrink-0">
+                        <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                      </span>
                     ) : (
-                      <span
-                        className={`w-5 h-5 rounded-full border-2 shrink-0 ${
-                          isDone ? 'border-pink-500 bg-pink-500' : 'border-gray-200'
-                        }`}
-                      />
+                      <span className="w-5 h-5 rounded-full border-2 border-gray-200 shrink-0" />
                     )}
                     <span
                       className={`text-sm truncate ${
@@ -77,7 +101,7 @@ const FetchingOverlay: React.FC<FetchingOverlayProps> = ({ username }) => {
                   </div>
                   <span
                     className={`text-sm font-bold shrink-0 ${
-                      isActive ? 'text-pink-500' : 'text-gray-300'
+                      isDone ? 'text-pink-500' : isActive ? 'text-pink-500' : 'text-gray-300'
                     }`}
                   >
                     {pct}%
@@ -86,9 +110,8 @@ const FetchingOverlay: React.FC<FetchingOverlayProps> = ({ username }) => {
                 <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
                   <motion.div
                     className="h-full analysis-progress-gradient rounded-full"
-                    initial={{ width: 0 }}
                     animate={{ width: `${pct}%` }}
-                    transition={{ duration: 0.4 }}
+                    transition={{ duration: 0.15, ease: 'linear' }}
                   />
                 </div>
               </div>

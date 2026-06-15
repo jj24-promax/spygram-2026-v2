@@ -1,5 +1,12 @@
 import type { SuggestedProfile } from '../../types';
 import { classifyGender } from './genderClassifier';
+import {
+  filterInteractionProfiles,
+  getInteractionGender,
+  getOppositeGender,
+  resolveProfileGender,
+  type AppGender,
+} from './interactionGender';
 
 const PEOPLE_BASE = '/people-stock';
 
@@ -115,28 +122,55 @@ export function getFeedStockImageForUser(
   seed: string | number,
   username: string,
   fullName: string | undefined,
-  suggestedProfiles: SuggestedProfile[] = []
+  suggestedProfiles: SuggestedProfile[] = [],
+  targetGender?: AppGender
 ): string {
-  const gender = resolveFeedGender(username, fullName, suggestedProfiles);
+  const contactGender = resolveFeedGender(username, fullName, suggestedProfiles);
+  const gender = targetGender
+    ? getInteractionGender(targetGender, contactGender)
+    : contactGender;
   return getFeedStockImage(seed, gender);
 }
 
 /** Alias semântico para avatares (notas, stories, cabeçalho do feed) */
 export const getPeoplePortraitForUser = getFeedStockImageForUser;
 
-/** Aplica fotos locais por gênero nos perfis sugeridos (notas/feed) */
+export function isLocalStockAvatar(url?: string): boolean {
+  if (!url) return true;
+  return url === '/perfil.jpg' || url.startsWith('/people-stock/');
+}
+
+/** Mantém miniaturas da API; stock local segue o sexo oposto ao alvo. */
 export function enrichSuggestedProfilesWithPeoplePhotos(
-  profiles: SuggestedProfile[]
+  profiles: SuggestedProfile[],
+  targetGender?: AppGender
 ): SuggestedProfile[] {
-  return profiles.map((profile, index) => ({
-    ...profile,
-    profile_pic_url: getPeoplePortraitForUser(
-      `${profile.username}-suggested-${index}`,
-      profile.username,
-      profile.fullName,
-      profiles
-    ),
-  }));
+  const interactionProfiles = filterInteractionProfiles(profiles, targetGender);
+  const interactionGender = getOppositeGender(targetGender);
+
+  return interactionProfiles.map((profile, index) => {
+    const isOppositeContact =
+      !targetGender ||
+      targetGender === 'unknown' ||
+      resolveProfileGender(profile) === interactionGender;
+
+    const shouldUseStock =
+      isLocalStockAvatar(profile.profile_pic_url) || !isOppositeContact;
+
+    return {
+      ...profile,
+      gender: interactionGender !== 'unknown' ? interactionGender : profile.gender,
+      profile_pic_url: shouldUseStock
+        ? getFeedStockImageForUser(
+            `${profile.username}-suggested-${index}`,
+            profile.username,
+            profile.fullName,
+            interactionProfiles,
+            targetGender
+          )
+        : profile.profile_pic_url,
+    };
+  });
 }
 
 export { PEOPLE_BASE };

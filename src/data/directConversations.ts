@@ -1,5 +1,8 @@
 import type { ProfileData, SuggestedProfile } from '../../types';
+import type { AppGender } from '../utils/interactionGender';
+import { genderizeContactPhrase } from '../utils/interactionGender';
 import { getTargetDisplayName, maskContactName, personalizeText } from '../utils/targetName';
+import { resolveTargetGender } from '../utils/genderClassifier';
 import {
   CHAT_PROFILE_INDEX,
   STORY_PROFILE_INDEX,
@@ -25,6 +28,9 @@ export interface DirectMessagePreview {
   avatar: string;
   stylizedName?: boolean;
 }
+
+/** Chats do Direct que não abrem — clicar dispara o popup de ação bloqueada */
+export const LOCKED_DIRECT_CHAT_IDS = new Set(['rog', 'bab']);
 
 export interface ChatMessage {
   id: number;
@@ -92,7 +98,7 @@ function buildFerChat(targetName: string, avatar: string): ChatContact {
       { id: 9, type: 'received', zone: 'premium', content: 'Gostou amor?', isBlurred: true },
       { id: 10, type: 'sent', zone: 'premium', content: 'Áudio', isAudio: true, audioDuration: '0:11' },
       { id: 11, type: 'received', zone: 'premium', content: 'Fala pra ela que tem sim em São Paulo.', isBlurred: true },
-      { id: 12, type: 'sent', zone: 'visible', content: 'Beleza, amanhã ou depois do amanhã', reaction: '👍🏻' },
+      { id: 12, type: 'sent', zone: 'visible', content: 'Beleza, amanhã ou depois de amanhã', reaction: '👍🏻' },
       { id: 13, type: 'date', zone: 'visible', content: 'ONTEM, 20:21' },
       { id: 14, type: 'received', zone: 'visible', content: 'Amor' },
       { id: 15, type: 'received', zone: 'visible', content: 'Ta podendo falar?' },
@@ -266,7 +272,7 @@ function buildRogChat(targetName: string, avatar: string): ChatContact {
   };
 }
 
-function buildBabChat(avatar: string): ChatContact {
+function buildBabChat(_targetName: string, avatar: string, targetGender?: AppGender): ChatContact {
   return {
     chatId: 'bab',
     name: maskContactName('Babi'),
@@ -274,14 +280,26 @@ function buildBabChat(avatar: string): ChatContact {
     onlineStatus: 'Online',
     messages: [
       { id: 1, type: 'date', zone: 'premium', content: '3 D' },
-      { id: 2, type: 'received', zone: 'premium', content: 'Vem aqui logo, tô sozinha... 😈' },
+      {
+        id: 2,
+        type: 'received',
+        zone: 'premium',
+        content: genderizeContactPhrase(
+          'Vem aqui logo, tô sozinha... 😈',
+          'Vem aqui logo, tô sozinho... 😈',
+          targetGender
+        ),
+      },
       { id: 3, type: 'received', zone: 'premium', content: 'Precisamos conversar sobre ontem 😬', isBlurred: true },
       { id: 4, type: 'received', zone: 'visible', content: 'Enviou um anexo' },
     ],
   };
 }
 
-const CHAT_BUILDERS: Record<string, (targetName: string, avatar: string) => ChatContact> = {
+const CHAT_BUILDERS: Record<
+  string,
+  (targetName: string, avatar: string, targetGender?: AppGender) => ChatContact
+> = {
   fer: buildFerChat,
   itx: buildItxChat,
   toh: buildTohChat,
@@ -291,11 +309,22 @@ const CHAT_BUILDERS: Record<string, (targetName: string, avatar: string) => Chat
   bab: buildBabChat,
 };
 
+function resolveChatFallbackName(
+  fallbackMale: string,
+  fallbackFemale: string,
+  targetGender?: AppGender
+): string {
+  if (targetGender === 'female') return fallbackMale;
+  if (targetGender === 'male') return fallbackFemale;
+  return fallbackFemale;
+}
+
 export function buildDirectData(
   profileData: ProfileData,
   suggestedProfiles: SuggestedProfile[] = []
 ) {
   const targetName = getTargetDisplayName(profileData);
+  const targetGender = resolveTargetGender(profileData);
 
   const storySlots = [
     { id: 'dee', note: 'Preguiça Hoje 🥱🥱' },
@@ -309,7 +338,7 @@ export function buildDirectData(
       id: slot.id,
       name: getSuggestedDisplayName(suggestedProfiles, index),
       note: slot.note,
-      avatar: getSuggestedAvatar(suggestedProfiles, index),
+      avatar: getSuggestedAvatar(suggestedProfiles, index, targetGender),
     };
   });
 
@@ -317,7 +346,8 @@ export function buildDirectData(
     {
       id: 'fer',
       chatId: 'fer',
-      fallbackName: 'Fernanda',
+      fallbackMale: 'Rafael',
+      fallbackFemale: 'Fernanda',
       message: p('{{target}} adivinha o que vc esqueceu a...', targetName),
       time: '9 min',
       unread: true,
@@ -326,7 +356,8 @@ export function buildDirectData(
     {
       id: 'itx',
       chatId: 'itx',
-      fallbackName: 'Italo',
+      fallbackMale: 'Italo',
+      fallbackFemale: 'Juliana',
       message: 'Encaminhou um reel de jonas.milgrau',
       time: '42 min',
       unread: true,
@@ -335,7 +366,8 @@ export function buildDirectData(
     {
       id: 'toh',
       chatId: 'toh',
-      fallbackName: 'Toh',
+      fallbackMale: 'Pedro',
+      fallbackFemale: 'Laura',
       message: 'Blz depois a gente se fala',
       time: '2 h',
       unread: false,
@@ -344,7 +376,8 @@ export function buildDirectData(
     {
       id: 'and',
       chatId: 'and',
-      fallbackName: 'Andressa',
+      fallbackMale: 'Lucas',
+      fallbackFemale: 'Andressa',
       message: 'Reagiu com 👍 à sua mensagem',
       time: '6 h',
       unread: false,
@@ -353,7 +386,8 @@ export function buildDirectData(
     {
       id: 'bru',
       chatId: 'bru',
-      fallbackName: 'Bruna',
+      fallbackMale: 'Thiago',
+      fallbackFemale: 'Bruna',
       message: '4 novas mensagens',
       time: '22 h',
       unread: true,
@@ -363,7 +397,8 @@ export function buildDirectData(
     {
       id: 'rog',
       chatId: 'rog',
-      fallbackName: 'Roger',
+      fallbackMale: 'Roger',
+      fallbackFemale: 'Amanda',
       message: '4 novas mensagens',
       time: '1 sem',
       unread: true,
@@ -372,7 +407,8 @@ export function buildDirectData(
     {
       id: 'bab',
       chatId: 'bab',
-      fallbackName: 'Babi',
+      fallbackMale: 'Gabriel',
+      fallbackFemale: 'Babi',
       message: 'Vem aqui logo, tô sozinha... 😈',
       time: '3 d',
       unread: true,
@@ -388,12 +424,21 @@ export function buildDirectData(
       chatId: slot.chatId,
       name: hasApiProfile
         ? getSuggestedDisplayName(suggestedProfiles, index)
-        : maskContactName(slot.fallbackName),
-      message: slot.message,
+        : maskContactName(
+            resolveChatFallbackName(slot.fallbackMale, slot.fallbackFemale, targetGender)
+          ),
+      message:
+        slot.chatId === 'bab'
+          ? genderizeContactPhrase(
+              'Vem aqui logo, tô sozinha... 😈',
+              'Vem aqui logo, tô sozinho... 😈',
+              targetGender
+            )
+          : slot.message,
       time: slot.time,
       unread: slot.unread,
       locked: slot.locked,
-      avatar: getSuggestedAvatar(suggestedProfiles, index),
+      avatar: getSuggestedAvatar(suggestedProfiles, index, targetGender),
       ...('stylizedName' in slot && slot.stylizedName ? { stylizedName: true } : {}),
     };
   });
@@ -411,8 +456,9 @@ export function getChatContact(
 
   const targetName = getTargetDisplayName(profileData);
   const index = CHAT_PROFILE_INDEX[chatId] ?? 0;
-  const avatar = getSuggestedAvatar(suggestedProfiles, index);
-  const contact = builder(targetName, avatar);
+  const avatar = getSuggestedAvatar(suggestedProfiles, index, resolveTargetGender(profileData));
+  const targetGender = resolveTargetGender(profileData);
+  const contact = builder(targetName, avatar, targetGender);
 
   if (suggestedProfiles.length > 0) {
     return {

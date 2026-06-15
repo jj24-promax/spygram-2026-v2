@@ -62,7 +62,40 @@ const SESSION_INVASION_KEYS = [
   'spygram_warning_seen',
   'spygram_vsl_active',
   'spygram_instant_login',
+  'spygram_dev_preview_lock',
+  'spygram_dev_preview_lock_value',
+  'spygram_dev_skip_analysis_pending',
 ] as const;
+
+const DEV_PREVIEW_LOCK_KEY = 'spygram_dev_preview_lock';
+const DEV_PREVIEW_LOCK_VALUE_KEY = 'spygram_dev_preview_lock_value';
+
+export function isDevPreviewTimeLocked(): boolean {
+  return import.meta.env.DEV && sessionStorage.getItem(DEV_PREVIEW_LOCK_KEY) === 'true';
+}
+
+export function getDevPreviewLockedSeconds(): number {
+  const raw = sessionStorage.getItem(DEV_PREVIEW_LOCK_VALUE_KEY);
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : Math.floor(PREVIEW_TRIAL_MS / 1000);
+}
+
+/** Congela o countdown da prévia em `seconds` (somente dev). */
+export function setDevPreviewTimeLocked(locked: boolean, seconds?: number) {
+  if (!import.meta.env.DEV) return;
+
+  if (locked) {
+    const secs = seconds ?? getDevPreviewLockedSeconds();
+    sessionStorage.setItem(DEV_PREVIEW_LOCK_KEY, 'true');
+    sessionStorage.setItem(DEV_PREVIEW_LOCK_VALUE_KEY, String(secs));
+    sessionStorage.setItem('invasionEndTime', String(Date.now() + secs * 1000));
+    localStorage.removeItem('spygram_trial_expired');
+    return;
+  }
+
+  sessionStorage.removeItem(DEV_PREVIEW_LOCK_KEY);
+  sessionStorage.removeItem(DEV_PREVIEW_LOCK_VALUE_KEY);
+}
 
 /** Limpa estado de invasão/trial para nova consulta (uso em dev). */
 export function resetSpygramDevSession() {

@@ -49,7 +49,7 @@ const LockedFeatureModal: React.FC<LockedFeatureModalProps> = ({ isOpen, onClose
               className="w-full bg-[#6b5a4c] focus:ring-[#6b5a4c] active:scale-95"
               shineColorClasses="bg-yellow-400" 
             >
-              Adquirir Acesso VIP
+              DESBLOQUEAR ACESSO TOTAL
             </ShineButton>
           </motion.div>
         </motion.div>

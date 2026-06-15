@@ -1,8 +1,8 @@
 /** Duração total da sessão VSL (15 min) */
 export const VSL_SESSION_MS = 15 * 60 * 1000;
 
-/** Tempo até liberar prévia / relatório (4 min) */
-export const ANALYSIS_COMPLETE_MS = 4 * 60 * 1000;
+/** Tempo até liberar prévia / relatório (3 min) */
+export const ANALYSIS_COMPLETE_MS = 3 * 60 * 1000;
 
 /** Countdown de urgência no relatório após liberar (15 min) */
 export const REPORT_ACCESS_MS = 15 * 60 * 1000;

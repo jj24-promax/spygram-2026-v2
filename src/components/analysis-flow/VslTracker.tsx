@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ImageIcon, Loader2, Lock, MapPin, MessageCircle } from 'lucide-react';
 import { useAnalysisFlow } from '../../context/AnalysisFlowContext';
 import { ANALYSIS_COMPLETE_MS } from '../../constants/analysisFlow';
 import { getAnalysisStats, getTrackerProgress } from '../../utils/analysisStats';
-import { getSuspiciousPreviewImages } from '../../utils/suspiciousStockImages';
+import { getRandomSuspiciousPreviewImages } from '../../utils/suspiciousStockImages';
 import './analysis-flow.css';
 
 interface TrackerItem {
@@ -50,18 +50,13 @@ const VslTracker: React.FC = () => {
     });
   }, [stats, vslElapsedMs, isAnalysisComplete]);
 
-  const previewImages = useMemo(() => {
-    if (!profileData) return [];
-    return getSuspiciousPreviewImages(profileData.username, 3);
-  }, [profileData]);
+  const [previewImages] = useState(() => getRandomSuspiciousPreviewImages(3));
 
-  const visibleThumbs = useMemo(() => {
-    if (!trackerState || !stats) return 0;
-    const { count, isDone } = trackerState.images;
-    if (isAnalysisComplete) return Math.min(stats.images, 3);
-    if (!isDone && count === 0) return 0;
-    return Math.min(count, 3);
-  }, [trackerState, stats, isAnalysisComplete]);
+  const showImageThumbs = useMemo(() => {
+    if (!trackerState) return false;
+    const { count, isScanning } = trackerState.images;
+    return isAnalysisComplete || count > 0 || isScanning;
+  }, [trackerState, isAnalysisComplete]);
 
   return (
     <div className="space-y-3">
@@ -135,14 +130,14 @@ const VslTracker: React.FC = () => {
               {isScanning && <Loader2 className="w-5 h-5 text-red-500 animate-spin shrink-0" />}
             </div>
 
-            {item.id === 'images' && visibleThumbs > 0 && (
+            {item.id === 'images' && showImageThumbs && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 className="vsl-tracker-thumbs"
               >
-                {previewImages.slice(0, visibleThumbs).map((src, i) => (
-                  <div key={i} className="vsl-tracker-thumb">
+                {previewImages.map((src, i) => (
+                  <div key={src} className="vsl-tracker-thumb">
                     <img src={src} alt="" className="vsl-tracker-thumb__img" />
                     <Lock className="vsl-tracker-thumb__lock" />
                   </div>

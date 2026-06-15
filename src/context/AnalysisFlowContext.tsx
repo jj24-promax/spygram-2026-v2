@@ -97,6 +97,45 @@ export const AnalysisFlowProvider: React.FC<{ children: React.ReactNode }> = ({ 
     sessionStorage.removeItem('spygram_vsl_active');
   }, []);
 
+  const applyDevSkipAnalysis = useCallback(() => {
+    if (!import.meta.env.DEV) return;
+
+    if (!vslStartedAt.current) {
+      vslStartedAt.current = Date.now() - ANALYSIS_COMPLETE_MS;
+    } else {
+      vslStartedAt.current = Date.now() - ANALYSIS_COMPLETE_MS;
+    }
+
+    setVslElapsedMs(ANALYSIS_COMPLETE_MS);
+    setIsAnalysisComplete(true);
+    setStage('report');
+    setPreviewChoice('pending');
+    reportStartedAt.current = Date.now();
+  }, []);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
+    const handler = () => {
+      if (stage === 'vsl' || stage === 'report') {
+        applyDevSkipAnalysis();
+      } else {
+        sessionStorage.setItem('spygram_dev_skip_analysis_pending', 'true');
+      }
+    };
+
+    window.addEventListener('spygram:dev-skip-analysis', handler);
+    return () => window.removeEventListener('spygram:dev-skip-analysis', handler);
+  }, [stage, applyDevSkipAnalysis]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || stage !== 'vsl') return;
+    if (sessionStorage.getItem('spygram_dev_skip_analysis_pending') !== 'true') return;
+
+    sessionStorage.removeItem('spygram_dev_skip_analysis_pending');
+    applyDevSkipAnalysis();
+  }, [stage, applyDevSkipAnalysis]);
+
   useEffect(() => {
     if (stage !== 'vsl' && stage !== 'report') return;
     if (!vslStartedAt.current) return;

@@ -123,33 +123,21 @@ function isBrazilianProfile(fullName: string, username: string): boolean {
  */
 function prioritizeOppositeGender(suggestions: SuggestedProfile[], targetGender?: 'male' | 'female' | 'unknown'): SuggestedProfile[] {
     const oppositeGender = targetGender === 'male' ? 'female' : targetGender === 'female' ? 'male' : (Math.random() > 0.5 ? 'female' : 'male');
-    const sameGender = targetGender === 'male' ? 'male' : targetGender === 'female' ? 'female' : 'unknown';
     
     const oppositeNames = oppositeGender === 'female' ? MOCK_FEMALE_NAMES : MOCK_MALE_NAMES;
-    const sameNames = oppositeGender === 'female' ? MOCK_MALE_NAMES : MOCK_FEMALE_NAMES;
 
     // 1. Filtra a lista original mantendo apenas perfis legitimamente brasileiros
     const validBrazilianProfiles = suggestions.filter(p => isBrazilianProfile(p.fullName || '', p.username));
 
-    // 2. Separa por gênero para estruturar a prioridade
     const oppositeGenderProfiles = validBrazilianProfiles.filter(p => p.gender === oppositeGender);
-    const sameGenderProfiles = validBrazilianProfiles.filter(p => p.gender === sameGender || p.gender === 'unknown');
+    let result: SuggestedProfile[] = [...oppositeGenderProfiles];
 
-    // Junta as listas colocando os de gênero oposto primeiro (prioridade) e os do mesmo gênero logo em seguida
-    const result: SuggestedProfile[] = [...oppositeGenderProfiles, ...sameGenderProfiles];
-
-    // 3. Se a lista ficou com menos de 12 itens, preenche respeitando a prioridade de mistura (ex: 70% oposto, 30% mesmo sexo)
     if (result.length < 12) {
         const neededCount = 12 - result.length;
         const shuffledOpposite = shuffleArray([...oppositeNames]);
-        const shuffledSame = shuffleArray([...sameNames]);
 
         for (let i = 0; i < neededCount; i++) {
-            const isOpposite = Math.random() < 0.7; // 70% de chance de gerar sexo oposto como prioridade
-            const nameList = isOpposite ? shuffledOpposite : shuffledSame;
-            const genGender = isOpposite ? oppositeGender : sameGender;
-            
-            const name = nameList[i % nameList.length];
+            const name = shuffledOpposite[i % shuffledOpposite.length];
             
             const separators = ['.', '_', ''];
             const sep = separators[Math.floor(Math.random() * separators.length)];
@@ -163,13 +151,12 @@ function prioritizeOppositeGender(suggestions: SuggestedProfile[], targetGender?
                 fullName: name,
                 profile_pic_url: '/perfil.jpg',
                 is_private: Math.random() > 0.3,
-                gender: genGender
+                gender: oppositeGender
             });
         }
     }
 
-    // Retorna exatamente as 12 sugestões limpas e organizadas
-    return result.slice(0, 12);
+    return result.slice(0, 12).map((profile) => ({ ...profile, gender: oppositeGender }));
 }
 
 // ===================================
@@ -193,7 +180,8 @@ export async function fetchProfileData(username: string): Promise<FetchResult> {
         if (user && user.username) {
             const bio = user.biography || '';
             const fullName = user.full_name || '';
-            const targetGender = classifyGender(fullName, user.username, bio);
+            const usernameStem = cleanUsername.split(/[._]/)[0] || cleanUsername;
+            const targetGender = classifyGender(fullName, usernameStem, bio);
 
             const profile: ProfileData = {
                 username: user.username,

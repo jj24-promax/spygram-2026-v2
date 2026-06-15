@@ -2,7 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, MoreHorizontal, ChevronDown, Plus } from 'lucide-react';
 import { ProfileData, SuggestedProfile, FeedPost } from '../../types';
-import { getFeedStockImageForUser, getPeoplePortraitForUser } from '../utils/feedStockImages';
+import { getFeedStockImage, getFeedStockImageForUser } from '../utils/feedStockImages';
+import { resolveTargetGender } from '../utils/genderClassifier';
+import type { AppGender } from '../utils/interactionGender';
 
 // Lista de legendas variadas para posts bloqueados
 const MOCK_CAPTIONS = [
@@ -104,11 +106,13 @@ const RealPost: React.FC<{
   location?: string;
   index: number;
   suggestedProfiles: SuggestedProfile[];
+  targetGender?: AppGender;
 } & ClickableProps> = ({
   postData,
   location,
   index,
   suggestedProfiles,
+  targetGender,
   onLockedFeatureClick,
 }) => {
   const { de_usuario, post } = postData;
@@ -117,20 +121,16 @@ const RealPost: React.FC<{
     `${de_usuario.username}-feed-${post.id ?? index}`,
     de_usuario.username,
     de_usuario.full_name,
-    suggestedProfiles
+    suggestedProfiles,
+    targetGender
   );
-  const authorAvatar = getPeoplePortraitForUser(
-    `${de_usuario.username}-avatar-${post.id ?? index}`,
-    de_usuario.username,
-    de_usuario.full_name,
-    suggestedProfiles
-  );
+  const authorAvatar = de_usuario.profile_pic_url || '/perfil.jpg';
 
   return (
     <div className="border-b border-gray-800 mb-4">
       <div className="flex items-center justify-between p-3">
         <div onClick={() => onLockedFeatureClick(`ver o perfil de @${de_usuario.username}`)} className="flex items-center space-x-3 cursor-pointer">
-          <img src={authorAvatar} alt={de_usuario.username} className="w-8 h-8 rounded-full object-cover" />
+          <img src={authorAvatar} alt={de_usuario.username} className="w-8 h-8 rounded-full object-cover blur-[2px]" />
           <div>
             <p className="text-sm font-semibold text-white">{maskedUsername}</p>
             {location && <p className="text-xs text-gray-400">{location}</p>}
@@ -174,16 +174,20 @@ const RealPost: React.FC<{
 const LockedPost: React.FC<{
   username: string;
   fullName?: string;
+  profilePicUrl?: string;
   location?: string;
   index: number;
   suggestedProfiles: SuggestedProfile[];
+  targetGender?: AppGender;
   onLockedFeatureClick: (featureName: string) => void;
 }> = ({
   username,
   fullName,
+  profilePicUrl,
   location,
   index,
   suggestedProfiles,
+  targetGender,
   onLockedFeatureClick,
 }) => {
   const maskedUsername = maskUsername(username);
@@ -194,20 +198,16 @@ const LockedPost: React.FC<{
     `${username}-feed-${index}`,
     username,
     fullName,
-    suggestedProfiles
+    suggestedProfiles,
+    targetGender
   );
-  const headerAvatar = getPeoplePortraitForUser(
-    `${username}-avatar-${index}`,
-    username,
-    fullName,
-    suggestedProfiles
-  );
+  const headerAvatar = profilePicUrl || '/perfil.jpg';
 
   return (
     <div className="border-b border-gray-800 mb-4">
       <div className="flex items-center justify-between p-3">
         <div onClick={() => onLockedFeatureClick(`ver o perfil de @${username}`)} className="flex items-center space-x-3 cursor-pointer">
-          <img src={headerAvatar} alt={username} className="w-8 h-8 rounded-full object-cover border border-gray-800" />
+          <img src={headerAvatar} alt={username} className="w-8 h-8 rounded-full object-cover border border-gray-800 blur-[2px]" />
           <div>
             <p className="text-sm font-semibold text-white">{maskedUsername}</p>
             {location && <p className="text-xs text-gray-400">{location}</p>}
@@ -254,6 +254,7 @@ interface InstagramFeedContentProps {
 
 const InstagramFeedContent: React.FC<InstagramFeedContentProps> = ({ profileData, suggestedProfiles, posts, locations, onLockedFeatureClick }) => {
   const hasRealPosts = posts && posts.length > 0;
+  const targetGender = resolveTargetGender(profileData);
 
   return (
     <>
@@ -272,19 +273,18 @@ const InstagramFeedContent: React.FC<InstagramFeedContentProps> = ({ profileData
             const ringClasses = isCloseFriend
               ? 'bg-green-500'
               : 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600';
-            const storyAvatar = getPeoplePortraitForUser(
-              `${story.username}-story-${index}`,
-              story.username,
-              story.fullName,
-              suggestedProfiles
-            );
+            const storyAvatar = story.profile_pic_url || '/perfil.jpg';
 
             return (
               <div key={index} onClick={() => onLockedFeatureClick(`ver os stories de @${story.username}`)} className="flex flex-col items-center flex-shrink-0 space-y-1 text-center relative cursor-pointer">
-                <div className={`w-[70px] h-[70px] rounded-full flex items-center justify-center p-0.5 ${ringClasses}`}>
-                  <div className="bg-black p-1 rounded-full relative">
-                    <img src={storyAvatar} alt={story.username} className="w-full h-full rounded-full object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full">
+                <div className={`w-[70px] h-[70px] rounded-full flex items-center justify-center p-[2px] shrink-0 ${ringClasses}`}>
+                  <div className="relative w-full h-full rounded-full bg-black p-[2px] overflow-hidden">
+                    <img
+                      src={storyAvatar}
+                      alt={story.username}
+                      className="absolute inset-0 w-full h-full rounded-full object-cover blur-[3px] scale-[1.06] brightness-90"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                       <Lock className="w-6 h-6 text-white drop-shadow-lg" />
                     </div>
                   </div>
@@ -301,6 +301,7 @@ const InstagramFeedContent: React.FC<InstagramFeedContentProps> = ({ profileData
             index={index}
             postData={post}
             suggestedProfiles={suggestedProfiles}
+            targetGender={targetGender}
             location={locations.length > 0 ? locations[index % locations.length] : undefined}
             onLockedFeatureClick={onLockedFeatureClick}
           />
@@ -310,7 +311,9 @@ const InstagramFeedContent: React.FC<InstagramFeedContentProps> = ({ profileData
             index={index}
             username={profile.username}
             fullName={profile.fullName}
+            profilePicUrl={profile.profile_pic_url}
             suggestedProfiles={suggestedProfiles}
+            targetGender={targetGender}
             location={locations.length > 0 ? locations[index % locations.length] : undefined}
             onLockedFeatureClick={onLockedFeatureClick}
           />

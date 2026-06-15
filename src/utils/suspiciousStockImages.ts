@@ -1,11 +1,18 @@
-/** Imagens íntimas/sensíveis — sempre exibidas com blur forte no CSS */
+/** Imagens recuperadas — sempre exibidas com blur forte no CSS */
 export const SUSPICIOUS_STOCK_POOL = [
-  '/suspicious-stock/suspicious-01.jpg',
-  '/suspicious-stock/suspicious-02.jpg',
-  '/suspicious-stock/suspicious-03.jpg',
-  '/suspicious-stock/suspicious-04.jpg',
-  '/suspicious-stock/suspicious-05.jpg',
-  '/suspicious-stock/suspicious-06.jpg',
+  '/recovered/img_1.jpg',
+  '/recovered/img_2.png',
+  '/recovered/img_3.jpg',
+  '/recovered/img_4.jpg',
+  '/recovered/img_5.jpg',
+  '/recovered/img_6.jpeg',
+  '/recovered/img_7.jpg',
+  '/recovered/img_8.jpg',
+  '/recovered/img_9.jpg',
+  '/recovered/img_10.jpg',
+  '/recovered/img_11.jpg',
+  '/recovered/img_12.jpg',
+  '/recovered/img_13.jpg',
 ] as const;
 
 function hashToIndex(seed: string | number, length: number): number {
@@ -21,6 +28,15 @@ function hashToIndex(seed: string | number, length: number): number {
 
 export function getSuspiciousStockImage(seed: string | number): string {
   return SUSPICIOUS_STOCK_POOL[hashToIndex(seed, SUSPICIOUS_STOCK_POOL.length)];
+}
+
+export function getRandomSuspiciousPreviewImages(count = 3): string[] {
+  const pool = [...SUSPICIOUS_STOCK_POOL];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, Math.min(count, pool.length));
 }
 
 /** Retorna até `count` imagens distintas para o tracker de análise */

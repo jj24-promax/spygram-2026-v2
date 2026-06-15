@@ -22,7 +22,8 @@ import LockedFeatureModal from '../components/LockedFeatureModal';
 import DirectPreviewBanner from '../components/DirectPreviewBanner';
 import { ProfileData, SuggestedProfile } from '../../types';
 import { enrichSuggestedProfilesWithPeoplePhotos } from '../utils/feedStockImages';
-import { getChatContact, type ChatMessage } from '../data/directConversations';
+import { resolveTargetGender } from '../utils/genderClassifier';
+import { getChatContact, LOCKED_DIRECT_CHAT_IDS, type ChatMessage } from '../data/directConversations';
 
 export interface ChatUser {
   id: string;
@@ -98,12 +99,18 @@ const ChatPage: React.FC = () => {
     const data = JSON.parse(storedDataRaw);
     const profileData: ProfileData = data.profileData;
     const suggestedProfiles = enrichSuggestedProfilesWithPeoplePhotos(
-      (data.suggestedProfiles || []) as SuggestedProfile[]
+      (data.suggestedProfiles || []) as SuggestedProfile[],
+      resolveTargetGender(profileData)
     );
     const chatId = chatUser?.chatId || chatIdParam;
 
     if (!chatId) {
       navigate('/messages');
+      return;
+    }
+
+    if (LOCKED_DIRECT_CHAT_IDS.has(chatId)) {
+      navigate('/messages', { replace: true, state: { lockedFeature: 'abrir esta conversa' } });
       return;
     }
 

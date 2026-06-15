@@ -1,5 +1,6 @@
 import type { SuggestedProfile } from '../../types';
-import { getPeoplePortraitForUser } from './feedStockImages';
+import { getFeedStockImageForUser, isLocalStockAvatar } from './feedStockImages';
+import type { AppGender } from './interactionGender';
 import { maskContactName } from './targetName';
 
 /** Índice do perfil sugerido para cada slot do Direct (lista de conversas) */
@@ -28,17 +29,32 @@ export function getSuggestedProfileAt(
   return profiles[Math.abs(index) % profiles.length];
 }
 
-export function getSuggestedAvatar(profiles: SuggestedProfile[], index: number): string {
+export function getSuggestedAvatar(
+  profiles: SuggestedProfile[],
+  index: number,
+  targetGender?: AppGender
+): string {
   const profile = getSuggestedProfileAt(profiles, index);
   if (!profile) {
-    return getPeoplePortraitForUser(`direct-fallback-${index}`, 'contato', 'Contato', profiles);
+    return getFeedStockImageForUser(
+      `direct-fallback-${index}`,
+      'contato',
+      'Contato',
+      profiles,
+      targetGender
+    );
   }
 
-  return getPeoplePortraitForUser(
+  if (!isLocalStockAvatar(profile.profile_pic_url)) {
+    return profile.profile_pic_url;
+  }
+
+  return getFeedStockImageForUser(
     `${profile.username}-direct-avatar-${index}`,
     profile.username,
     profile.fullName,
-    profiles
+    profiles,
+    targetGender
   );
 }
 

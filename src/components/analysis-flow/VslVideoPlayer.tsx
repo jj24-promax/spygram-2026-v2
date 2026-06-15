@@ -1,17 +1,23 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Play } from 'lucide-react';
 import { getVslEmbedUrl, VSL_LOCAL_VIDEO_URL } from '../../constants/analysisFlow';
 import './analysis-flow.css';
 
 type PlayerMode = 'checking' | 'local' | 'youtube';
 
-const VslVideoPlayer: React.FC = () => {
+interface VslVideoPlayerProps {
+  forcePaused?: boolean;
+}
+
+const VslVideoPlayer: React.FC<VslVideoPlayerProps> = ({ forcePaused = false }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [mode, setMode] = useState<PlayerMode>('checking');
-  const [showOverlay, setShowOverlay] = useState(true);
+  const wasPlayingRef = useRef(false);
+  const [mode, setMode] = React.useState<PlayerMode>('checking');
+  const [showOverlay, setShowOverlay] = React.useState(true);
 
-  const embedUrl = useMemo(() => getVslEmbedUrl(window.location.origin), []);
+  const embedUrl = React.useMemo(() => getVslEmbedUrl(window.location.origin), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +56,30 @@ const VslVideoPlayer: React.FC = () => {
     setShowOverlay(false);
   }, [mode, sendYoutubeCommand]);
 
+  useEffect(() => {
+    if (mode === 'checking') return;
+
+    if (forcePaused) {
+      if (mode === 'local' && videoRef.current) {
+        wasPlayingRef.current = !videoRef.current.paused;
+        videoRef.current.pause();
+      } else if (mode === 'youtube') {
+        wasPlayingRef.current = !showOverlay;
+        sendYoutubeCommand('pauseVideo');
+      }
+      return;
+    }
+
+    if (mode === 'local' && videoRef.current && wasPlayingRef.current) {
+      wasPlayingRef.current = false;
+      void videoRef.current.play();
+      setShowOverlay(false);
+    } else if (mode === 'youtube' && wasPlayingRef.current) {
+      wasPlayingRef.current = false;
+      sendYoutubeCommand('playVideo');
+    }
+  }, [forcePaused, mode, sendYoutubeCommand, showOverlay]);
+
   const handleVideoPlay = useCallback(() => {
     if (videoRef.current && !videoRef.current.muted) {
       setShowOverlay(false);
@@ -57,8 +87,10 @@ const VslVideoPlayer: React.FC = () => {
   }, []);
 
   const handleVideoPause = useCallback(() => {
-    setShowOverlay(true);
-  }, []);
+    if (!forcePaused) {
+      setShowOverlay(true);
+    }
+  }, [forcePaused]);
 
   if (mode === 'checking') {
     return (
@@ -100,7 +132,7 @@ const VslVideoPlayer: React.FC = () => {
         </>
       )}
 
-      {showOverlay && (
+      {showOverlay && !forcePaused && (
         <button
           type="button"
           className="vsl-player__tap"

@@ -3,25 +3,9 @@
  * sufixos e termos da biografia comuns em língua portuguesa (especialmente Brasil).
  */
 
-const FEMALE_EXACT_NAMES = new Set([
-  'ana', 'maria', 'julia', 'beatriz', 'leticia', 'camila', 'larissa', 'amanda', 
-  'carol', 'carolina', 'gabriela', 'gabi', 'aline', 'patricia', 'bruna', 'isabela', 
-  'isabelle', 'laura', 'luana', 'luiza', 'mariana', 'vitoria', 'fernanda', 'vanessa', 
-  'jessica', 'renata', 'thais', 'taina', 'aline', 'alice', 'clara', 'sofia', 'rebeca', 
-  'yasmin', 'helena', 'manuela', 'eduarda', 'rafaela', 'giovanna', 'sarah', 'milena', 
-  'lorena', 'marina', 'bianca', 'nicole', 'debora', 'sabrina', 'paloma', 'priscila',
-  'elisa', 'cecilia', 'clara', 'melissa', 'livia', 'isis', 'ester', 'olivia', 'ruth'
-]);
+import { FEMALE_NAME_SET, MALE_NAME_SET } from '../../brazilianNames';
 
-const MALE_EXACT_NAMES = new Set([
-  'joao', 'pedro', 'lucas', 'gabriel', 'matheus', 'felipe', 'bruno', 'vinicius', 
-  'thiago', 'leonardo', 'gustavo', 'guilherme', 'rafael', 'rodrigo', 'daniel', 'marcos', 
-  'andre', 'luiz', 'luis', 'eduardo', 'arthur', 'carlos', 'vitor', 'hugo', 'igor', 
-  'diego', 'diogo', 'renan', 'caio', 'samuel', 'marcelo', 'alexandre', 'otavio', 
-  'willian', 'william', 'allan', 'alan', 'douglas', 'murilo', 'henrique', 'enzo', 
-  'miguel', 'davi', 'heitor', 'ricardo', 'fabio', 'fernando', 'marcio', 'roberto',
-  'antonio', 'francisco', 'jose', 'paulo', 'sebastiao', 'marcos', 'cleber', 'claudio'
-]);
+type AppGender = 'male' | 'female' | 'unknown';
 
 const FEMALE_BIO_KEYWORDS = [
   'ela', 'dela', 'she', 'her', 'casada', 'noiva', 'namorada', 'mãe', 'mae', 'mulher', 
@@ -35,23 +19,41 @@ const MALE_BIO_KEYWORDS = [
   'engenheiro', 'empreendedor', 'atleta', 'modelo', 'investidor', 'coach', 'personal'
 ];
 
+function normalizeName(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function extractFirstName(fullName: string, username: string): string {
+  const normalizedName = normalizeName(fullName);
+  if (normalizedName) {
+    const fromFullName = normalizedName.split(/\s+/)[0]?.replace(/[^a-z]/g, '');
+    if (fromFullName && fromFullName.length >= 2) return fromFullName;
+  }
+
+  const normalizedUser = normalizeName(username);
+  if (!normalizedUser) return '';
+
+  const stem = normalizedUser.split(/[._@/]+/).find((part) => part.length >= 2);
+  return stem?.replace(/[^a-z]/g, '') || '';
+}
+
 export function classifyGender(
   fullName: string, 
   username: string, 
   biography: string = ''
 ): 'male' | 'female' | 'unknown' {
-  const nameToAnalyze = (fullName || username || '').trim().toLowerCase();
-  if (!nameToAnalyze) return 'unknown';
+  const firstName = extractFirstName(fullName, username);
+  if (!firstName) return 'unknown';
 
-  // Remove acentuação para análise precisa
-  const normalized = nameToAnalyze.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  
-  // Extrai o primeiro nome
-  const firstName = normalized.split(/\s+/)[0];
+  const normalized = firstName;
 
   // 1. Verificação exata por lista de nomes populares
-  if (FEMALE_EXACT_NAMES.has(firstName)) return 'female';
-  if (MALE_EXACT_NAMES.has(firstName)) return 'male';
+  if (FEMALE_NAME_SET.has(firstName)) return 'female';
+  if (MALE_NAME_SET.has(firstName)) return 'male';
 
   // 2. Verificação por biografia (pronomes e termos de gênero)
   const bioLower = biography.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -88,4 +90,19 @@ export function classifyGender(
   }
 
   return 'unknown';
+}
+
+/** Gênero do alvo buscado — recalcula pelo @ quando a sessão antiga não tinha o campo. */
+export function resolveTargetGender(profile: {
+  gender?: AppGender;
+  username: string;
+  fullName?: string;
+  biography?: string;
+}): AppGender {
+  if (profile.gender && profile.gender !== 'unknown') {
+    return profile.gender;
+  }
+
+  const usernameStem = profile.username.split(/[._]/)[0] || profile.username;
+  return classifyGender(profile.fullName || '', usernameStem, profile.biography || '');
 }

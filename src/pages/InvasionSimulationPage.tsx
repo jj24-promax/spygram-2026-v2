@@ -23,6 +23,7 @@ import {
   startInvasionTrialSession,
 } from '../utils/invasionSession';
 import { enrichSuggestedProfilesWithPeoplePhotos } from '../utils/feedStockImages';
+import { resolveTargetGender } from '../utils/genderClassifier';
 
 // Função auxiliar para embaralhar arrays sem causar conflito com JSX
 function shuffle(array: any[]): any[] {
@@ -44,12 +45,16 @@ const InvasionSimulationPage: React.FC = () => {
   const [profileData, setProfileData] = useState<ProfileData | undefined>(storedInvasionData?.profileData || location.state?.profileData);
 
   const initialMockups = useMemo(() => {
+    const targetGender = profileData ? resolveTargetGender(profileData) : undefined;
+
     if (storedInvasionData?.suggestedProfiles?.length > 0) {
-      return enrichSuggestedProfilesWithPeoplePhotos(storedInvasionData.suggestedProfiles);
+      return enrichSuggestedProfilesWithPeoplePhotos(
+        storedInvasionData.suggestedProfiles,
+        targetGender
+      );
     }
     
     // Determina qual lista de nomes usar com base no sexo oposto ao do alvo
-    const targetGender = profileData?.gender;
     let namesToUse = MOCK_SUGGESTION_NAMES;
     
     if (targetGender === 'male') {
@@ -66,7 +71,8 @@ const InvasionSimulationPage: React.FC = () => {
         profile_pic_url: '/perfil.jpg',
         is_private: true,
         gender: targetGender === 'male' ? 'female' : targetGender === 'female' ? 'male' : 'unknown',
-      }))
+      })),
+      targetGender
     );
   }, [storedInvasionData, profileData]);
 
@@ -122,6 +128,16 @@ const InvasionSimulationPage: React.FC = () => {
       const startBackgroundLoading = async () => {
         try {
           if (storedInvasionData?.posts?.length > 0 && storedInvasionData?.suggestedProfiles?.length > 0) {
+            const targetGender = resolveTargetGender(targetProfileData);
+            const reEnriched = enrichSuggestedProfilesWithPeoplePhotos(
+              storedInvasionData.suggestedProfiles,
+              targetGender
+            );
+            setSuggestedProfiles(reEnriched);
+            sessionStorage.setItem(
+              'invasionData',
+              JSON.stringify({ ...storedInvasionData, suggestedProfiles: reEnriched })
+            );
             return;
           }
 
@@ -141,7 +157,8 @@ const InvasionSimulationPage: React.FC = () => {
           const { suggestions: extraSuggestions, posts: fetchedPosts } = await fetchFullInvasionData(targetProfileData);
 
           const finalSuggestions = enrichSuggestedProfilesWithPeoplePhotos(
-            extraSuggestions.length > 0 ? extraSuggestions : suggestedProfiles
+            extraSuggestions.length > 0 ? extraSuggestions : suggestedProfiles,
+            resolveTargetGender(targetProfileData)
           );
           const finalPosts = fetchedPosts.length > 0 ? shuffle(fetchedPosts) : [];
 

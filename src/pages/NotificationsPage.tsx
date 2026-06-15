@@ -12,6 +12,7 @@ import {
 } from '../data/notificationsData';
 import type { ProfileData, SuggestedProfile } from '../../types';
 import { enrichSuggestedProfilesWithPeoplePhotos } from '../utils/feedStockImages';
+import { resolveTargetGender } from '../utils/genderClassifier';
 import './NotificationsPage.css';
 
 const SECTION_ORDER: NotificationSection[] = ['today', 'yesterday', 'week'];
@@ -33,7 +34,8 @@ const NotificationsPage: React.FC = () => {
     const data = JSON.parse(storedDataRaw);
     const profile: ProfileData = data.profileData;
     const suggestions = enrichSuggestedProfilesWithPeoplePhotos(
-      (data.suggestedProfiles || []) as SuggestedProfile[]
+      (data.suggestedProfiles || []) as SuggestedProfile[],
+      resolveTargetGender(profile)
     );
 
     setProfileData(profile);

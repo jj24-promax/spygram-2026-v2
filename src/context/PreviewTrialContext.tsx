@@ -10,7 +10,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import PreviewExpiredModal from '../components/PreviewExpiredModal';
 import {
   expireInvasionTrial,
+  getDevPreviewLockedSeconds,
   hasActiveInvasionTrial,
+  isDevPreviewTimeLocked,
   isInvasionDemoPath,
   isPreviewTrialExpired,
 } from '../utils/invasionSession';
@@ -47,22 +49,39 @@ export const PreviewTrialProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
-    if (isPreviewTrialExpired() && !hasActiveInvasionTrial()) {
+    if (isPreviewTrialExpired() && !hasActiveInvasionTrial() && !isDevPreviewTimeLocked()) {
       setTimeLeft(0);
       setShowExpiredModal(true);
       return;
     }
 
-    const storedEndTime = sessionStorage.getItem('invasionEndTime');
-    if (!storedEndTime) {
+    const readEndTime = () => {
+      const raw = sessionStorage.getItem('invasionEndTime');
+      return raw ? parseInt(raw, 10) : null;
+    };
+
+    if (!readEndTime() && !isDevPreviewTimeLocked()) {
       setTimeLeft(null);
       setShowExpiredModal(false);
       return;
     }
 
-    const endTime = parseInt(storedEndTime, 10);
-
     const tick = () => {
+      if (isDevPreviewTimeLocked()) {
+        const lockedSeconds = getDevPreviewLockedSeconds();
+        setTimeLeft(lockedSeconds);
+        setShowExpiredModal(false);
+        sessionStorage.setItem('invasionEndTime', String(Date.now() + lockedSeconds * 1000));
+        localStorage.removeItem('spygram_trial_expired');
+        return;
+      }
+
+      const endTime = readEndTime();
+      if (!endTime) {
+        setTimeLeft(null);
+        return;
+      }
+
       const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
       setTimeLeft(remaining);
 
@@ -73,7 +92,14 @@ export const PreviewTrialProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     tick();
     const intervalId = window.setInterval(tick, 1000);
-    return () => window.clearInterval(intervalId);
+
+    const onLockChanged = () => tick();
+    window.addEventListener('spygram:dev-preview-lock-changed', onLockChanged);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('spygram:dev-preview-lock-changed', onLockChanged);
+    };
   }, [onDemoPath, location.pathname, handleExpire]);
 
   const goToCheckout = useCallback(() => {

@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { trackLead } from '../services/trackingService';
 import { trackFacebookEvent } from '../services/facebookService'; 
 import { addUtmsToUrl, captureUtms } from '../utils/utm'; // Importando captureUtms
+import { useCheckoutBackRedirect } from '../hooks/useCheckoutBackRedirect';
 
 const CHECKOUT_URL = 'https://go.perfectpay.com.br/PPU38CPUD1S';
 
@@ -81,6 +82,8 @@ const CheckoutPage: React.FC = () => {
   }, 0);
 
   const total = basePrice + adicionais;
+
+  useCheckoutBackRedirect(!pixData && !paymentConfirmed);
 
   // Removido o disparo inicial do InitiateCheckout aqui
 

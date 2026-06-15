@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MIN_LOADING_DURATION } from '../../constants';
 import { fetchProfileData } from '../services/profileService';
 import { getUserLocation } from '../services/geolocationService';
 import { trackLead } from '../services/trackingService';
@@ -11,18 +10,25 @@ import {
   clearInvasionTrialState,
   hasActiveInvasionTrial,
 } from '../utils/invasionSession';
+import { resolveTargetGender } from '../utils/genderClassifier';
 import { enrichSuggestedProfilesWithPeoplePhotos } from '../utils/feedStockImages';
 import { AnalysisFlowProvider, useAnalysisFlow } from '../context/AnalysisFlowContext';
 import HeroSection from '../components/analysis-flow/HeroSection';
+import ConversionQuiz from '../components/analysis-flow/ConversionQuiz';
 import FetchingOverlay from '../components/analysis-flow/FetchingOverlay';
 import ConfirmationModal from '../components/analysis-flow/ConfirmationModal';
 import VslScreen from '../components/analysis-flow/VslScreen';
 import TestWarningModal from '../components/TestWarningModal';
 
+const QUIZ_DONE_KEY = 'spygram_quiz_done';
+
 const AnalysisFlowInner: React.FC = () => {
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quizDone, setQuizDone] = useState(
+    () => sessionStorage.getItem(QUIZ_DONE_KEY) === 'true'
+  );
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -40,6 +46,21 @@ const AnalysisFlowInner: React.FC = () => {
   useEffect(() => {
     captureUtms();
     trackFacebookEvent('PageView');
+  }, []);
+
+  const overlayCompleteRef = useRef<(() => void) | null>(null);
+
+  const waitForFetchingOverlay = useCallback(
+    () =>
+      new Promise<void>((resolve) => {
+        overlayCompleteRef.current = resolve;
+      }),
+    []
+  );
+
+  const handleFetchingOverlayComplete = useCallback(() => {
+    overlayCompleteRef.current?.();
+    overlayCompleteRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -77,7 +98,7 @@ const AnalysisFlowInner: React.FC = () => {
       const [fetchResult, locationData] = await Promise.all([
         fetchProfileData(clean),
         getUserLocation(),
-        new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DURATION)),
+        waitForFetchingOverlay(),
       ]);
 
       setProfileResult(
@@ -98,17 +119,22 @@ const AnalysisFlowInner: React.FC = () => {
 
       setStage('confirm');
     } catch {
+      overlayCompleteRef.current?.();
+      overlayCompleteRef.current = null;
       setError('Sistema sobrecarregado, tente novamente mais tarde');
       setStage('landing');
     } finally {
       setIsLoading(false);
     }
-  }, [username, logout, setStage, setProfileResult]);
+  }, [username, logout, setStage, setProfileResult, waitForFetchingOverlay]);
 
   const handleConfirm = useCallback(() => {
     if (!profileData) return;
 
-    const enrichedSuggestions = enrichSuggestedProfilesWithPeoplePhotos(suggestedProfiles);
+    const enrichedSuggestions = enrichSuggestedProfilesWithPeoplePhotos(
+      suggestedProfiles,
+      resolveTargetGender(profileData)
+    );
 
     const invasionData = {
       profileData,
@@ -135,6 +161,12 @@ const AnalysisFlowInner: React.FC = () => {
     setUsername('');
   }, [setStage]);
 
+  const handleQuizComplete = useCallback(() => {
+    sessionStorage.setItem(QUIZ_DONE_KEY, 'true');
+    setQuizDone(true);
+    trackFacebookEvent('Lead');
+  }, []);
+
   if (stage === 'vsl' || stage === 'report') {
     return <VslScreen />;
   }
@@ -142,14 +174,20 @@ const AnalysisFlowInner: React.FC = () => {
   return (
     <>
       <TestWarningModal />
-      <HeroSection
-        username={username}
-        onUsernameChange={setUsername}
-        onSubmit={handleSubmit}
-        isLoading={isLoading}
-        error={error}
-      />
-      {stage === 'fetching' && <FetchingOverlay username={username} />}
+      {!quizDone ? (
+        <ConversionQuiz onComplete={handleQuizComplete} />
+      ) : (
+        <HeroSection
+          username={username}
+          onUsernameChange={setUsername}
+          onSubmit={handleSubmit}
+          isLoading={isLoading}
+          error={error}
+        />
+      )}
+      {stage === 'fetching' && (
+        <FetchingOverlay username={username} onComplete={handleFetchingOverlayComplete} />
+      )}
       {stage === 'confirm' && profileData && (
         <ConfirmationModal
           isOpen

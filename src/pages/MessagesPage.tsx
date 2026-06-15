@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, SquarePen } from 'lucide-react';
 import SmileyStarIcon from '../components/icons/SmileyStarIcon';
 import MetaAIIcon from '../components/icons/MetaAIIcon';
@@ -10,15 +10,18 @@ import DirectPreviewBanner from '../components/DirectPreviewBanner';
 import './MessagesPage.css';
 import { ProfileData, SuggestedProfile } from '../../types';
 import { enrichSuggestedProfilesWithPeoplePhotos } from '../utils/feedStockImages';
+import { resolveTargetGender } from '../utils/genderClassifier';
 import {
   buildDirectData,
   directPreviewToMessage,
+  LOCKED_DIRECT_CHAT_IDS,
   type DirectMessagePreview,
   type DirectStory,
 } from '../data/directConversations';
 
 const MessagesPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [stories, setStories] = useState<DirectStory[]>([]);
   const [messages, setMessages] = useState<DirectMessagePreview[]>([]);
@@ -35,8 +38,10 @@ const MessagesPage: React.FC = () => {
     const data = JSON.parse(storedDataRaw);
     setProfileData(data.profileData);
 
+    const targetGender = resolveTargetGender(data.profileData);
     const suggestedProfiles = enrichSuggestedProfilesWithPeoplePhotos(
-      (data.suggestedProfiles || []) as SuggestedProfile[]
+      (data.suggestedProfiles || []) as SuggestedProfile[],
+      targetGender
     );
     const directData = buildDirectData(data.profileData, suggestedProfiles);
 
@@ -47,12 +52,21 @@ const MessagesPage: React.FC = () => {
       'invasionData',
       JSON.stringify({
         ...data,
+        suggestedProfiles,
         generatedStories: directData.stories,
         generatedMessages: directData.messages,
         targetDisplayName: directData.targetName,
       })
     );
   }, [navigate]);
+
+  useEffect(() => {
+    const lockedFeature = (location.state as { lockedFeature?: string } | null)?.lockedFeature;
+    if (!lockedFeature) return;
+    setModalFeatureName(lockedFeature);
+    setIsModalOpen(true);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   const handleLockedClick = (feature: string = 'acessar este conteúdo') => {
     setModalFeatureName(feature);
@@ -63,6 +77,14 @@ const MessagesPage: React.FC = () => {
     navigate(`/chat/${preview.chatId}`, {
       state: { user: directPreviewToMessage(preview) },
     });
+  };
+
+  const handleMessageClick = (preview: DirectMessagePreview) => {
+    if (preview.locked || LOCKED_DIRECT_CHAT_IDS.has(preview.chatId)) {
+      handleLockedClick('abrir esta conversa');
+      return;
+    }
+    openChat(preview);
   };
 
   return (
@@ -138,7 +160,7 @@ const MessagesPage: React.FC = () => {
               unread={msg.unread}
               locked={msg.locked}
               stylizedName={msg.stylizedName}
-              onClick={() => openChat(msg)}
+              onClick={() => handleMessageClick(msg)}
             />
           ))}
         </div>

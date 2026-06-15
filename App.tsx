@@ -8,6 +8,7 @@ import MessagesPage from '@/src/pages/MessagesPage';
 import NotificationsPage from '@/src/pages/NotificationsPage';
 import ChatPage from '@/src/pages/ChatPage';
 import CheckoutPage from '@/src/pages/CheckoutPage';
+import BackRedirectPage from '@/src/pages/BackRedirectPage';
 import AdminPage from '@/src/pages/AdminPage';
 import InvasionSimulationPage from '@/src/pages/InvasionSimulationPage';
 import InvasionConcludedPage from '@/src/pages/InvasionConcludedPage';
@@ -17,7 +18,7 @@ import ProtectedRoute from './src/components/ProtectedRoute';
 import AdminProtectedRoute from './src/components/AdminProtectedRoute';
 import BackgroundLayout from './src/components/BackgroundLayout';
 import WhatsAppButton from '@/src/components/WhatsAppButton';
-import DevResetButton from '@/src/components/DevResetButton';
+import DevToolsPanel from '@/src/components/DevToolsPanel';
 import AnalyticsTracker from '@/src/components/AnalyticsTracker';
 import {
   hasActiveInvasionTrial,
@@ -39,6 +40,7 @@ const TrialGuard: React.FC = () => {
       const allowedPaths = [
         '/invasion-concluded',
         '/checkout',
+        '/back-redirect',
         '/login',
         '/admin-login',
         '/admin',
@@ -66,6 +68,7 @@ const App: React.FC = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/back-redirect" element={<BackRedirectPage />} />
           <Route path="/admin" element={<AdminProtectedRoute><AdminPage /></AdminProtectedRoute>} />
           <Route path="/instagram" element={<InvasionSimulationPage />} />
           <Route path="/invasion-concluded" element={<BackgroundLayout><InvasionConcludedPage /></BackgroundLayout>} />
@@ -76,7 +79,7 @@ const App: React.FC = () => {
           <Route path="/chat/:id" element={<ChatPage />} />
         </Routes>
         <WhatsAppButton />
-        <DevResetButton />
+        <DevToolsPanel />
         </PreviewTrialProvider>
       </AuthProvider>
     </Router>

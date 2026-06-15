@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, ChevronDown, Lock } from 'lucide-react';
 import type { ProfileData, SuggestedProfile, FeedPost } from '../../../types';
-import { getFeedStockImageForUser } from '../../utils/feedStockImages';
+import { getFeedStockImage } from '../../utils/feedStockImages';
 import './analysis-flow.css';
 
 interface ConfirmationModalProps {
@@ -35,9 +35,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     if (fromPosts.length >= 3) return fromPosts.slice(0, 3);
 
     const stock = [
-      getFeedStockImageForUser(`${profile.username}-p1`, profile.username, profile.fullName, suggestedProfiles),
-      getFeedStockImageForUser(`${profile.username}-p2`, profile.username, profile.fullName, suggestedProfiles),
-      getFeedStockImageForUser(`${profile.username}-p3`, profile.username, profile.fullName, suggestedProfiles),
+      getFeedStockImage(`${profile.username}-p1`, profile.gender),
+      getFeedStockImage(`${profile.username}-p2`, profile.gender),
+      getFeedStockImage(`${profile.username}-p3`, profile.gender),
     ];
 
     return [...fromPosts, ...stock].slice(0, 3);

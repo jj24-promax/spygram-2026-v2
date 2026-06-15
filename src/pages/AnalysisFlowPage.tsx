@@ -210,8 +210,6 @@ const AnalysisFlowInner: React.FC = () => {
         <ConfirmationModal
           isOpen
           profile={profileData}
-          suggestedProfiles={suggestedProfiles}
-          posts={posts}
           onConfirm={handleConfirm}
           onReject={handleReject}
         />

@@ -1,133 +1,157 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Phone, Video, Mic, Camera, Sticker, Heart, VolumeX, EyeOff, Lock, Play } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  ChevronLeft,
+  Phone,
+  Video,
+  Mic,
+  Camera,
+  Sticker,
+  Heart,
+  VolumeX,
+  EyeOff,
+  Play,
+  Image as ImageIcon,
+  Send,
+  Scissors,
+  Clapperboard,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './ChatPage.css';
-import { Message } from './MessagesPage';
 import LockedFeatureModal from '../components/LockedFeatureModal';
-import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
+import DirectPreviewBanner from '../components/DirectPreviewBanner';
+import { ProfileData, SuggestedProfile } from '../../types';
+import { enrichSuggestedProfilesWithPeoplePhotos } from '../utils/feedStockImages';
+import { getChatContact, type ChatMessage } from '../data/directConversations';
 
-// Define a estrutura para uma mensagem no chat
-interface ChatMessage {
-  id: number;
-  type: 'sent' | 'received' | 'date' | 'divider';
-  content: string;
-  reaction?: string;
-  replyTo?: string;
-  replyLabel?: string;
-  isAudio?: boolean;
-  audioDuration?: string;
-  isBlurred?: boolean;
-  isImage?: boolean;
-  imageUrl?: string;
-  isHeart?: boolean;
-  isStory?: boolean;
-  storyAuthor?: string;
-  storyAvatarUrl?: string;
-  storyImageUrl?: string;
+export interface ChatUser {
+  id: string;
+  chatId: string;
+  name: string;
+  message: string;
+  time: string;
+  unread: boolean;
+  locked: boolean;
+  avatar: string;
+  onlineStatus: string;
 }
 
-// Define os diálogos mockados
-const DIALOGUES: { [key: string]: ChatMessage[] } = {
-  DEFAULT_CHAT: [
-    { id: 1, type: 'date', content: '3 dias atrás, 11:12' },
-    { id: 2, type: 'received', content: 'Oi minha delícia' },
-    { id: 3, type: 'sent', content: 'Oi amor da minha vidq' },
-    { id: 4, type: 'sent', content: 'vida*' },
-    { id: 5, type: 'received', content: 'To com saudade' },
-    { id: 6, type: 'received', content: '', isImage: true, imageUrl: '/nudes1-chat1.jpg', reaction: '❤️' },
-    { id: 7, type: 'received', content: 'Disso??' },
-    { id: 8, type: 'sent', content: '😍😍😍😍😍😍' },
-    { id: 9, type: 'received', content: 'Gostou amor?', isBlurred: true },
-    { id: 10, type: 'sent', content: 'Áudio', isAudio: true, audioDuration: '0:11' },
-    { id: 11, type: 'received', content: 'Fala pra ela que tem sim em São João del-Rei.', isBlurred: true },
-    { id: 12, type: 'sent', content: 'Dboa, amanhã ou depois de amanhã', reaction: '👍🏻' },
-    { id: 13, type: 'date', content: 'ONTEM, 21:34' },
-    { id: 14, type: 'received', content: 'Amor' },
-    { id: 15, type: 'received', content: 'Ta podendo falar?' },
-    { id: 16, type: 'sent', content: 'Oii bb', replyTo: 'Amor', replyLabel: 'Você respondeu' },
-    { id: 17, type: 'received', content: 'Perai que a vaca da Bruna tá aqui do lado', isBlurred: true },
-    { id: 18, type: 'sent', content: 'kkkkkkkkk' },
-    { id: 19, type: 'received', content: '🦌🦌🦌 kkkk', reaction: '😂' },
-    { id: 20, type: 'received', content: 'Tô em Londrina já, só pra avisar mesmo', isBlurred: true, reaction: '❤️' },
-    { id: 21, type: 'received', content: '❤️', isHeart: true },
-    { id: 22, type: 'sent', content: 'Tá aonde' },
-    { id: 23, type: 'sent', content: 'Na sua prima?' },
-    { id: 24, type: 'received', content: 'Não', replyTo: 'Na sua prima?', replyLabel: 'respondeu a você' },
-    { id: 25, type: 'received', content: 'Casa da Fernanda', isBlurred: true },
-    { id: 26, type: 'sent', content: 'Tá bom 😘' },
-    { id: 27, type: 'sent', content: 'Vou dar uma fodida e depois passo aí blz??', isBlurred: true, reaction: '❤️' },
-    { id: 28, type: 'received', content: 'Áudio', isAudio: true, audioDuration: '0:32' },
-    { id: 29, type: 'received', content: 'Áudio', isAudio: true, audioDuration: '0:07' },
-    { id: 30, type: 'sent', content: 'Pode deixar' },
-    { id: 31, type: 'received', content: '❤️', isHeart: true },
-    { id: 32, type: 'divider', content: 'Novas mensagens' },
-    { id: 33, type: 'date', content: 'HOJE' },
-    { id: 34, type: 'received', content: 'Oi delícia, adivinha o que vc esqueceu aqui? kkkk' },
-  ],
-  SECOND_CHAT: [
-    { id: 1, type: 'received', content: '', isStory: true, storyAuthor: 'tinhooficial', storyAvatarUrl: '/perfil.jpg', storyImageUrl: '/perfil.jpg', reaction: '😂' },
-    { id: 2, type: 'date', content: '25 DE NOV, 15:22' },
-    { id: 3, type: 'received', content: '', isStory: true, storyAuthor: 'ikarozets', storyAvatarUrl: '/perfil.jpg', storyImageUrl: '/perfil.jpg' },
-    { id: 4, type: 'date', content: '27 DE NOV, 20:15' },
-    { id: 5, type: 'received', content: '', isStory: true, storyAuthor: 'tettrem', storyAvatarUrl: '/perfil.jpg', storyImageUrl: '/perfil.jpg', reaction: '🥲' },
-    { id: 6, type: 'sent', content: 'Esse achei triste' },
-    { id: 7, type: 'date', content: '29 DE NOV, 14:08' },
-    { id: 8, type: 'sent', content: '', isStory: true, storyAuthor: 'signodaputaria', storyAvatarUrl: '/perfil.jpg', storyImageUrl: '/perfil.jpg' },
-    { id: 9, type: 'received', content: '', isStory: true, storyAuthor: 'tettrem', storyAvatarUrl: '/perfil.jpg', storyImageUrl: '/perfil.jpg' },
-    { id: 10, type: 'date', content: 'ONTEM, 18:45' },
-    { id: 11, type: 'sent', content: '', isStory: true, storyAuthor: 'safadodesejo', storyAvatarUrl: '/perfil.jpg', storyImageUrl: '/perfil.jpg', reaction: '😂' },
-    { id: 12, type: 'sent', content: 'kkkkkkkkkkkk' },
-    { id: 13, type: 'received', content: 'Áudio', isAudio: true, audioDuration: '0:23', reaction: '😂' },
-    { id: 14, type: 'date', content: 'ONTEM 22:11' },
-    { id: 15, type: 'received', content: '', isStory: true, storyAuthor: 'morimura', storyAvatarUrl: '/perfil.jpg', storyImageUrl: '/perfil.jpg' },
-    { id: 16, type: 'divider', content: 'Novas mensagens' },
-    { id: 17, type: 'date', content: 'HOJE' },
-    { id: 18, type: 'received', content: '', isStory: true, storyAuthor: 'jonas.milgrau', storyAvatarUrl: '/perfil.jpg', storyImageUrl: '/perfil.jpg' },
-  ],
+const shouldShowAvatar = (messages: ChatMessage[], index: number): boolean => {
+  const msg = messages[index];
+  if (msg.type !== 'received') return false;
+
+  const next = messages[index + 1];
+  if (!next) return true;
+  if (next.type === 'date' || next.type === 'divider' || next.type === 'video_call') return true;
+  return next.type !== 'received';
+};
+
+const isConsecutiveSameSender = (messages: ChatMessage[], index: number): boolean => {
+  const msg = messages[index];
+  if (msg.type !== 'sent' && msg.type !== 'received') return false;
+  const prev = messages[index - 1];
+  if (!prev || prev.type === 'date' || prev.type === 'divider' || prev.type === 'video_call') {
+    return false;
+  }
+  return prev.type === msg.type;
 };
 
 const ChatPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const chatUser = location.state?.user as Message | undefined;
+  const { id: chatIdParam } = useParams<{ id: string }>();
+  const chatUser = location.state?.user as ChatUser | undefined;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [contactName, setContactName] = useState('');
+  const [contactAvatar, setContactAvatar] = useState('/perfil.jpg');
+  const [onlineStatus, setOnlineStatus] = useState('Online');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalFeatureName, setModalFeatureName] = useState('');
   const [showVolumePopup, setShowVolumePopup] = useState(false);
+  const [premiumBlurActive, setPremiumBlurActive] = useState(true);
+  const messagesRef = useRef<HTMLElement>(null);
+  const premiumZoneRef = useRef<HTMLDivElement>(null);
+  const vipTriggeredRef = useRef(false);
 
-  const getDialogue = useCallback((id: string) => {
-    const storedData = sessionStorage.getItem('invasionData');
-    if (storedData) {
-      const data = JSON.parse(storedData);
-      const suggestedProfiles = data.suggestedProfiles || [];
-      const secondUser = suggestedProfiles[1]; 
-      if (secondUser && id === secondUser.username) {
-        return DIALOGUES.SECOND_CHAT;
-      }
-    }
-    return DIALOGUES.DEFAULT_CHAT;
-  }, []);
-
-  useEffect(() => {
-    if (chatUser) {
-      let dialogue = getDialogue(chatUser.id);
-      const lastDateMsgIndex = dialogue.findIndex(m => m.id === 17);
-      if (lastDateMsgIndex !== -1) {
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        dialogue[lastDateMsgIndex].content = `${hours}:${minutes}`;
-      }
-      setMessages(dialogue);
-    }
-  }, [chatUser, getDialogue]);
-
-  const handleLockedFeature = (feature: string) => {
+  const handleLockedFeature = useCallback((feature: string) => {
     setModalFeatureName(feature);
     setIsModalOpen(true);
-  };
+  }, []);
+
+  const triggerVipFromScroll = useCallback(() => {
+    if (vipTriggeredRef.current) return;
+    vipTriggeredRef.current = true;
+    handleLockedFeature('ler o histórico completo desta conversa');
+    setTimeout(() => {
+      vipTriggeredRef.current = false;
+    }, 1500);
+  }, [handleLockedFeature]);
+
+  useEffect(() => {
+    const storedDataRaw = sessionStorage.getItem('invasionData');
+    if (!storedDataRaw) {
+      navigate('/');
+      return;
+    }
+
+    const data = JSON.parse(storedDataRaw);
+    const profileData: ProfileData = data.profileData;
+    const suggestedProfiles = enrichSuggestedProfilesWithPeoplePhotos(
+      (data.suggestedProfiles || []) as SuggestedProfile[]
+    );
+    const chatId = chatUser?.chatId || chatIdParam;
+
+    if (!chatId) {
+      navigate('/messages');
+      return;
+    }
+
+    const contact = getChatContact(chatId, profileData, suggestedProfiles);
+    if (!contact) {
+      navigate('/messages');
+      return;
+    }
+
+    setContactName(chatUser?.name || contact.name);
+    setContactAvatar(chatUser?.avatar || contact.avatar);
+    setOnlineStatus(chatUser?.onlineStatus || contact.onlineStatus);
+    setMessages(contact.messages);
+
+    requestAnimationFrame(() => {
+      if (messagesRef.current) {
+        messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+      }
+    });
+  }, [chatUser, chatIdParam, navigate]);
+
+  useEffect(() => {
+    const container = messagesRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const premiumEl = premiumZoneRef.current;
+      if (!premiumEl) {
+        setPremiumBlurActive(false);
+        return;
+      }
+
+      const containerRect = container.getBoundingClientRect();
+      const premiumRect = premiumEl.getBoundingClientRect();
+      const premiumVisible = premiumRect.bottom > containerRect.top + 20;
+
+      setPremiumBlurActive(premiumVisible);
+
+      if (container.scrollTop <= 12) {
+        triggerVipFromScroll();
+      }
+    };
+
+    handleScroll();
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [messages, triggerVipFromScroll]);
 
   const handleAudioClick = () => {
     if (showVolumePopup) return;
@@ -135,26 +159,136 @@ const ChatPage: React.FC = () => {
     setTimeout(() => setShowVolumePopup(false), 2500);
   };
 
-  const renderMessage = (msg: ChatMessage) => {
-    if (msg.type === 'date') {
-      return <div key={msg.id} className="message-date">{msg.content}</div>;
+  const renderImageContent = (msg: ChatMessage) => {
+    if (msg.imageLayout === 'stack') {
+      const count = msg.imageStackCount || 3;
+      const stackImages = [
+        msg.imageUrl || '/recovered/img_6.jpeg',
+        '/recovered/img_7.jpg',
+        '/recovered/img_8.jpg',
+      ];
+
+      return (
+        <div
+          className="message-image-stack"
+          onClick={() => handleLockedFeature('ver fotos e vídeos censurados')}
+        >
+          {stackImages.slice(0, count).map((url, i) => (
+            <div
+              key={i}
+              className="message-image-stack-item"
+              style={{ zIndex: count - i, transform: `rotate(${i === 0 ? -4 : i === 1 ? 2 : 5}deg)` }}
+            >
+              <img src={url} alt="" className="message-image" />
+              <div className="sensitive-overlay sensitive-overlay-minimal">
+                <EyeOff size={22} strokeWidth={2} />
+              </div>
+            </div>
+          ))}
+        </div>
+      );
     }
+
+    return (
+      <div
+        className={`message-image-container message-image-${msg.imageLayout || 'vertical'} ${msg.isViewOnce ? 'view-once' : ''}`}
+        onClick={() => handleLockedFeature('ver fotos e vídeos censurados')}
+      >
+        <img src={msg.imageUrl} alt="Conteúdo" className="message-image" />
+        <div className="sensitive-overlay sensitive-overlay-minimal">
+          <EyeOff size={22} strokeWidth={2} />
+        </div>
+      </div>
+    );
+  };
+
+  const renderMessage = (msg: ChatMessage, index: number, list: ChatMessage[]) => {
+    const firstPremiumId = list.find((m) => m.zone === 'premium')?.id;
+    const isPremiumLocked = msg.zone === 'premium';
+    const premiumRef = msg.id === firstPremiumId ? premiumZoneRef : undefined;
+
+    if (msg.type === 'date') {
+      return (
+        <div
+          key={msg.id}
+          ref={premiumRef}
+          className={isPremiumLocked ? 'message-premium-locked message-premium-meta' : 'message-premium-meta'}
+          onClick={() => isPremiumLocked && handleLockedFeature('ler o histórico completo desta conversa')}
+        >
+          <div className="message-date">{msg.content}</div>
+        </div>
+      );
+    }
+
     if (msg.type === 'divider') {
       return (
-        <div key={msg.id} className="message-unread-divider">
-          <div className="message-unread-line"></div>
-          <span className="message-unread-text">{msg.content}</span>
-          <div className="message-unread-line"></div>
+        <div
+          key={msg.id}
+          className={isPremiumLocked ? 'message-premium-locked message-premium-meta' : 'message-premium-meta'}
+          onClick={() => isPremiumLocked && handleLockedFeature('ler o histórico completo desta conversa')}
+        >
+          <div className="message-unread-divider">
+            <div className="message-unread-line"></div>
+            <span className="message-unread-text">{msg.content}</span>
+            <div className="message-unread-line"></div>
+          </div>
+        </div>
+      );
+    }
+
+    if (msg.type === 'video_call') {
+      return (
+        <div
+          key={msg.id}
+          ref={premiumRef}
+          className={`video-call-message ${isPremiumLocked ? 'message-premium-locked' : ''}`}
+          onClick={() => isPremiumLocked && handleLockedFeature('ler o histórico completo desta conversa')}
+        >
+          <div className={`video-call-card ${msg.callMissed ? 'missed' : ''}`}>
+            <Video size={22} />
+            <div className="video-call-info">
+              <span>{msg.content}</span>
+              {msg.callDuration && <small>{msg.callDuration}</small>}
+            </div>
+            {msg.callMissed && (
+              <button type="button" className="video-call-back">
+                Ligar de volta
+              </button>
+            )}
+          </div>
         </div>
       );
     }
 
     const isSent = msg.type === 'sent';
-    const isEmoji = !msg.isAudio && !msg.isImage && !msg.isHeart && !msg.isStory && msg.content.match(/^(?:[\u2700-\u27bf]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff]|[\u0023-\u0039]\ufe0f?\u20e3|\u3299|\u3297|\u303d|\u3030|\u24c2|\ud83c[\udf00-\uffff]|\ud83d[\udc00-\uffff]|\ud83e[\udc00-\uffff])[\s\ufe0f]*$/) && msg.content.length < 10;
+    const consecutive = isConsecutiveSameSender(list, index);
+    const showAvatar = shouldShowAvatar(list, index);
+    const isEmojiOnly =
+      !msg.isAudio &&
+      !msg.isImage &&
+      !msg.isHeart &&
+      !msg.isReel &&
+      msg.content.match(
+        /^(?:[\u2700-\u27bf]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff]|[\u0023-\u0039]\ufe0f?\u20e3|\u3299|\u3297|\u303d|\u3030|\u24c2|\ud83c[\udf00-\uffff]|\ud83d[\udc00-\udfff]|\ud83e[\udc00-\udfff])[\s\ufe0f]*$/
+      ) &&
+      msg.content.length < 16;
 
     return (
-      <div key={msg.id} className={`message ${isSent ? 'sent' : 'received'}`}>
-        {!isSent && chatUser && <img src={chatUser.avatar} alt={chatUser.name} className="message-avatar" />}
+      <div
+        key={msg.id}
+        ref={msg.id === firstPremiumId ? premiumZoneRef : undefined}
+        className={`message ${isSent ? 'sent' : 'received'} ${isPremiumLocked ? 'message-premium-locked' : ''} ${consecutive ? 'message-consecutive' : ''} ${msg.isImage ? 'message-has-image' : ''} ${msg.isReel ? 'message-has-reel' : ''}`}
+        onClick={() => isPremiumLocked && handleLockedFeature('ler o histórico completo desta conversa')}
+      >
+        {!isSent && (
+          <div className="message-avatar-slot">
+            {showAvatar ? (
+              <img src={contactAvatar} alt={contactName} className="message-avatar" />
+            ) : (
+              <span className="message-avatar-spacer" />
+            )}
+          </div>
+        )}
         <div className="message-bubble-container">
           {msg.replyTo && (
             <div className={`message-reply ${isSent ? 'sent' : 'received'}`}>
@@ -165,96 +299,220 @@ const ChatPage: React.FC = () => {
               </div>
             </div>
           )}
-          <div className={`message-bubble ${isEmoji ? 'emoji-bubble' : ''} ${msg.isHeart ? 'heart-bubble' : ''} ${msg.isStory ? 'story-bubble' : ''}`}>
-            {msg.isStory && (
-              <div className="story-encaminhado-recebido" onClick={() => handleLockedFeature('ver stories encaminhados')}>
-                <div className="story-encaminhado-header">
-                  <img src={msg.storyAvatarUrl} alt={msg.storyAuthor} className="story-encaminhado-avatar" />
-                  <div className="story-encaminhado-info">
-                    <span className="story-encaminhado-name">{msg.storyAuthor}</span>
+          <div
+            className={`message-bubble ${isEmojiOnly ? 'emoji-bubble' : ''} ${msg.isHeart ? 'heart-bubble' : ''} ${msg.isReel ? 'reel-bubble' : ''} ${msg.isImage ? 'image-bubble' : ''}`}
+          >
+            {msg.isReel && msg.reelImageUrl && (
+              <div
+                className={`reel-forward-row ${isSent ? 'reel-forward-row-sent' : 'reel-forward-row-received'}`}
+              >
+                {isSent && (
+                  <div className="reel-side-actions">
+                    <button
+                      type="button"
+                      className="reel-side-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLockedFeature('compartilhar reels');
+                      }}
+                    >
+                      <Send size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="reel-side-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLockedFeature('remixar reels');
+                      }}
+                    >
+                      <Scissors size={14} />
+                    </button>
+                  </div>
+                )}
+                <div
+                  className="reel-forward-card"
+                  onClick={() => handleLockedFeature('ver reels encaminhados')}
+                >
+                  <div className="reel-forward-image-wrap">
+                    <img src={msg.reelImageUrl} alt="Reel" className="reel-forward-image" />
+                    <div className="reel-forward-top-overlay">
+                      <img src="/perfil.jpg" alt="" className="reel-forward-creator-avatar" />
+                      <span className="reel-forward-author">{msg.reelAuthor}</span>
+                    </div>
+                    <div className="reel-forward-play">
+                      <Play size={26} fill="white" strokeWidth={0} />
+                    </div>
+                    <div className="reel-forward-badge" aria-hidden="true">
+                      <Clapperboard size={13} fill="white" strokeWidth={1.5} />
+                    </div>
                   </div>
                 </div>
-                <img src={msg.storyImageUrl} alt="Story" className="story-encaminhado-image" />
-                <div className="sensitive-overlay">
-                  <Lock size={32} />
-                  <p>Conteúdo Bloqueado</p>
-                </div>
+                {!isSent && (
+                  <div className="reel-side-actions">
+                    <button
+                      type="button"
+                      className="reel-side-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLockedFeature('compartilhar reels');
+                      }}
+                    >
+                      <Send size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="reel-side-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLockedFeature('remixar reels');
+                      }}
+                    >
+                      <Scissors size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-            {msg.isImage && msg.imageUrl && (
-              <div className="message-image-container" onClick={() => handleLockedFeature('ver fotos e vídeos censurados')}>
-                <img src={msg.imageUrl} alt="Conteúdo" className="message-image" />
-                <div className="sensitive-overlay">
-                  <EyeOff size={24} />
-                </div>
-              </div>
-            )}
+
+            {msg.isImage && msg.imageUrl && renderImageContent(msg)}
+
             {msg.isAudio && (
               <div className="audio-message" onClick={handleAudioClick}>
                 <Play size={16} fill="white" />
                 <div className="audio-waveform">
-                  {[...Array(isSent ? 25 : 35)].map((_, i) => (
-                    <div key={i} className="audio-waveform-bar" style={{ height: `${Math.floor(Math.random() * 14) + 2}px` }}></div>
+                  {[...Array(isSent ? 28 : 38)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="audio-waveform-bar"
+                      style={{ height: `${Math.floor(Math.random() * 16) + 3}px` }}
+                    />
                   ))}
                 </div>
                 <span className="audio-duration">{msg.audioDuration}</span>
               </div>
             )}
-            {!msg.isImage && !msg.isAudio && !msg.isStory && (
+
+            {!msg.isImage && !msg.isAudio && !msg.isReel && (
               <span className={msg.isBlurred ? 'blurred-text' : ''}>{msg.content}</span>
             )}
-            {msg.reaction && <div className="message-reaction">{msg.reaction}</div>}
+
+            {msg.isAudio && (
+              <button type="button" className="audio-transcription-link" onClick={handleAudioClick}>
+                Ver transcrição
+              </button>
+            )}
+
+            {msg.reaction && (
+              <div className={`message-reaction ${msg.isImage ? 'message-reaction-on-image' : ''}`}>
+                {msg.reaction}
+              </div>
+            )}
           </div>
         </div>
       </div>
     );
   };
 
-  if (!chatUser) return null;
+  const renderMessageList = (list: ChatMessage[]) =>
+    list.map((msg, index) => renderMessage(msg, index, list));
+
+  if (!messages.length) return null;
 
   return (
     <div className="chat-container">
-      <LockedFeatureModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} featureName={modalFeatureName} />
-      <FreeTimeFloatingButton />
+      <LockedFeatureModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        featureName={modalFeatureName}
+      />
+      <DirectPreviewBanner />
+
       <AnimatePresence>
         {showVolumePopup && (
-          <motion.div className="volume-popup-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="volume-popup-content" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} transition={{ type: 'spring', damping: 15 }}>
+          <motion.div
+            className="volume-popup-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="volume-popup-content"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', damping: 15 }}
+            >
               <p>Seja membro VIP para liberar o volume</p>
               <VolumeX className="volume-popup-icon" size={48} strokeWidth={1.5} />
               <div className="volume-popup-bar">
-                {[...Array(15)].map((_, i) => <div key={i} className="volume-popup-bar-segment" />)}
+                {[...Array(15)].map((_, i) => (
+                  <div key={i} className="volume-popup-bar-segment" />
+                ))}
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
       <header className="chat-header-sticky">
         <div className="chat-header-left">
-          <button onClick={() => navigate('/messages')} className="back-button"><ChevronLeft size={28} strokeWidth={2.5} /></button>
-          <div className="chat-user-info" onClick={() => handleLockedFeature('ver o perfil do usuário')}>
-            <div className="chat-avatar-wrapper-header"><img src={chatUser.avatar} alt={chatUser.name} className="chat-avatar-img" /></div>
+          <button onClick={() => navigate('/messages')} className="back-button" type="button">
+            <ChevronLeft size={28} strokeWidth={2.5} />
+          </button>
+          <div
+            className="chat-user-info"
+            onClick={() => handleLockedFeature('ver o perfil do usuário')}
+          >
+            <div className="chat-avatar-wrapper-header">
+              <img src={contactAvatar} alt={contactName} className="chat-avatar-img" />
+            </div>
             <div className="chat-name-wrapper">
-              <span className="chat-user-name">{chatUser.name}</span>
-              <span className="chat-user-status">Online</span>
+              <span className="chat-user-name">{contactName}</span>
+              <span className="chat-user-status">{onlineStatus}</span>
             </div>
           </div>
         </div>
         <div className="chat-header-right">
-          <button onClick={() => handleLockedFeature('fazer uma ligação')}><Phone size={24} /></button>
-          <button onClick={() => handleLockedFeature('fazer uma chamada de vídeo')}><Video size={24} /></button>
+          <button type="button" onClick={() => handleLockedFeature('fazer uma ligação')}>
+            <Phone size={24} />
+          </button>
+          <button type="button" onClick={() => handleLockedFeature('fazer uma chamada de vídeo')}>
+            <Video size={24} />
+          </button>
         </div>
       </header>
-      <main className="chat-messages">{messages.map(renderMessage)}</main>
-      <footer className="message-input-container" onClick={() => handleLockedFeature('enviar mensagens')}>
-        <div className="message-input-wrapper">
-          <button className="input-icon-button camera-button"><Camera size={24} /></button>
+
+      <main className="chat-messages" ref={messagesRef}>
+        {premiumBlurActive && messages.some((m) => m.zone === 'premium') && (
+          <div className="chat-premium-fade-top" aria-hidden="true" />
+        )}
+        <div className="chat-messages-list">{renderMessageList(messages)}</div>
+      </main>
+
+      <footer className="message-input-container">
+        <button
+          type="button"
+          className="input-camera-outside"
+          onClick={() => handleLockedFeature('enviar fotos')}
+        >
+          <Camera size={22} strokeWidth={2} />
+        </button>
+        <div className="message-input-wrapper" onClick={() => handleLockedFeature('enviar mensagens')}>
           <input type="text" placeholder="Mensagem..." className="message-input" readOnly />
           <div className="message-input-actions">
-            <button className="input-icon-button"><Mic size={22} /></button>
-            <button className="input-icon-button"><Camera size={22} /></button>
-            <button className="input-icon-button"><Sticker size={22} /></button>
-            <button className="input-icon-button"><Heart size={22} /></button>
+            <button type="button" className="input-icon-button">
+              <Mic size={22} />
+            </button>
+            <button type="button" className="input-icon-button">
+              <ImageIcon size={22} />
+            </button>
+            <button type="button" className="input-icon-button">
+              <Sticker size={22} />
+            </button>
+            <button type="button" className="input-icon-button">
+              <Heart size={22} />
+            </button>
           </div>
         </div>
       </footer>

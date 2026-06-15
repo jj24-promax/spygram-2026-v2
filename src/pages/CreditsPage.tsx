@@ -7,6 +7,7 @@ import PixPaymentDisplay from '../components/PixPaymentDisplay';
 import { trackLead } from '../services/trackingService';
 import { useNavigate } from 'react-router-dom';
 import { fetchProfileData } from '../services/profileService';
+import { startInvasionTrialSession } from '../utils/invasionSession';
 
 interface CreditPackage {
   id: number;
@@ -258,6 +259,7 @@ const CreditsPage: React.FC = () => {
       };
       sessionStorage.setItem('invasionData', JSON.stringify(invasionData));
       localStorage.setItem('spygram_active_invasion', JSON.stringify(invasionData));
+      startInvasionTrialSession();
       navigate('/instagram');
     } catch (e) {
       navigate('/');

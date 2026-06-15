@@ -8,13 +8,14 @@ interface DirectStoryItemProps {
 }
 
 const DirectStoryItem: React.FC<DirectStoryItemProps> = ({ avatarUrl, name, note, isOwnStory = false }) => {
-  // Fallback para evitar erro de string vazia no src
   const safeAvatarUrl = avatarUrl || '/perfil.jpg';
 
   return (
-    <div className="story-item">
+    <div className={`story-item ${isOwnStory ? 'story-own' : ''}`}>
       <div className="story-bubble">{note}</div>
-      <img src={safeAvatarUrl} alt={name} className="story-avatar" />
+      <div className="story-avatar-wrap">
+        <img src={safeAvatarUrl} alt={name} className="story-avatar" />
+      </div>
       <span className="story-name">{isOwnStory ? 'Sua nota' : name}</span>
     </div>
   );

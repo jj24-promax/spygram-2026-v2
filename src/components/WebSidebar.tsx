@@ -45,7 +45,7 @@ const WebSidebar: React.FC<WebSidebarProps> = ({ profileData, onLockedFeatureCli
         <NavItem icon={Compass} label="Explorar" onClick={() => onLockedFeatureClick('explorar o feed')} />
         <NavItem icon={Clapperboard} label="Reels" onClick={() => onLockedFeatureClick('ver os Reels')} />
         <NavItem icon={Send} label="Mensagens" onClick={handleMessagesClick} />
-        <NavItem icon={Heart} label="Notificações" onClick={() => onLockedFeatureClick('ver as notificações')} />
+        <NavItem icon={Heart} label="Notificações" onClick={() => navigate('/notifications')} />
         <NavItem icon={PlusSquare} label="Criar" onClick={() => onLockedFeatureClick('criar uma publicação')} />
         <button onClick={() => onLockedFeatureClick('ver o seu perfil')} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-800 transition-colors w-full text-left">
           <img src={profileData.profilePicUrl} alt={profileData.username} className="w-6 h-6 rounded-full object-cover" />

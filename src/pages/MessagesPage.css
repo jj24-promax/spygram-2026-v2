@@ -135,11 +135,26 @@ body {
     border-top: 5px solid #262626;
 }
 
-.story-avatar {
+.story-avatar-wrap {
     width: 80px;
     height: 80px;
     border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.story-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
     object-fit: cover;
+    filter: blur(2.5px);
+    transform: scale(1.03);
+}
+
+.story-item.story-own .story-avatar {
+    filter: none;
+    transform: none;
 }
 
 .story-name {
@@ -206,14 +221,16 @@ body {
     border-radius: 50%;
     display: block;
     filter: blur(5px);
+    transform: scale(1.1);
+}
+
+.chat-item.locked .chat-photo {
+    filter: blur(8px);
+    transform: scale(1.12);
 }
 
 .locked-avatar {
-    background-color: rgb(60, 60, 60);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    filter: blur(5px);
+    background-color: rgb(40, 40, 40);
 }
 
 .chat-lock-icon {
@@ -314,4 +331,63 @@ body {
 
 .chat-item.chat-unread .chat-camera-icon {
     opacity: 1;
+}
+
+.messages-main {
+    padding-bottom: 5.5rem;
+}
+
+.chat-name-stylized {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    letter-spacing: 0.02em;
+}
+
+.direct-preview-banner {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 450px;
+    z-index: 120;
+    padding: 0.75rem 1rem 1rem;
+    background: linear-gradient(180deg, transparent 0%, rgba(11, 16, 20, 0.95) 30%);
+}
+
+.direct-preview-banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background: linear-gradient(135deg, #6d28d9 0%, #2563eb 100%);
+    border-radius: 999px;
+    padding: 0.65rem 0.65rem 0.65rem 1rem;
+    box-shadow: 0 8px 32px rgba(109, 40, 217, 0.45);
+}
+
+.direct-preview-timer {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.direct-preview-zap {
+    color: #fde047;
+}
+
+.direct-preview-vip-btn {
+    background: white;
+    color: #6d28d9;
+    border: none;
+    border-radius: 999px;
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
 }

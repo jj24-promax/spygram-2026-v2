@@ -8,6 +8,7 @@ interface MessageItemProps {
   time: string;
   unread: boolean;
   locked: boolean;
+  stylizedName?: boolean;
   onClick: () => void;
 }
 
@@ -18,6 +19,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
   time,
   unread,
   locked,
+  stylizedName = false,
   onClick,
 }) => {
   return (
@@ -27,7 +29,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
     >
       <div className="chat-avatar-container">
         <div className={`chat-avatar-wrapper ${locked ? 'locked-avatar' : ''}`}>
-          {!locked && <img className="chat-photo" src={avatarUrl} alt={name} />}
+          <img className="chat-photo" src={avatarUrl} alt={name} />
         </div>
         {locked && (
           <div className="chat-lock-icon">
@@ -37,7 +39,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       </div>
       <div className="chat-content">
         <div className="chat-header">
-          <h3 className="chat-name">{name}</h3>
+          <h3 className={`chat-name ${stylizedName ? 'chat-name-stylized' : ''}`}>{name}</h3>
         </div>
         <div className="chat-message-row">
           <span className="chat-message-text">{message}</span>

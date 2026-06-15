@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, MoreHorizontal, ChevronDown, Plus } from 'lucide-react';
 import { ProfileData, SuggestedProfile, FeedPost } from '../../types';
+import { getFeedStockImageForUser, getPeoplePortraitForUser } from '../utils/feedStockImages';
 
 // Lista de legendas variadas para posts bloqueados
 const MOCK_CAPTIONS = [
@@ -28,7 +29,37 @@ interface ClickableProps {
   onLockedFeatureClick: (featureName: string) => void;
 }
 
-const InstagramHeader: React.FC<ClickableProps> = ({ onLockedFeatureClick }) => (
+const BlurredFeedMedia: React.FC<{
+  imageUrl: string;
+  onClick: () => void;
+}> = ({ imageUrl, onClick }) => (
+  <div
+    className="relative w-full aspect-square overflow-hidden cursor-pointer bg-[#1a1a1a]"
+    onClick={onClick}
+  >
+    <img
+      src={imageUrl}
+      alt=""
+      className="absolute inset-0 w-full h-full object-cover scale-[1.18] select-none pointer-events-none"
+      style={{ filter: 'blur(22px)' }}
+      draggable={false}
+    />
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
+      <Lock className="w-14 h-14 text-red-500 mb-3 animate-pulse drop-shadow-lg" />
+      <p className="text-lg font-bold text-white uppercase tracking-tight drop-shadow-md">
+        CONTEÚDO BLOQUEADO
+      </p>
+      <p className="text-[10px] text-gray-300 mt-1 uppercase font-black tracking-widest">
+        Acesso Premium Requerido
+      </p>
+    </div>
+  </div>
+);
+
+const InstagramHeader: React.FC<ClickableProps> = ({ onLockedFeatureClick }) => {
+  const navigate = useNavigate();
+
+  return (
   <header className="grid grid-cols-3 items-center px-4 py-2 border-b border-gray-800 bg-black flex-shrink-0 md:hidden">
     <button onClick={() => onLockedFeatureClick('criar uma publicação')} className="flex justify-start">
       <img src="/icons/add-content.png" alt="Criar" className="w-7 h-7" style={{ filter: 'brightness(0) invert(1)' }} />
@@ -37,11 +68,12 @@ const InstagramHeader: React.FC<ClickableProps> = ({ onLockedFeatureClick }) => 
       <img src="/instagram-logo.png" alt="Instagram Logo" className="h-8" style={{ filter: 'invert(1)' }} />
       <ChevronDown className="w-5 h-5 text-white mt-1" />
     </div>
-    <button onClick={() => onLockedFeatureClick('ver as notificações')} className="flex justify-end">
+    <button onClick={() => navigate('/notifications')} className="flex justify-end" type="button">
       <img src="/icons/heart.png" alt="Notificações" className="w-7 h-7" style={{ filter: 'brightness(0) invert(1)' }} />
     </button>
   </header>
-);
+  );
+};
 
 const InstagramFooter: React.FC<{ profileData: ProfileData } & ClickableProps> = ({ profileData, onLockedFeatureClick }) => {
   const navigate = useNavigate();
@@ -67,16 +99,38 @@ const InstagramFooter: React.FC<{ profileData: ProfileData } & ClickableProps> =
   );
 };
 
-const RealPost: React.FC<{ postData: FeedPost; location?: string } & ClickableProps> = ({ postData, location, onLockedFeatureClick }) => {
+const RealPost: React.FC<{
+  postData: FeedPost;
+  location?: string;
+  index: number;
+  suggestedProfiles: SuggestedProfile[];
+} & ClickableProps> = ({
+  postData,
+  location,
+  index,
+  suggestedProfiles,
+  onLockedFeatureClick,
+}) => {
   const { de_usuario, post } = postData;
   const maskedUsername = maskUsername(de_usuario.username);
-  const navigate = useNavigate();
+  const feedImage = getFeedStockImageForUser(
+    `${de_usuario.username}-feed-${post.id ?? index}`,
+    de_usuario.username,
+    de_usuario.full_name,
+    suggestedProfiles
+  );
+  const authorAvatar = getPeoplePortraitForUser(
+    `${de_usuario.username}-avatar-${post.id ?? index}`,
+    de_usuario.username,
+    de_usuario.full_name,
+    suggestedProfiles
+  );
 
   return (
     <div className="border-b border-gray-800 mb-4">
       <div className="flex items-center justify-between p-3">
         <div onClick={() => onLockedFeatureClick(`ver o perfil de @${de_usuario.username}`)} className="flex items-center space-x-3 cursor-pointer">
-          <img src={de_usuario.profile_pic_url} alt={de_usuario.username} className="w-8 h-8 rounded-full object-cover" />
+          <img src={authorAvatar} alt={de_usuario.username} className="w-8 h-8 rounded-full object-cover" />
           <div>
             <p className="text-sm font-semibold text-white">{maskedUsername}</p>
             {location && <p className="text-xs text-gray-400">{location}</p>}
@@ -84,20 +138,11 @@ const RealPost: React.FC<{ postData: FeedPost; location?: string } & ClickablePr
         </div>
         <button onClick={() => onLockedFeatureClick('ver as opções da publicação')}><MoreHorizontal className="w-5 h-5 text-white" /></button>
       </div>
-      
-      {post.is_video && post.video_url ? (
-        <video 
-          src={post.video_url} 
-          poster={post.image_url}
-          autoPlay 
-          muted 
-          loop 
-          playsInline
-          className="w-full h-auto object-contain bg-black"
-        ></video>
-      ) : (
-        <img src={post.image_url} alt="Post" className="w-full h-auto object-contain" />
-      )}
+
+      <BlurredFeedMedia
+        imageUrl={feedImage}
+        onClick={() => onLockedFeatureClick('ver esta publicação')}
+      />
 
       <div className="flex justify-between items-center p-3">
         <div className="flex space-x-4">
@@ -126,23 +171,43 @@ const RealPost: React.FC<{ postData: FeedPost; location?: string } & ClickablePr
   );
 };
 
-const LockedPost: React.FC<{ 
-  username: string; 
-  profilePicUrl: string; 
+const LockedPost: React.FC<{
+  username: string;
+  fullName?: string;
   location?: string;
   index: number;
+  suggestedProfiles: SuggestedProfile[];
   onLockedFeatureClick: (featureName: string) => void;
-}> = ({ username, profilePicUrl, location, index, onLockedFeatureClick }) => {
+}> = ({
+  username,
+  fullName,
+  location,
+  index,
+  suggestedProfiles,
+  onLockedFeatureClick,
+}) => {
   const maskedUsername = maskUsername(username);
   const caption = MOCK_CAPTIONS[index % MOCK_CAPTIONS.length];
   const likes = Math.floor(Math.random() * 2000) + 120;
   const comments = Math.floor(Math.random() * 60) + 5;
+  const blurredImage = getFeedStockImageForUser(
+    `${username}-feed-${index}`,
+    username,
+    fullName,
+    suggestedProfiles
+  );
+  const headerAvatar = getPeoplePortraitForUser(
+    `${username}-avatar-${index}`,
+    username,
+    fullName,
+    suggestedProfiles
+  );
 
   return (
     <div className="border-b border-gray-800 mb-4">
       <div className="flex items-center justify-between p-3">
         <div onClick={() => onLockedFeatureClick(`ver o perfil de @${username}`)} className="flex items-center space-x-3 cursor-pointer">
-          <img src={profilePicUrl} alt={username} className="w-8 h-8 rounded-full object-cover border border-gray-800" />
+          <img src={headerAvatar} alt={username} className="w-8 h-8 rounded-full object-cover border border-gray-800" />
           <div>
             <p className="text-sm font-semibold text-white">{maskedUsername}</p>
             {location && <p className="text-xs text-gray-400">{location}</p>}
@@ -150,13 +215,10 @@ const LockedPost: React.FC<{
         </div>
         <button onClick={() => onLockedFeatureClick('ver as opções da publicação')}><MoreHorizontal className="w-5 h-5 text-white" /></button>
       </div>
-      <div className="relative w-full bg-gray-900 flex items-center justify-center aspect-square" onClick={() => onLockedFeatureClick('ver esta publicação')}>
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
-          <Lock className="w-16 h-16 text-red-500 mb-4 animate-pulse" />
-          <p className="text-xl font-bold text-white uppercase tracking-tight">CONTEÚDO BLOQUEADO</p>
-          <p className="text-[11px] text-gray-400 mt-1 uppercase font-black tracking-widest">Acesso Premium Requerido</p>
-        </div>
-      </div>
+      <BlurredFeedMedia
+        imageUrl={blurredImage}
+        onClick={() => onLockedFeatureClick('ver esta publicação')}
+      />
       <div className="flex justify-between items-center p-3">
         <div className="flex space-x-4">
           <button onClick={() => onLockedFeatureClick('curtir publicações')}>
@@ -210,12 +272,18 @@ const InstagramFeedContent: React.FC<InstagramFeedContentProps> = ({ profileData
             const ringClasses = isCloseFriend
               ? 'bg-green-500'
               : 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600';
+            const storyAvatar = getPeoplePortraitForUser(
+              `${story.username}-story-${index}`,
+              story.username,
+              story.fullName,
+              suggestedProfiles
+            );
 
             return (
               <div key={index} onClick={() => onLockedFeatureClick(`ver os stories de @${story.username}`)} className="flex flex-col items-center flex-shrink-0 space-y-1 text-center relative cursor-pointer">
                 <div className={`w-[70px] h-[70px] rounded-full flex items-center justify-center p-0.5 ${ringClasses}`}>
                   <div className="bg-black p-1 rounded-full relative">
-                    <img src={story.profile_pic_url} alt={story.username} className="w-full h-full rounded-full object-cover" />
+                    <img src={storyAvatar} alt={story.username} className="w-full h-full rounded-full object-cover" />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full">
                       <Lock className="w-6 h-6 text-white drop-shadow-lg" />
                     </div>
@@ -228,14 +296,22 @@ const InstagramFeedContent: React.FC<InstagramFeedContentProps> = ({ profileData
         </div>
         
         {hasRealPosts ? posts.map((post, index) => (
-          <RealPost key={post.post.id || index} postData={post} location={locations.length > 0 ? locations[index % locations.length] : undefined} onLockedFeatureClick={onLockedFeatureClick} />
+          <RealPost
+            key={post.post.id || index}
+            index={index}
+            postData={post}
+            suggestedProfiles={suggestedProfiles}
+            location={locations.length > 0 ? locations[index % locations.length] : undefined}
+            onLockedFeatureClick={onLockedFeatureClick}
+          />
         )) : suggestedProfiles.slice(0, 5).map((profile, index) => (
-          <LockedPost 
-            key={profile.username || index} 
+          <LockedPost
+            key={profile.username || index}
             index={index}
             username={profile.username}
-            profilePicUrl={profile.profile_pic_url}
-            location={locations.length > 0 ? locations[index % locations.length] : undefined} 
+            fullName={profile.fullName}
+            suggestedProfiles={suggestedProfiles}
+            location={locations.length > 0 ? locations[index % locations.length] : undefined}
             onLockedFeatureClick={onLockedFeatureClick}
           />
         ))}

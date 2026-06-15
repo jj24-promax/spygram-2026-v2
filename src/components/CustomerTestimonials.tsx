@@ -1,15 +1,62 @@
 import React, { useRef } from 'react';
 import { MessageSquareQuote, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { maskContactName } from '../utils/targetName';
+
+type BlurOverlay = {
+  top: string;
+  left: string;
+  width: string;
+  height: string;
+};
+
+type TestimonialScreenshot = {
+  src: string;
+  name: string;
+  headerBlur?: BlurOverlay;
+  extraBlurs?: BlurOverlay[];
+};
+
+const DEFAULT_HEADER_BLUR: BlurOverlay = {
+  top: '5.5%',
+  left: '28%',
+  width: '38%',
+  height: '5%',
+};
+
+const screenshots: TestimonialScreenshot[] = [
+  {
+    src: '/testimonials/mariana.png',
+    name: 'Mariana',
+    headerBlur: DEFAULT_HEADER_BLUR,
+    extraBlurs: [
+      { top: '16.5%', left: '40%', width: '28%', height: '3.2%' },
+      { top: '48.2%', left: '36%', width: '30%', height: '3.2%' },
+    ],
+  },
+  {
+    src: '/testimonials/rafael.png',
+    name: 'Rafael',
+    headerBlur: DEFAULT_HEADER_BLUR,
+    extraBlurs: [
+      { top: '16.8%', left: '44%', width: '24%', height: '3.2%' },
+      { top: '48.5%', left: '40%', width: '24%', height: '3.2%' },
+      { top: '71.5%', left: '38%', width: '26%', height: '3.2%' },
+    ],
+  },
+  {
+    src: '/testimonials/juliana.png',
+    name: 'Juliana',
+    headerBlur: DEFAULT_HEADER_BLUR,
+    extraBlurs: [
+      { top: '17.2%', left: '41%', width: '26%', height: '3.2%' },
+      { top: '49.8%', left: '37%', width: '28%', height: '3.2%' },
+    ],
+  },
+];
 
 const CustomerTestimonials: React.FC = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const screenshots = [
-    { src: '/testimonials/mariana.png', name: 'Mariana' },
-    { src: '/testimonials/rafael.png', name: 'Rafael' },
-    { src: '/testimonials/juliana.png', name: 'Juliana' }
-  ];
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -76,20 +123,24 @@ const CustomerTestimonials: React.FC = () => {
               <div className="relative rounded-[1.8rem] overflow-hidden border border-white/10 shadow-2xl bg-black/40">
                 <img 
                   src={item.src} 
-                  alt={`Depoimento de ${item.name}`} 
+                  alt={`Depoimento de ${maskContactName(item.name)}`} 
                   className="w-full h-auto block object-contain"
                 />
 
-                {/* Camada inteligente de desfoque posicionada perfeitamente sobre o nome no cabeçalho */}
-                <div 
-                  className="absolute bg-white/5 backdrop-blur-[6px] rounded-md border border-white/5"
-                  style={{
-                    top: '5.5%',
-                    left: '28%',
-                    width: '38%',
-                    height: '5%'
-                  }}
-                />
+                {item.headerBlur && (
+                  <div
+                    className="absolute bg-white/5 backdrop-blur-[6px] rounded-md border border-white/5"
+                    style={item.headerBlur}
+                  />
+                )}
+
+                {item.extraBlurs?.map((blur, blurIndex) => (
+                  <div
+                    key={blurIndex}
+                    className="absolute bg-white/5 backdrop-blur-[6px] rounded-sm border border-white/5"
+                    style={blur}
+                  />
+                ))}
                 
                 {/* Overlay de Verificado */}
                 <div className="absolute top-3 right-3 bg-green-500 text-white p-1 rounded-full shadow-lg z-10">
@@ -99,7 +150,7 @@ const CustomerTestimonials: React.FC = () => {
               
               {/* Nome discreto abaixo */}
               <p className="mt-3 text-center text-[9px] font-black text-gray-500 uppercase tracking-[0.3em]">
-                Cliente: {item.name} ✅
+                Cliente: {maskContactName(item.name)} ✅
               </p>
             </motion.div>
           ))}

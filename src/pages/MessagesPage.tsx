@@ -6,129 +6,52 @@ import MetaAIIcon from '../components/icons/MetaAIIcon';
 import DirectStoryItem from '../components/DirectStoryItem';
 import MessageItem from '../components/MessageItem';
 import LockedFeatureModal from '../components/LockedFeatureModal';
-import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
+import DirectPreviewBanner from '../components/DirectPreviewBanner';
 import './MessagesPage.css';
 import { ProfileData, SuggestedProfile } from '../../types';
-import { MOCK_MALE_NAMES, MOCK_FEMALE_NAMES, MOCK_SUGGESTION_NAMES } from '../../constants';
-
-export interface Story {
-  id: string;
-  name: string;
-  note: string;
-  avatar: string;
-}
-
-export interface Message {
-  id: string;
-  name: string;
-  message: string;
-  time: string;
-  unread: boolean;
-  locked: boolean;
-  avatar: string;
-}
-
-const maskUsername = (username: string) => {
-  if (username.length <= 4) return username;
-  return `${username.substring(0, 3).toLowerCase()}****`;
-};
+import { enrichSuggestedProfilesWithPeoplePhotos } from '../utils/feedStockImages';
+import {
+  buildDirectData,
+  directPreviewToMessage,
+  type DirectMessagePreview,
+  type DirectStory,
+} from '../data/directConversations';
 
 const MessagesPage: React.FC = () => {
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
-  const [stories, setStories] = useState<Story[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [stories, setStories] = useState<DirectStory[]>([]);
+  const [messages, setMessages] = useState<DirectMessagePreview[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalFeatureName, setModalFeatureName] = useState('');
 
   useEffect(() => {
     const storedDataRaw = sessionStorage.getItem('invasionData');
-    if (storedDataRaw) {
-      const data = JSON.parse(storedDataRaw);
-      setProfileData(data.profileData);
-
-      const targetGender = data.profileData?.gender;
-
-      // Se já houver mensagens geradas para este lead, usamos elas
-      if (data.generatedStories && data.generatedMessages) {
-        setStories(data.generatedStories);
-        setMessages(data.generatedMessages);
-        return;
-      }
-
-      // Caso contrário, geramos uma vez e salvamos
-      let suggestedProfiles: SuggestedProfile[] = data.suggestedProfiles || [];
-      
-      if (suggestedProfiles.length === 0) {
-        // Determina os nomes baseados no sexo oposto ao do alvo
-        let namesToUse = MOCK_SUGGESTION_NAMES;
-        if (targetGender === 'male') {
-          namesToUse = MOCK_FEMALE_NAMES;
-        } else if (targetGender === 'female') {
-          namesToUse = MOCK_MALE_NAMES;
-        }
-
-        const shuffledNames = [...namesToUse].sort(() => 0.5 - Math.random());
-        suggestedProfiles = shuffledNames.slice(0, 12).map((name) => ({
-          username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
-          fullName: name,
-          profile_pic_url: '/perfil.jpg',
-        }));
-      }
-      
-      const suggestedStories: Story[] = suggestedProfiles.slice(0, 4).map((profile: SuggestedProfile, index: number) => ({
-        id: profile.username,
-        name: maskUsername(profile.username),
-        note: ['Preguiça Hoje 🥱🥱', 'Coração Partido (Ao Vivo)', 'O vontde fudê a 3 😈', '📍💦 São Paulo'][index % 4],
-        avatar: profile.profile_pic_url,
-      }));
-
-      const messagePreviews = [
-        '4 novas mensagens',
-        'Vem aqui logo, tô sozinha... 😈',
-        'Não conta pra ninguém o que a gente fez',
-        '4 novas mensagens',
-        'Precisamos conversar sobre ontem 😬',
-        'Enviou um anexo',
-        '4 novas mensagens',
-        'Foto temporária',
-        'Curtiu uma mensagem',
-        'Onde você está??',
-        '4 novas mensagens',
-        'Isso é verdade?? 😱',
-        'Mencionei você no meu close friends'
-      ].sort(() => 0.5 - Math.random());
-
-      const suggestedMessages: Message[] = suggestedProfiles.slice(0, 10).map((profile: SuggestedProfile, index: number) => {
-        const preview = messagePreviews[index % messagePreviews.length];
-        const time = ['22 h', '3 d', '4 d', '1 sem'][index % 4];
-        const unread = index % 3 === 0 || preview === '4 novas mensagens';
-
-        return {
-          id: profile.username,
-          name: maskUsername(profile.username),
-          message: preview,
-          time: time,
-          unread: unread,
-          locked: true, 
-          avatar: profile.profile_pic_url,
-        };
-      });
-      
-      // Salva no sessionStorage dentro do objeto de invasão atual
-      const updatedData = {
-        ...data,
-        generatedStories: suggestedStories,
-        generatedMessages: suggestedMessages
-      };
-      sessionStorage.setItem('invasionData', JSON.stringify(updatedData));
-
-      setStories(suggestedStories);
-      setMessages(suggestedMessages);
-
-    } else {
+    if (!storedDataRaw) {
       navigate('/');
+      return;
     }
+
+    const data = JSON.parse(storedDataRaw);
+    setProfileData(data.profileData);
+
+    const suggestedProfiles = enrichSuggestedProfilesWithPeoplePhotos(
+      (data.suggestedProfiles || []) as SuggestedProfile[]
+    );
+    const directData = buildDirectData(data.profileData, suggestedProfiles);
+
+    setStories(directData.stories);
+    setMessages(directData.messages);
+
+    sessionStorage.setItem(
+      'invasionData',
+      JSON.stringify({
+        ...data,
+        generatedStories: directData.stories,
+        generatedMessages: directData.messages,
+        targetDisplayName: directData.targetName,
+      })
+    );
   }, [navigate]);
 
   const handleLockedClick = (feature: string = 'acessar este conteúdo') => {
@@ -136,18 +59,24 @@ const MessagesPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const openChat = (preview: DirectMessagePreview) => {
+    navigate(`/chat/${preview.chatId}`, {
+      state: { user: directPreviewToMessage(preview) },
+    });
+  };
+
   return (
     <div className="messages-page-container">
-      <LockedFeatureModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        featureName={modalFeatureName} 
+      <LockedFeatureModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        featureName={modalFeatureName}
       />
-      <FreeTimeFloatingButton />
+      <DirectPreviewBanner />
 
       <header className="messages-header">
         <div className="header-left-content">
-          <button onClick={() => navigate('/instagram')} className="p-1">
+          <button onClick={() => navigate('/instagram')} className="p-1" type="button">
             <ChevronLeft size={28} strokeWidth={2.5} />
           </button>
           <div className="header-title">
@@ -160,16 +89,16 @@ const MessagesPage: React.FC = () => {
         </div>
       </header>
 
-      <main>
+      <main className="messages-main">
         <div className="search-bar-container">
           <div className="search-input-wrapper">
             <MetaAIIcon size={20} className="search-icon" />
-            <input 
-              type="text" 
-              placeholder="Interaja com a Meta AI ou pesquise" 
-              className="search-input" 
-              readOnly 
-              onClick={() => handleLockedClick('pesquisar nas mensagens')} 
+            <input
+              type="text"
+              placeholder="Pergunte à Meta AI ou pesquise"
+              className="search-input"
+              readOnly
+              onClick={() => handleLockedClick('pesquisar nas mensagens')}
             />
           </div>
         </div>
@@ -181,7 +110,7 @@ const MessagesPage: React.FC = () => {
             note="Conte as novidades"
             isOwnStory
           />
-          {stories.map(story => (
+          {stories.map((story) => (
             <DirectStoryItem
               key={story.id}
               avatarUrl={story.avatar}
@@ -208,7 +137,8 @@ const MessagesPage: React.FC = () => {
               time={msg.time}
               unread={msg.unread}
               locked={msg.locked}
-              onClick={() => handleLockedClick(`ler a conversa secreta com ${msg.name}`)}
+              stylizedName={msg.stylizedName}
+              onClick={() => openChat(msg)}
             />
           ))}
         </div>

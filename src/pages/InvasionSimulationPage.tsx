@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { ProfileData, SuggestedProfile, FeedPost } from '../../types';
 import InstagramLoginSimulator from '../components/InstagramLoginSimulator';
@@ -17,6 +17,12 @@ import { MOCK_MALE_NAMES, MOCK_FEMALE_NAMES, MOCK_SUGGESTION_NAMES } from '../..
 import { fetchFullInvasionData } from '../services/profileService';
 import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
 import { trackLead } from '../services/trackingService';
+import {
+  markInstagramDemoSeen,
+  hasActiveInvasionTrial,
+  startInvasionTrialSession,
+} from '../utils/invasionSession';
+import { enrichSuggestedProfilesWithPeoplePhotos } from '../utils/feedStockImages';
 
 // Função auxiliar para embaralhar arrays sem causar conflito com JSX
 function shuffle(array: any[]): any[] {
@@ -38,7 +44,9 @@ const InvasionSimulationPage: React.FC = () => {
   const [profileData, setProfileData] = useState<ProfileData | undefined>(storedInvasionData?.profileData || location.state?.profileData);
 
   const initialMockups = useMemo(() => {
-    if (storedInvasionData?.suggestedProfiles?.length > 0) return storedInvasionData.suggestedProfiles;
+    if (storedInvasionData?.suggestedProfiles?.length > 0) {
+      return enrichSuggestedProfilesWithPeoplePhotos(storedInvasionData.suggestedProfiles);
+    }
     
     // Determina qual lista de nomes usar com base no sexo oposto ao do alvo
     const targetGender = profileData?.gender;
@@ -51,13 +59,15 @@ const InvasionSimulationPage: React.FC = () => {
     }
 
     const shuffledNames = shuffle([...namesToUse]);
-    return shuffledNames.slice(0, 15).map((name: string) => ({
-      username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
-      fullName: name,
-      profile_pic_url: '/perfil.jpg', 
-      is_private: true,
-      gender: targetGender === 'male' ? 'female' : targetGender === 'female' ? 'male' : 'unknown'
-    }));
+    return enrichSuggestedProfilesWithPeoplePhotos(
+      shuffledNames.slice(0, 15).map((name: string) => ({
+        username: name.toLowerCase().replace(' ', '') + Math.floor(Math.random() * 100),
+        fullName: name,
+        profile_pic_url: '/perfil.jpg',
+        is_private: true,
+        gender: targetGender === 'male' ? 'female' : targetGender === 'female' ? 'male' : 'unknown',
+      }))
+    );
   }, [storedInvasionData, profileData]);
 
   const [suggestedProfiles, setSuggestedProfiles] = useState<SuggestedProfile[]>(initialMockups);
@@ -71,6 +81,19 @@ const InvasionSimulationPage: React.FC = () => {
   const [locations, setLocations] = useState<string[]>(storedInvasionData?.locations || []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalFeatureName, setModalFeatureName] = useState('');
+
+  const instantLogin = useMemo(
+    () => sessionStorage.getItem('spygram_instant_login') === 'true',
+    []
+  );
+
+  useLayoutEffect(() => {
+    if (storedInvasionData?.profileData || location.state?.profileData) {
+      if (!hasActiveInvasionTrial()) {
+        startInvasionTrialSession();
+      }
+    }
+  }, [storedInvasionData, location.state]);
   
   useEffect(() => {
     if (stage === 'feed_locked') return;
@@ -117,7 +140,9 @@ const InvasionSimulationPage: React.FC = () => {
           // Busca dados completos incluindo posts de perfis públicos
           const { suggestions: extraSuggestions, posts: fetchedPosts } = await fetchFullInvasionData(targetProfileData);
 
-          const finalSuggestions = extraSuggestions.length > 0 ? extraSuggestions : suggestedProfiles;
+          const finalSuggestions = enrichSuggestedProfilesWithPeoplePhotos(
+            extraSuggestions.length > 0 ? extraSuggestions : suggestedProfiles
+          );
           const finalPosts = fetchedPosts.length > 0 ? shuffle(fetchedPosts) : [];
 
           setSuggestedProfiles(finalSuggestions);
@@ -141,13 +166,11 @@ const InvasionSimulationPage: React.FC = () => {
       startBackgroundLoading();
 
       if (!isLoggedIn) {
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise((resolve) => setTimeout(resolve, instantLogin ? 1200 : 800));
       }
 
-      // Altera o tempo gratuito para 2 minutos (120 segundos)
-      if (!sessionStorage.getItem('invasionEndTime')) {
-        const endTime = Date.now() + 120 * 1000;
-        sessionStorage.setItem('invasionEndTime', endTime.toString());
+      if (!hasActiveInvasionTrial()) {
+        startInvasionTrialSession();
       }
 
       if (isLoggedIn) {
@@ -160,9 +183,16 @@ const InvasionSimulationPage: React.FC = () => {
     if (stage === 'loading') {
       loadAllDataAndProceed();
     }
-  }, [location.state, navigate, stage, isLoggedIn, suggestedProfiles, storedInvasionData]);
+  }, [location.state, navigate, stage, isLoggedIn, suggestedProfiles, storedInvasionData, instantLogin]);
+
+  useEffect(() => {
+    if (stage === 'feed_locked') {
+      markInstagramDemoSeen();
+    }
+  }, [stage]);
 
   const handleLoginSuccess = useCallback(() => {
+    sessionStorage.removeItem('spygram_instant_login');
     login();
     setStage('success_card');
     toast.success(`Acesso concedido ao perfil @${profileData?.username}!`);
@@ -232,9 +262,10 @@ const InvasionSimulationPage: React.FC = () => {
         <div className="flex items-center justify-center min-h-screen">
           {stage === 'login_attempt' && (
             <motion.div key="login" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="w-full">
-              <InstagramLoginSimulator 
-                profileData={profileData} 
+              <InstagramLoginSimulator
+                profileData={profileData}
                 onSuccess={handleLoginSuccess}
+                instantAccess={instantLogin}
               />
             </motion.div>
           )}

@@ -1,5 +1,5 @@
 export const BACK_REDIRECT_ORIGINAL_PRICE = 79;
-export const BACK_REDIRECT_CASH_PRICE = 37.9;
+export const BACK_REDIRECT_CASH_PRICE = 27.9;
 export const BACK_REDIRECT_INSTALLMENTS = 12;
 
 export function getBackRedirectInstallmentValue(): string {

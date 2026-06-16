@@ -17,7 +17,6 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import ProtectedRoute from './src/components/ProtectedRoute';
 import AdminProtectedRoute from './src/components/AdminProtectedRoute';
 import BackgroundLayout from './src/components/BackgroundLayout';
-import WhatsAppButton from '@/src/components/WhatsAppButton';
 import DevToolsPanel from '@/src/components/DevToolsPanel';
 import AnalyticsTracker from '@/src/components/AnalyticsTracker';
 import {
@@ -78,7 +77,6 @@ const App: React.FC = () => {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/chat/:id" element={<ChatPage />} />
         </Routes>
-        <WhatsAppButton />
         <DevToolsPanel />
         </PreviewTrialProvider>
       </AuthProvider>

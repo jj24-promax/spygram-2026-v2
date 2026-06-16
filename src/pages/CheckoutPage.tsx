@@ -265,7 +265,7 @@ const CheckoutPage: React.FC = () => {
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Telefone</label>
-                        <input type="tel" name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="(21) 998510231" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#78cc6d] outline-none transition-all" />
+                        <input type="tel" name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="(00) 00000-0000" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#78cc6d] outline-none transition-all" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">CPF ou CNPJ</label>

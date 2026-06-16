@@ -11,10 +11,12 @@ import PreviewExpiredModal from '../components/PreviewExpiredModal';
 import {
   expireInvasionTrial,
   getDevPreviewLockedSeconds,
+  getInvasionTrialEndTime,
   hasActiveInvasionTrial,
   isDevPreviewTimeLocked,
   isInvasionDemoPath,
   isPreviewTrialExpired,
+  setInvasionTrialEndTime,
 } from '../utils/invasionSession';
 
 interface PreviewTrialContextValue {
@@ -55,10 +57,7 @@ export const PreviewTrialProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
-    const readEndTime = () => {
-      const raw = sessionStorage.getItem('invasionEndTime');
-      return raw ? parseInt(raw, 10) : null;
-    };
+    const readEndTime = () => getInvasionTrialEndTime();
 
     if (!readEndTime() && !isDevPreviewTimeLocked()) {
       setTimeLeft(null);
@@ -71,7 +70,7 @@ export const PreviewTrialProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const lockedSeconds = getDevPreviewLockedSeconds();
         setTimeLeft(lockedSeconds);
         setShowExpiredModal(false);
-        sessionStorage.setItem('invasionEndTime', String(Date.now() + lockedSeconds * 1000));
+        setInvasionTrialEndTime(Date.now() + lockedSeconds * 1000);
         localStorage.removeItem('spygram_trial_expired');
         return;
       }

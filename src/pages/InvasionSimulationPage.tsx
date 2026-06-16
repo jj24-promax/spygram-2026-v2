@@ -19,8 +19,7 @@ import FreeTimeFloatingButton from '../components/FreeTimeFloatingButton';
 import { trackLead } from '../services/trackingService';
 import {
   markInstagramDemoSeen,
-  hasActiveInvasionTrial,
-  startInvasionTrialSession,
+  ensurePreviewTrialSession,
 } from '../utils/invasionSession';
 import { enrichSuggestedProfilesWithPeoplePhotos } from '../utils/feedStockImages';
 import { resolveTargetGender } from '../utils/genderClassifier';
@@ -95,9 +94,7 @@ const InvasionSimulationPage: React.FC = () => {
 
   useLayoutEffect(() => {
     if (storedInvasionData?.profileData || location.state?.profileData) {
-      if (!hasActiveInvasionTrial()) {
-        startInvasionTrialSession();
-      }
+      ensurePreviewTrialSession();
     }
   }, [storedInvasionData, location.state]);
   
@@ -186,9 +183,7 @@ const InvasionSimulationPage: React.FC = () => {
         await new Promise((resolve) => setTimeout(resolve, instantLogin ? 1200 : 800));
       }
 
-      if (!hasActiveInvasionTrial()) {
-        startInvasionTrialSession();
-      }
+      ensurePreviewTrialSession();
 
       if (isLoggedIn) {
         setStage('feed_locked');

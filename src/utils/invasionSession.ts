@@ -4,20 +4,60 @@ export const INVASION_TRIAL_DURATION_MS = 120 * 1000;
 
 export const INVASION_DEMO_PATHS = ['/instagram', '/messages', '/notifications', '/chat'];
 
+const INVASION_END_TIME_KEY = 'spygram_invasion_end_time';
+
+function readInvasionEndTimeRaw(): string | null {
+  return localStorage.getItem(INVASION_END_TIME_KEY) ?? sessionStorage.getItem('invasionEndTime');
+}
+
+export function getInvasionTrialEndTime(): number | null {
+  const raw = readInvasionEndTimeRaw();
+  if (!raw) return null;
+  const parsed = parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return null;
+  if (!localStorage.getItem(INVASION_END_TIME_KEY) && sessionStorage.getItem('invasionEndTime')) {
+    localStorage.setItem(INVASION_END_TIME_KEY, raw);
+  }
+  return parsed;
+}
+
+function persistInvasionEndTime(endMs: number) {
+  const value = String(endMs);
+  localStorage.setItem(INVASION_END_TIME_KEY, value);
+  sessionStorage.setItem('invasionEndTime', value);
+}
+
+/** Atualiza o fim do trial (ex.: lock de dev no countdown). */
+export function setInvasionTrialEndTime(endMs: number) {
+  persistInvasionEndTime(endMs);
+}
+
+function clearInvasionEndTime() {
+  localStorage.removeItem(INVASION_END_TIME_KEY);
+  sessionStorage.removeItem('invasionEndTime');
+}
+
 export function startInvasionTrialSession(durationMs = INVASION_TRIAL_DURATION_MS) {
   localStorage.removeItem('spygram_trial_expired');
-  sessionStorage.setItem('invasionEndTime', String(Date.now() + durationMs));
+  persistInvasionEndTime(Date.now() + durationMs);
 }
 
 /** Prévia de 1 minuto no feed / direct / notificações */
-export function startPreviewTrialSession() {
+export function startPreviewTrialSession(force = false) {
+  if (!force && hasActiveInvasionTrial()) return;
   startInvasionTrialSession(PREVIEW_TRIAL_MS);
 }
 
+/** Inicia a prévia só se ainda não existir timer válido (não reseta no F5). */
+export function ensurePreviewTrialSession() {
+  if (hasActiveInvasionTrial() || isPreviewTrialExpired()) return;
+  startPreviewTrialSession(true);
+}
+
 export function hasActiveInvasionTrial(): boolean {
-  const endTime = sessionStorage.getItem('invasionEndTime');
+  const endTime = getInvasionTrialEndTime();
   if (!endTime) return false;
-  return Date.now() < parseInt(endTime, 10);
+  return Date.now() < endTime;
 }
 
 export function isPreviewTrialExpired(): boolean {
@@ -25,7 +65,7 @@ export function isPreviewTrialExpired(): boolean {
 }
 
 export function expireInvasionTrial() {
-  sessionStorage.removeItem('invasionEndTime');
+  clearInvasionEndTime();
   localStorage.setItem('spygram_trial_expired', 'true');
   markInstagramDemoSeen();
 }
@@ -40,7 +80,7 @@ export function hasSeenInstagramDemo(): boolean {
 
 export function clearInvasionTrialState() {
   localStorage.removeItem('spygram_trial_expired');
-  sessionStorage.removeItem('invasionEndTime');
+  clearInvasionEndTime();
   sessionStorage.removeItem('spygram_saw_instagram_demo');
 }
 
@@ -54,6 +94,7 @@ const LOCAL_INVASION_KEYS = [
   'spygram_banned_session',
   'spygram_free_consultation_used',
   'spygram_free_consultation_username',
+  'spygram_invasion_end_time',
 ] as const;
 
 const SESSION_INVASION_KEYS = [
@@ -90,7 +131,7 @@ export function setDevPreviewTimeLocked(locked: boolean, seconds?: number) {
     const secs = seconds ?? getDevPreviewLockedSeconds();
     sessionStorage.setItem(DEV_PREVIEW_LOCK_KEY, 'true');
     sessionStorage.setItem(DEV_PREVIEW_LOCK_VALUE_KEY, String(secs));
-    sessionStorage.setItem('invasionEndTime', String(Date.now() + secs * 1000));
+    persistInvasionEndTime(Date.now() + secs * 1000);
     localStorage.removeItem('spygram_trial_expired');
     return;
   }

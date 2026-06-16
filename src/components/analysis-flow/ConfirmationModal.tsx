@@ -19,6 +19,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onConfirm,
   onReject,
 }) => {
+  return (
     <AnimatePresence>
       {isOpen && (
         <div className="confirm-modal__backdrop">

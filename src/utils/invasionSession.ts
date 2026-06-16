@@ -42,7 +42,7 @@ export function startInvasionTrialSession(durationMs = INVASION_TRIAL_DURATION_M
   persistInvasionEndTime(Date.now() + durationMs);
 }
 
-/** Prévia de 1 minuto no feed / direct / notificações */
+/** Prévia de 1:30 no feed / direct / notificações */
 export function startPreviewTrialSession(force = false) {
   if (!force && hasActiveInvasionTrial()) return;
   startInvasionTrialSession(PREVIEW_TRIAL_MS);

@@ -1,4 +1,5 @@
-import React from 'react';
+import type { FC } from 'react';
+import { PREVIEW_TRIAL_LABEL } from '../../constants/analysisFlow';
 import { motion } from 'framer-motion';
 import { Eye, PlayCircle } from 'lucide-react';
 import './analysis-flow.css';
@@ -9,7 +10,7 @@ interface PreviewAccessChoiceProps {
   onAccessPreview: () => void;
 }
 
-const PreviewAccessChoice: React.FC<PreviewAccessChoiceProps> = ({
+const PreviewAccessChoice: FC<PreviewAccessChoiceProps> = ({
   username,
   onContinueVideo,
   onAccessPreview,
@@ -26,7 +27,7 @@ const PreviewAccessChoice: React.FC<PreviewAccessChoiceProps> = ({
       <strong>acesso às prévias</strong> do Instagram?
     </p>
     <p className="preview-choice__hint">
-      A prévia inclui feed, Direct e notificações por <strong>1 minuto</strong>.
+      A prévia inclui feed, Direct e notificações por <strong>{PREVIEW_TRIAL_LABEL}</strong>.
     </p>
 
     <div className="preview-choice__actions">

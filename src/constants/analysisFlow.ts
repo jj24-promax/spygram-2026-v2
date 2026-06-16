@@ -7,8 +7,10 @@ export const ANALYSIS_COMPLETE_MS = 3 * 60 * 1000;
 /** Countdown de urgência no relatório após liberar (15 min) */
 export const REPORT_ACCESS_MS = 15 * 60 * 1000;
 
-/** Duração da prévia gratuita no Instagram simulado */
-export const PREVIEW_TRIAL_MS = 60 * 1000;
+/** Duração da prévia gratuita no Instagram simulado (1:30) */
+export const PREVIEW_TRIAL_MS = 90 * 1000;
+
+export const PREVIEW_TRIAL_LABEL = '1:30';
 
 /**
  * Vídeo VSL local — public/videos/vsl.mp4 (~76 MB, web-optimized)

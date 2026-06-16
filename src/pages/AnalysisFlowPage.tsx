@@ -15,6 +15,11 @@ import {
 } from '../utils/invasionSession';
 import { resolveTargetGender } from '../utils/genderClassifier';
 import { enrichSuggestedProfilesWithPeoplePhotos } from '../utils/feedStockImages';
+import {
+  persistInvasionData,
+  prefetchInvasionFeedData,
+  resetInvasionPrefetchCache,
+} from '../utils/invasionDataLoader';
 import { AnalysisFlowProvider, useAnalysisFlow } from '../context/AnalysisFlowContext';
 import HeroSection from '../components/analysis-flow/HeroSection';
 import ConversionQuiz from '../components/analysis-flow/ConversionQuiz';
@@ -108,6 +113,7 @@ const AnalysisFlowInner: React.FC = () => {
       logout();
       sessionStorage.removeItem('invasionData');
       sessionStorage.removeItem('current_lead_id');
+      resetInvasionPrefetchCache();
 
       const [fetchResult, locationData] = await Promise.all([
         fetchProfileData(clean),
@@ -161,8 +167,8 @@ const AnalysisFlowInner: React.FC = () => {
       userCity,
     };
 
-    sessionStorage.setItem('invasionData', JSON.stringify(invasionData));
-    localStorage.setItem('spygram_active_invasion', JSON.stringify(invasionData));
+    persistInvasionData(invasionData);
+    void prefetchInvasionFeedData(profileData);
 
     trackLead({
       username_searched: profileData.username,

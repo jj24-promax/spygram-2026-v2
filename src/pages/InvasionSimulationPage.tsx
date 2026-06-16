@@ -37,12 +37,17 @@ type SimulationStage = 'loading' | 'login_attempt' | 'success_card' | 'feed_lock
 const InvasionSimulationPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isLoggedIn, login } = useAuth();
+  const { isLoggedIn } = useAuth();
 
   const storedInvasionData = useMemo(() => readInvasionData(), []);
 
   const instantLogin = useMemo(
     () => sessionStorage.getItem('spygram_instant_login') === 'true',
+    []
+  );
+
+  const previewFeedUnlocked = useMemo(
+    () => sessionStorage.getItem('spygram_preview_feed_unlocked') === 'true',
     []
   );
 
@@ -89,8 +94,7 @@ const InvasionSimulationPage: React.FC = () => {
   const [posts, setPosts] = useState<FeedPost[]>(storedInvasionData?.posts || []);
 
   const [stage, setStage] = useState<SimulationStage>(() => {
-    if (instantLogin && hasProfileData) return 'feed_locked';
-    if (isLoggedIn && hasProfileData) return 'feed_locked';
+    if ((instantLogin || previewFeedUnlocked) && hasProfileData) return 'feed_locked';
     return 'loading';
   });
 
@@ -114,10 +118,10 @@ const InvasionSimulationPage: React.FC = () => {
 
   useLayoutEffect(() => {
     if (!instantLogin || stage !== 'feed_locked') return;
-    login();
+    sessionStorage.setItem('spygram_preview_feed_unlocked', 'true');
     sessionStorage.removeItem('spygram_instant_login');
     markInstagramDemoSeen();
-  }, [instantLogin, stage, login]);
+  }, [instantLogin, stage]);
 
   useEffect(() => {
     const onUpdated = () => {
@@ -166,7 +170,9 @@ const InvasionSimulationPage: React.FC = () => {
         console.error('Erro ao carregar dados da invasão:', error);
       }
 
-      if (isLoggedIn) {
+      if (previewFeedUnlocked || instantLogin) {
+        setStage('feed_locked');
+      } else if (isLoggedIn) {
         setStage('feed_locked');
       } else {
         setStage('login_attempt');
@@ -181,6 +187,8 @@ const InvasionSimulationPage: React.FC = () => {
     navigate,
     profileData,
     stage,
+    previewFeedUnlocked,
+    instantLogin,
     storedInvasionData,
   ]);
 
@@ -192,7 +200,7 @@ const InvasionSimulationPage: React.FC = () => {
 
   const handleLoginSuccess = useCallback(() => {
     sessionStorage.removeItem('spygram_instant_login');
-    login();
+    sessionStorage.setItem('spygram_preview_feed_unlocked', 'true');
     setStage('success_card');
     toast.success(`Acesso concedido ao perfil @${profileData?.username}!`);
     trackLead({ status: 'sucesso_simulacao' });
@@ -200,7 +208,7 @@ const InvasionSimulationPage: React.FC = () => {
     setTimeout(() => {
       setStage('feed_locked');
     }, 2000);
-  }, [profileData?.username, login]);
+  }, [profileData?.username]);
 
   const handleLockedFeatureClick = useCallback((featureName: string) => {
     setModalFeatureName(featureName);

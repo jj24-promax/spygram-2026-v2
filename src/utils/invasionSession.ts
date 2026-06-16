@@ -105,6 +105,7 @@ const SESSION_INVASION_KEYS = [
   'spygram_warning_seen',
   'spygram_vsl_active',
   'spygram_instant_login',
+  'spygram_preview_feed_unlocked',
   'spygram_dev_preview_lock',
   'spygram_dev_preview_lock_value',
   'spygram_dev_skip_analysis_pending',
@@ -169,9 +170,16 @@ export function hasOngoingInvasionFlow(): boolean {
   return false;
 }
 
-/** Pode iniciar nova busca de @ na landing. Membros logados ignoram o limite. */
-export function canStartFreeConsultation(isLoggedIn = false): boolean {
-  if (isLoggedIn) return true;
+/** Membro pago (login real em /login com e-mail na tabela members). */
+export function isPaidMember(): boolean {
+  return !!(
+    localStorage.getItem('logged_in_email') || sessionStorage.getItem('logged_in_email')
+  );
+}
+
+/** Pode iniciar nova busca de @ na landing. Só membros pagos ignoram o limite. */
+export function canStartFreeConsultation(): boolean {
+  if (isPaidMember()) return true;
   return !hasUsedFreeConsultation();
 }
 

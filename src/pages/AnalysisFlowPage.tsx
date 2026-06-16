@@ -11,6 +11,7 @@ import {
   getFreeConsultationBlockedMessage,
   hasActiveInvasionTrial,
   hasOngoingInvasionFlow,
+  isPaidMember,
   markFreeConsultationUsed,
 } from '../utils/invasionSession';
 import { resolveTargetGender } from '../utils/genderClassifier';
@@ -56,6 +57,13 @@ const AnalysisFlowInner: React.FC = () => {
     trackFacebookEvent('PageView');
   }, []);
 
+  /** Limpa sessão falsa do simulador de login do Instagram (não é membro pago). */
+  useEffect(() => {
+    if (isLoggedIn && !isPaidMember()) {
+      logout();
+    }
+  }, [isLoggedIn, logout]);
+
   const overlayCompleteRef = useRef<(() => void) | null>(null);
 
   const waitForFetchingOverlay = useCallback(
@@ -86,9 +94,9 @@ const AnalysisFlowInner: React.FC = () => {
   }, [navigate]);
 
   useEffect(() => {
-    if (isLoggedIn || canStartFreeConsultation(isLoggedIn)) return;
+    if (isPaidMember() || canStartFreeConsultation()) return;
     setError(getFreeConsultationBlockedMessage());
-  }, [isLoggedIn]);
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     const clean = username.replace(/^@/, '').trim();
@@ -100,7 +108,7 @@ const AnalysisFlowInner: React.FC = () => {
     setIsLoading(true);
     setError(null);
 
-    if (!canStartFreeConsultation(isLoggedIn)) {
+    if (!canStartFreeConsultation()) {
       setError(getFreeConsultationBlockedMessage());
       setStage('landing');
       setIsLoading(false);
@@ -128,7 +136,7 @@ const AnalysisFlowInner: React.FC = () => {
         locationData.city
       );
 
-      if (!isLoggedIn) {
+      if (!isPaidMember()) {
         markFreeConsultationUsed(fetchResult.profile.username);
       }
 
@@ -154,6 +162,16 @@ const AnalysisFlowInner: React.FC = () => {
 
   const handleConfirm = useCallback(() => {
     if (!profileData) return;
+
+    if (!canStartFreeConsultation()) {
+      setError(getFreeConsultationBlockedMessage());
+      setStage('landing');
+      return;
+    }
+
+    if (!isPaidMember()) {
+      markFreeConsultationUsed(profileData.username);
+    }
 
     const enrichedSuggestions = enrichSuggestedProfilesWithPeoplePhotos(
       suggestedProfiles,
@@ -191,6 +209,8 @@ const AnalysisFlowInner: React.FC = () => {
     trackFacebookEvent('Lead');
   }, []);
 
+  const searchBlocked = !isPaidMember() && !canStartFreeConsultation();
+
   if (stage === 'vsl' || stage === 'report') {
     return <VslScreen />;
   }
@@ -207,6 +227,7 @@ const AnalysisFlowInner: React.FC = () => {
           onSubmit={handleSubmit}
           isLoading={isLoading}
           error={error}
+          searchBlocked={searchBlocked}
         />
       )}
       {stage === 'fetching' && (

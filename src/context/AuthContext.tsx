@@ -9,23 +9,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Inicialização síncrona: evita que o F5 redirecione o usuário por causa do delay do useEffect.
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    const auth = localStorage.getItem('auth_session') || sessionStorage.getItem('auth_session');
-    if (auth) {
-      try { return JSON.parse(auth).loggedIn; } catch (e) { return false; }
-    }
-    return false;
-  });
+function readAuthSession(): { loggedIn: boolean; admin: boolean } {
+  const auth = localStorage.getItem('auth_session') || sessionStorage.getItem('auth_session');
+  if (!auth) return { loggedIn: false, admin: false };
 
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    const auth = localStorage.getItem('auth_session') || sessionStorage.getItem('auth_session');
-    if (auth) {
-      try { return JSON.parse(auth).admin; } catch (e) { return false; }
+  try {
+    const parsed = JSON.parse(auth);
+    const hasMemberEmail = !!(
+      localStorage.getItem('logged_in_email') || sessionStorage.getItem('logged_in_email')
+    );
+    // Sessão do simulador do Instagram não conta como membro pago.
+    if (parsed.loggedIn && !hasMemberEmail && !parsed.admin) {
+      return { loggedIn: false, admin: false };
     }
-    return false;
-  });
+    return { loggedIn: !!parsed.loggedIn, admin: !!parsed.admin };
+  } catch {
+    return { loggedIn: false, admin: false };
+  }
+}
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => readAuthSession().loggedIn);
+
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => readAuthSession().admin);
 
   const login = (role: 'admin' | 'user' = 'user') => {
     const isAdm = role === 'admin';

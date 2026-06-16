@@ -9,6 +9,7 @@ interface HeroSectionProps {
   onSubmit: () => void;
   isLoading: boolean;
   error: string | null;
+  searchBlocked?: boolean;
 }
 
 const HeroSection: React.FC<HeroSectionProps> = ({
@@ -17,6 +18,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   onSubmit,
   isLoading,
   error,
+  searchBlocked = false,
 }) => {
   const [logoFailed, setLogoFailed] = useState(false);
 
@@ -89,7 +91,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 placeholder="nomedousuario"
-                disabled={isLoading}
+                disabled={isLoading || searchBlocked}
                 autoComplete="off"
                 autoCapitalize="off"
                 spellCheck={false}
@@ -102,7 +104,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
             <button
               type="button"
               onClick={onSubmit}
-              disabled={isLoading || !username.trim()}
+              disabled={isLoading || !username.trim() || searchBlocked}
               className="hero-card__cta analysis-cta-pulse hero-neon-border hero-neon-border--cta"
             >
               <Search className="hero-card__cta-icon" aria-hidden />

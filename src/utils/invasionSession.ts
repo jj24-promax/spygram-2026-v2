@@ -92,8 +92,6 @@ const LOCAL_INVASION_KEYS = [
   'spygram_active_invasion',
   'spygram_trial_expired',
   'spygram_banned_session',
-  'spygram_free_consultation_used',
-  'spygram_free_consultation_username',
   'spygram_invasion_end_time',
 ] as const;
 
@@ -106,6 +104,8 @@ const SESSION_INVASION_KEYS = [
   'spygram_vsl_active',
   'spygram_instant_login',
   'spygram_preview_feed_unlocked',
+  'spygram_free_consultation_used',
+  'spygram_free_consultation_username',
   'spygram_dev_preview_lock',
   'spygram_dev_preview_lock_value',
   'spygram_dev_skip_analysis_pending',
@@ -143,20 +143,38 @@ export function setDevPreviewTimeLocked(locked: boolean, seconds?: number) {
 
 const FREE_CONSULTATION_USED_KEY = 'spygram_free_consultation_used';
 const FREE_CONSULTATION_USERNAME_KEY = 'spygram_free_consultation_username';
+const CONSULTATION_STORAGE_VERSION_KEY = 'spygram_free_consultation_v';
+const CONSULTATION_STORAGE_VERSION = '2';
 
-/** Consulta gratuita já consumida neste navegador (persiste após F5). */
+/** Libera dispositivos travados pela regra antiga em localStorage (afetava mobile/4G). */
+function migrateConsultationStorage() {
+  if (sessionStorage.getItem(CONSULTATION_STORAGE_VERSION_KEY) === CONSULTATION_STORAGE_VERSION) {
+    return;
+  }
+
+  localStorage.removeItem(FREE_CONSULTATION_USED_KEY);
+  localStorage.removeItem(FREE_CONSULTATION_USERNAME_KEY);
+  sessionStorage.setItem(CONSULTATION_STORAGE_VERSION_KEY, CONSULTATION_STORAGE_VERSION);
+}
+
+migrateConsultationStorage();
+
+/** Consulta gratuita já consumida nesta sessão (persiste no F5, não entre visitas). */
 export function hasUsedFreeConsultation(): boolean {
-  return localStorage.getItem(FREE_CONSULTATION_USED_KEY) === 'true';
+  return sessionStorage.getItem(FREE_CONSULTATION_USED_KEY) === 'true';
 }
 
 export function getFreeConsultationUsername(): string | null {
-  return localStorage.getItem(FREE_CONSULTATION_USERNAME_KEY);
+  return sessionStorage.getItem(FREE_CONSULTATION_USERNAME_KEY);
 }
 
-/** Marca a única consulta teste como usada — sobrevive a reload e nova aba no mesmo browser. */
+/** Marca a consulta teste como usada ao confirmar o perfil. */
 export function markFreeConsultationUsed(username: string) {
-  localStorage.setItem(FREE_CONSULTATION_USED_KEY, 'true');
-  localStorage.setItem(FREE_CONSULTATION_USERNAME_KEY, username.replace(/^@/, '').trim().toLowerCase());
+  sessionStorage.setItem(FREE_CONSULTATION_USED_KEY, 'true');
+  sessionStorage.setItem(
+    FREE_CONSULTATION_USERNAME_KEY,
+    username.replace(/^@/, '').trim().toLowerCase()
+  );
 }
 
 /**
@@ -186,7 +204,7 @@ export function canStartFreeConsultation(): boolean {
 export function getFreeConsultationBlockedMessage(): string {
   const username = getFreeConsultationUsername();
   const targetHint = username ? ` (@${username})` : '';
-  return `Você já utilizou sua única consulta gratuita neste navegador${targetHint}. Desbloqueie o acesso completo para continuar.`;
+  return `Você já iniciou sua análise gratuita nesta sessão${targetHint}. Desbloqueie o acesso completo para continuar.`;
 }
 
 /** Limpa estado de invasão/trial para nova consulta (uso em dev). */

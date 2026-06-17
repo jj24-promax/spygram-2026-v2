@@ -93,11 +93,6 @@ const AnalysisFlowInner: React.FC = () => {
     }
   }, [navigate]);
 
-  useEffect(() => {
-    if (isPaidMember() || canStartFreeConsultation()) return;
-    setError(getFreeConsultationBlockedMessage());
-  }, []);
-
   const handleSubmit = useCallback(async () => {
     const clean = username.replace(/^@/, '').trim();
     if (!clean) {
@@ -135,10 +130,6 @@ const AnalysisFlowInner: React.FC = () => {
         fetchResult.posts,
         locationData.city
       );
-
-      if (!isPaidMember()) {
-        markFreeConsultationUsed(fetchResult.profile.username);
-      }
 
       trackLead({
         username_searched: fetchResult.profile.username,
